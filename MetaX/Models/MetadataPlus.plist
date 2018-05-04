@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PhotoProps</key>
+	<array>
+		<string>PixelWidth</string>
+		<string>PixelHeight</string>
+		<string>DPIWidth</string>
+		<string>DPIHeight</string>
+		<string>Depth</string>
+		<string>ColorModel</string>
+	</array>
+	<key>CameraProps</key>
+	<array>
+		<string>Make</string>
+		<string>Model</string>
+		<string>ISOSpeedRatings</string>
+		<string>ExposureTime</string>
+	</array>
+	<key>LensProps</key>
+	<array>
+		<string>LensMake</string>
+		<string>LensModel</string>
+		<string>FNumber</string>
+		<string>FocalLenIn35mmFilm</string>
+		<string>FocalLength</string>
+	</array>
+	<key>TimeProp</key>
+	<string>DateTimeOriginal</string>
+	<key>GPSProps</key>
+	<array>
+		<string>LatitudeRef</string>
+		<string>Latitude</string>
+		<string>LongitudeRef</string>
+		<string>Longitude</string>
+	</array>
+</dict>
+</plist>
