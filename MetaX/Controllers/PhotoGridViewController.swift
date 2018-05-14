@@ -190,7 +190,7 @@ extension PhotoGridViewController: PHPhotoLibraryChangeObserver {
             return
         }
         
-        DispatchQueue.main.async {
+        DispatchQueue.main.sync {
             self.fetchResult = changes.fetchResultAfterChanges
             if changes.hasIncrementalChanges {
                 guard let collectionView = self.collectionView else { fatalError() }
