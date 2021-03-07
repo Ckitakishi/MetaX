@@ -6,6 +6,7 @@
 //  Copyright © 2018年 Yuhan Chen. All rights reserved.
 //
 
+import UIKit
 import Photos
 
 extension PHPhotoLibrary {
@@ -33,7 +34,7 @@ extension PHPhotoLibrary {
     
     class func guideToSetting() {
         DispatchQueue.main.async {
-            let url = URL(string: UIApplicationOpenSettingsURLString)
+            let url = URL(string: UIApplication.openSettingsURLString)
             UIApplication.shared.open(url!, options: [:], completionHandler: nil)
         }
     }

@@ -115,7 +115,7 @@ extension LocationSearchViewController: UITableViewDelegate {
         selectedModel = resultDataSource[indexPath.row]
         var completionModel = LocationModel(with: selectedModel)
         
-        let searchRequest = MKLocalSearchRequest(completion: selectedModel)
+        let searchRequest = MKLocalSearch.Request(completion: selectedModel)
         let search = MKLocalSearch(request: searchRequest)
         search.start { (response, error) in
             if let coordinate = response?.mapItems[0].placemark.coordinate {

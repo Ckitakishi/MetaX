@@ -40,7 +40,7 @@ class ZoomTransition:NSObject, UIViewControllerAnimatedTransitioning {
         let scaleTransform = CGAffineTransform(scaleX: xScaleFactor, y: yScaleFactor)
         
         containerView.addSubview(toView)
-        containerView.bringSubview(toFront: detailView)
+        containerView.bringSubviewToFront(detailView)
         
         if presenting {
             detailView.transform = scaleTransform

@@ -1,0 +1,6 @@
+framework module LoadableNib {
+  umbrella header "LoadableNib-umbrella.h"
+
+  export *
+  module * { export * }
+}
