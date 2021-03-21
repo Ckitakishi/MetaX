@@ -9,7 +9,6 @@
 import UIKit
 import Photos
 import PhotosUI
-import SkeletonView
 import PromiseKit
 import SVProgressHUD
 import Rswift
@@ -59,12 +58,6 @@ class DetailInfoViewController: UIViewController {
     // Mark: Life Cycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        let skeletonableViews: [UIView] = [imageView]
-        for view in skeletonableViews {
-            view.isSkeletonable = true
-            view.showAnimatedGradientSkeleton()
-        }
         
         infoTableView.dataSource = self
         infoTableView.delegate = self
@@ -122,7 +115,6 @@ class DetailInfoViewController: UIViewController {
 
             self.imageView.isHidden = false
             self.imageView.image = image
-            self.imageView.hideSkeleton()
         })
     }
     

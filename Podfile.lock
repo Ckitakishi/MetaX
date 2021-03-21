@@ -12,14 +12,12 @@ PODS:
   - R.swift (5.4.0):
     - R.swift.Library (~> 5.3.0)
   - R.swift.Library (5.3.0)
-  - SkeletonView (1.13.0)
   - SVProgressHUD (2.2.5)
 
 DEPENDENCIES:
   - LoadableNib (= 1.0.1)
   - PromiseKit (= 6.13.1)
   - R.swift (= 5.4.0)
-  - SkeletonView (= 1.13.0)
   - SVProgressHUD (= 2.2.5)
 
 SPEC REPOS:
@@ -28,7 +26,6 @@ SPEC REPOS:
     - PromiseKit
     - R.swift
     - R.swift.Library
-    - SkeletonView
     - SVProgressHUD
 
 SPEC CHECKSUMS:
@@ -36,9 +33,8 @@ SPEC CHECKSUMS:
   PromiseKit: 28fda91c973cc377875d8c0ea4f973013c05b6db
   R.swift: c533450b0f7dc494e0993f5f1a1db925d84c3006
   R.swift.Library: 0fc583cb55a99e28901299cc451614cad1161962
-  SkeletonView: 2b14cb767a7da384d17d5d7e1db0d55a6cf9566a
   SVProgressHUD: 1428aafac632c1f86f62aa4243ec12008d7a51d6
 
-PODFILE CHECKSUM: 60e81afcd0b5e938ecf5f16f6663fd76837ca98e
+PODFILE CHECKSUM: d79f3dd9477cc20f63a2306b09aa605bcc7a436f
 
 COCOAPODS: 1.10.1

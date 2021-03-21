@@ -3,4 +3,3 @@ ${BUILT_PRODUCTS_DIR}/LoadableNib/LoadableNib.framework
 ${BUILT_PRODUCTS_DIR}/PromiseKit/PromiseKit.framework
 ${BUILT_PRODUCTS_DIR}/R.swift.Library/Rswift.framework
 ${BUILT_PRODUCTS_DIR}/SVProgressHUD/SVProgressHUD.framework
-${BUILT_PRODUCTS_DIR}/SkeletonView/SkeletonView.framework
