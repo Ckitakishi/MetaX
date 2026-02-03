@@ -9,10 +9,9 @@
 import UIKit
 import Photos
 import PhotosUI
+import rswift
 import SkeletonView
-import PromiseKit
 import SVProgressHUD
-import Rswift
 
 // MARK: Enum -
 enum EditAlertAction: Int {
@@ -294,16 +293,17 @@ class DetailInfoViewController: UIViewController {
     }
     
     @IBAction func clearAllMetadata(_ sender: UIButton) {
-        
         let newProps = metaData?.deleteAllExceptOrientation()
-        
-        deleteAlert(completionHandler: { action -> Void in
-            if action != .cancel {
-                self.saveImage(newProps: newProps!, doDelete: action == .addAndDel, completionHandler: {
+
+        deleteAlert { [weak self] action in
+            guard let self = self, action != .cancel else { return }
+            Task {
+                await self.saveImage(newProps: newProps!, doDelete: action == .addAndDel)
+                await MainActor.run {
                     self.metaData = Metadata(props: newProps!)
-                })
+                }
             }
-        })
+        }
     }
     
     
@@ -337,242 +337,214 @@ fileprivate extension DetailInfoViewController {
     
     func addTimeStamp(_ date: Date) {
         let newProps = metaData?.writeTimeOriginal(date)
-        
-        deleteAlert(completionHandler: { action -> Void in
-            if action != .cancel {
-                self.saveImage(newProps: newProps!, doDelete: action == .addAndDel, completionHandler: {
-                    
+
+        deleteAlert { [weak self] action in
+            guard let self = self, action != .cancel else { return }
+            Task {
+                await self.saveImage(newProps: newProps!, doDelete: action == .addAndDel)
+                await MainActor.run {
                     self.metaData = Metadata(props: newProps!)
-                    
-                    PHPhotoLibrary.shared().performChanges({
-                        let request = PHAssetChangeRequest(for: self.asset)
-                        request.creationDate = date
-                    })
-                })
+                }
+                try? await PHPhotoLibrary.shared().performChanges {
+                    let request = PHAssetChangeRequest(for: self.asset)
+                    request.creationDate = date
+                }
             }
-        })
+        }
     }
     
     func clearTimeStamp() {
         let newProps = metaData?.deleteTimeOriginal()
-        
-        deleteAlert(completionHandler: { action -> Void in
-            if action != .cancel {
-                self.saveImage(newProps: newProps!, doDelete: action == .addAndDel, completionHandler: {
+
+        deleteAlert { [weak self] action in
+            guard let self = self, action != .cancel else { return }
+            Task {
+                await self.saveImage(newProps: newProps!, doDelete: action == .addAndDel)
+                await MainActor.run {
                     self.metaData = Metadata(props: newProps!)
-                })
+                }
             }
-        })
+        }
     }
     
     func addLocation(_ location: CLLocation) {
         let newProps = metaData?.writeLocation(location)
-        
-        deleteAlert(completionHandler: { action -> Void in
-            if action != .cancel {
-                self.saveImage(newProps: newProps!, doDelete: action == .addAndDel, completionHandler: {
-                    
+
+        deleteAlert { [weak self] action in
+            guard let self = self, action != .cancel else { return }
+            Task {
+                await self.saveImage(newProps: newProps!, doDelete: action == .addAndDel)
+                await MainActor.run {
                     self.metaData = Metadata(props: newProps!)
-                    
-                    PHPhotoLibrary.shared().performChanges({
-                        
-                        let request = PHAssetChangeRequest(for: self.asset)
-                        request.location = location
-                    })
-                })
+                }
+                try? await PHPhotoLibrary.shared().performChanges {
+                    let request = PHAssetChangeRequest(for: self.asset)
+                    request.location = location
+                }
             }
-        })
+        }
     }
     
     func clearLocation() {
-
         let newProps = metaData?.deleteGPS()
-        
-        deleteAlert(completionHandler: { action -> Void in
-            if action != .cancel {
-                self.saveImage(newProps: newProps!, doDelete: action == .addAndDel, completionHandler: {
-                    
+
+        deleteAlert { [weak self] action in
+            guard let self = self, action != .cancel else { return }
+            Task {
+                await self.saveImage(newProps: newProps!, doDelete: action == .addAndDel)
+                await MainActor.run {
                     self.metaData = Metadata(props: newProps!)
-                    
-                    PHPhotoLibrary.shared().performChanges({
-                        let request = PHAssetChangeRequest(for: self.asset)
-                        request.location = CLLocation.init(latitude: 0, longitude: 0)
-                    })
-                })
-            }
-        })
-    }
-    
-    
-    func createNewAlbum(albumTitle: String) -> Promise<Bool> {
-        return Promise { seal in
-            if self.checkAlbumExists(albumTitle) {
-                seal.fulfill(true)
-            } else {
-                PHPhotoLibrary.shared().performChanges({
-                    PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: albumTitle)
-                }) { (isSuccess, error) in
-                    isSuccess ? seal.fulfill(isSuccess) : seal.reject(error!)
+                }
+                try? await PHPhotoLibrary.shared().performChanges {
+                    let request = PHAssetChangeRequest(for: self.asset)
+                    request.location = CLLocation(latitude: 0, longitude: 0)
                 }
             }
         }
     }
     
-    func requestContentEditingInput(with options: PHContentEditingInputRequestOptions, newProps: [String: Any]) -> Promise<URL> {
-        
-        return Promise { seal in
-            asset.requestContentEditingInput(with: options, completionHandler: { contentEditingInput, _ in
-                
+    
+    func createNewAlbum(albumTitle: String) async throws {
+        if checkAlbumExists(albumTitle) {
+            return
+        }
+        try await PHPhotoLibrary.shared().performChanges {
+            PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: albumTitle)
+        }
+    }
+    
+    func requestContentEditingInput(with options: PHContentEditingInputRequestOptions, newProps: [String: Any]) async throws -> URL {
+        return try await withCheckedThrowingContinuation { continuation in
+            asset.requestContentEditingInput(with: options) { contentEditingInput, _ in
+
                 guard let imageURL = contentEditingInput?.fullSizeImageURL else {
-                    seal.reject(ImageSaveError.edition)
+                    continuation.resume(throwing: ImageSaveError.edition)
                     return
                 }
-                
+
                 let ciImageOfURL = CIImage(contentsOf: imageURL)
-                let context = CIContext(options:nil)
-                
+                let context = CIContext(options: nil)
+
                 guard let ciImage = ciImageOfURL else {
-                    seal.reject(ImageSaveError.edition)
+                    continuation.resume(throwing: ImageSaveError.edition)
                     return
                 }
-                
+
                 var tmpUrl = NSURL.fileURL(withPath: NSTemporaryDirectory() + imageURL.lastPathComponent)
-                
+
                 let cgImage = context.createCGImage(ciImage, from: ciImage.extent)
                 let cgImageSource = CGImageSourceCreateWithURL(imageURL as CFURL, nil)
-                
+
                 guard let sourceType = CGImageSourceGetType(cgImageSource!) else {
-                    seal.reject(ImageSaveError.edition)
-                    return
-                }
-                
-                var createdDestination: CGImageDestination? = CGImageDestinationCreateWithURL(tmpUrl as CFURL, sourceType
-                    , 1, nil)
-                
-                if createdDestination == nil {
-                    // media type is unsupported: delete temp file, create new one with extension [.JPG].
-                    let _ = try? FileManager.default.removeItem(at: tmpUrl)
-                    tmpUrl = NSURL.fileURL(withPath: NSTemporaryDirectory() + imageURL.deletingPathExtension().lastPathComponent + ".JPG")
-                    createdDestination = CGImageDestinationCreateWithURL(tmpUrl as CFURL, "public.jpeg" as CFString
-                        , 1, nil)
-                }
-                
-                guard let destination = createdDestination else {
-                    seal.reject(ImageSaveError.edition)
+                    continuation.resume(throwing: ImageSaveError.edition)
                     return
                 }
 
-                
+                var createdDestination: CGImageDestination? = CGImageDestinationCreateWithURL(tmpUrl as CFURL, sourceType, 1, nil)
+
+                if createdDestination == nil {
+                    // media type is unsupported: delete temp file, create new one with extension [.JPG].
+                    try? FileManager.default.removeItem(at: tmpUrl)
+                    tmpUrl = NSURL.fileURL(withPath: NSTemporaryDirectory() + imageURL.deletingPathExtension().lastPathComponent + ".JPG")
+                    createdDestination = CGImageDestinationCreateWithURL(tmpUrl as CFURL, "public.jpeg" as CFString, 1, nil)
+                }
+
+                guard let destination = createdDestination else {
+                    continuation.resume(throwing: ImageSaveError.edition)
+                    return
+                }
+
                 CGImageDestinationAddImage(destination, cgImage!, newProps as CFDictionary)
                 if !CGImageDestinationFinalize(destination) {
-                    seal.reject(ImageSaveError.edition)
+                    continuation.resume(throwing: ImageSaveError.edition)
                 } else {
-                    seal.fulfill(tmpUrl)
+                    continuation.resume(returning: tmpUrl)
                 }
-            })
+            }
         }
     }
     
-    func createAsset(from tempURL: URL) -> Promise<PHAsset> {
-        
-        return Promise { seal in
-            var localId: String? = ""
-            
-            PHPhotoLibrary.shared().performChanges({
-                let request = PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: tempURL)
-                localId = request?.placeholderForCreatedAsset?.localIdentifier
-                
-                let fetchOptions = PHFetchOptions()
-                fetchOptions.predicate = NSPredicate(format: "title = %@", "MetaX")
-                let collection = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: fetchOptions)
-                
-                if let album = collection.firstObject {
-                    let albumChangeRequest = PHAssetCollectionChangeRequest(for: album)
-                    let placeHolder = request?.placeholderForCreatedAsset
-                    albumChangeRequest?.addAssets([placeHolder!] as NSArray)
-                }
-            }, completionHandler: { (rerult, err) in
-                
-                if !rerult {
-                    seal.reject(ImageSaveError.creation)
-                }
-            
-                if let localId = localId {
-                    let results = PHAsset.fetchAssets(withLocalIdentifiers: [localId], options: nil)
-                    if results.count > 0 {
-                        let asset = results.firstObject
-                        self.asset = asset
-                        
-                        let _ = try? FileManager.default.removeItem(at: tempURL)
-                        
-                        DispatchQueue.main.async {
-                            self.loadPhoto()
-                            self.updateInfos()
-                        }
-                        
-                        seal.fulfill(asset!)
-                    }
-                }
-            })
+    func createAsset(from tempURL: URL) async throws -> PHAsset {
+        var localId: String = ""
+
+        try await PHPhotoLibrary.shared().performChanges {
+            let request = PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: tempURL)
+            localId = request?.placeholderForCreatedAsset?.localIdentifier ?? ""
+
+            let fetchOptions = PHFetchOptions()
+            fetchOptions.predicate = NSPredicate(format: "title = %@", "MetaX")
+            let collection = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: fetchOptions)
+
+            if let album = collection.firstObject {
+                let albumChangeRequest = PHAssetCollectionChangeRequest(for: album)
+                let placeHolder = request?.placeholderForCreatedAsset
+                albumChangeRequest?.addAssets([placeHolder!] as NSArray)
+            }
         }
+
+        let results = PHAsset.fetchAssets(withLocalIdentifiers: [localId], options: nil)
+        guard let asset = results.firstObject else {
+            throw ImageSaveError.creation
+        }
+
+        self.asset = asset
+        try? FileManager.default.removeItem(at: tempURL)
+
+        await MainActor.run {
+            self.loadPhoto()
+            self.updateInfos()
+        }
+
+        return asset
     }
     
-    func deleteAsset(_ asset: PHAsset?) -> Promise<Bool> {
-        return Promise { seal in
-            PHPhotoLibrary.shared().performChanges({
-                PHAssetCreationRequest.deleteAssets([asset] as NSFastEnumeration)
-            }, completionHandler: { result, err in
-                if !result {
-                    seal.reject(err!)
-                }
-                seal.fulfill(true)
-            })
+    func deleteAsset(_ asset: PHAsset?) async throws {
+        guard let asset = asset else { return }
+        try await PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.deleteAssets([asset] as NSFastEnumeration)
         }
     }
     
     // MARK: Save Image Core
-    func saveImage(newProps: [String: Any], doDelete: Bool, completionHandler: @escaping () -> Void) {
-        
+    func saveImage(newProps: [String: Any], doDelete: Bool) async {
         let oldAsset = self.asset
-        SVProgressHUD.showProcessingHUD(with: R.string.localizable.viewProcessing())
-        
-        firstly {
-            createNewAlbum(albumTitle: "MetaX")
-            }.then { _ -> Promise<URL> in
-                let options = PHContentEditingInputRequestOptions()
-                options.isNetworkAccessAllowed = true //download asset metadata from iCloud if needed
-                
-                return self.requestContentEditingInput(with: options, newProps: newProps)
-            }.then { tmpURL -> Promise<PHAsset> in
-                self.createAsset(from: tmpURL)
-            }.then { _ -> Promise<Bool> in
-                if doDelete {
-                    return self.deleteAsset(oldAsset)
-                } else {
-                    return Promise {
-                        seal in seal.fulfill(true)
-                    }
-                }
-            }.done { _ in
+
+        await MainActor.run {
+            SVProgressHUD.showProcessingHUD(with: R.string.localizable.viewProcessing())
+        }
+
+        do {
+            try await createNewAlbum(albumTitle: "MetaX")
+
+            let options = PHContentEditingInputRequestOptions()
+            options.isNetworkAccessAllowed = true // download asset metadata from iCloud if needed
+
+            let tmpURL = try await requestContentEditingInput(with: options, newProps: newProps)
+            _ = try await createAsset(from: tmpURL)
+
+            if doDelete {
+                try await deleteAsset(oldAsset)
+            }
+
+            await MainActor.run {
                 SVProgressHUD.dismiss()
-                completionHandler()
-            }.catch { error in
+            }
+        } catch {
+            await MainActor.run {
                 SVProgressHUD.dismiss()
-                
-                var errorMessage = R.string.localizable.errorImageSaveUnknown()
-                
+
+                let errorMessage: String
                 switch error {
                 case ImageSaveError.edition:
                     errorMessage = R.string.localizable.errorImageSaveEdition()
-                    break
                 case ImageSaveError.creation:
                     errorMessage = R.string.localizable.errorImageSaveCreation()
-                    break
                 default:
-                    break
+                    errorMessage = R.string.localizable.errorImageSaveUnknown()
                 }
-                
+
                 SVProgressHUD.showCustomErrorHUD(with: errorMessage)
+            }
         }
     }
     

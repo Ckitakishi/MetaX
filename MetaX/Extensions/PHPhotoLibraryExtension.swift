@@ -7,15 +7,16 @@
 //
 
 import Photos
+import UIKit
 
 extension PHPhotoLibrary {
-    
+
     class func checkAuthorizationStatus(completionHandler: @escaping (Bool) -> Void) {
         let status = PHPhotoLibrary.authorizationStatus()
         switch status {
         case .notDetermined:
             PHPhotoLibrary.requestAuthorization { status -> Void in
-                
+
                 DispatchQueue.main.async {
                     if status != .authorized {
                         completionHandler(false)
@@ -30,11 +31,11 @@ extension PHPhotoLibrary {
             break
         }
     }
-    
+
     class func guideToSetting() {
         DispatchQueue.main.async {
-            let url = URL(string: UIApplicationOpenSettingsURLString)
-            UIApplication.shared.open(url!, options: [:], completionHandler: nil)
+            guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
         }
     }
 }

@@ -7,9 +7,8 @@
 //
 
 import UIKit
-import LoadableNib
 
-extension DetailSectionHeaderView: Loadable {}
+extension DetailSectionHeaderView: NibLoadable {}
 
 class DetailSectionHeaderView: UIView {
     
@@ -26,7 +25,7 @@ class DetailSectionHeaderView: UIView {
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.firstLineHeadIndent = 16;
             
-            let stringAttributes: [NSAttributedStringKey : Any] = [
+            let stringAttributes: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 24.0),
                 .paragraphStyle: paragraphStyle
             ]

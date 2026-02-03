@@ -7,9 +7,8 @@
 //
 
 import UIKit
-import LoadableNib
 
-extension AuthLockView: Loadable {}
+extension AuthLockView: NibLoadable {}
 
 protocol AuthLockViewDelegate {
     func toSetting()
