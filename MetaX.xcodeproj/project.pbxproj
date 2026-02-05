@@ -59,7 +59,6 @@
 		56F001B12F30F46100C9F951 /* SVProgressHUD in Frameworks */ = {isa = PBXBuildFile; productRef = 56F001B02F30F46100C9F951 /* SVProgressHUD */; };
 		56F001B32F30F46100C9F951 /* RswiftLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 56F001B22F30F46100C9F951 /* RswiftLibrary */; };
 		56F001B52F30F46E00C9F951 /* rswift in Frameworks */ = {isa = PBXBuildFile; productRef = 56F001B42F30F46E00C9F951 /* rswift */; };
-		56F001C62F30F67A00C9F951 /* SkeletonView in Frameworks */ = {isa = PBXBuildFile; productRef = 56F001C52F30F67A00C9F951 /* SkeletonView */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -139,7 +138,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				56F001C62F30F67A00C9F951 /* SkeletonView in Frameworks */,
 				56F001B12F30F46100C9F951 /* SVProgressHUD in Frameworks */,
 				56F001B32F30F46100C9F951 /* RswiftLibrary in Frameworks */,
 				56F001B52F30F46E00C9F951 /* rswift in Frameworks */,
@@ -424,7 +422,6 @@
 			packageReferences = (
 				56D07E1C2F30F014001405F2 /* XCRemoteSwiftPackageReference "SVProgressHUD" */,
 				56D07E1D2F30F055001405F2 /* XCRemoteSwiftPackageReference "R.swift" */,
-				56F001C42F30F67A00C9F951 /* XCRemoteSwiftPackageReference "SkeletonView" */,
 			);
 			productRefGroup = 11E84DF2208CD56A003A8F88 /* Products */;
 			projectDirPath = "";
@@ -840,14 +837,6 @@
 				minimumVersion = 7.8.0;
 			};
 		};
-		56F001C42F30F67A00C9F951 /* XCRemoteSwiftPackageReference "SkeletonView" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Juanpe/SkeletonView.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.31.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -865,11 +854,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 56D07E1D2F30F055001405F2 /* XCRemoteSwiftPackageReference "R.swift" */;
 			productName = rswift;
-		};
-		56F001C52F30F67A00C9F951 /* SkeletonView */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 56F001C42F30F67A00C9F951 /* XCRemoteSwiftPackageReference "SkeletonView" */;
-			productName = SkeletonView;
 		};
 		56F001E62F30FA4D00C9F951 /* RswiftGenerateInternalResources */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -9,7 +9,6 @@
 import UIKit
 import Photos
 import PhotosUI
-import SkeletonView
 import SVProgressHUD
 
 // MARK: Enum -
@@ -57,11 +56,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let skeletonableViews: [UIView] = [imageView]
-        for view in skeletonableViews {
-            view.isSkeletonable = true
-            view.showAnimatedGradientSkeleton()
-        }
+        imageView.isHidden = true
 
         infoTableView.dataSource = self
         infoTableView.delegate = self
@@ -76,7 +71,6 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
             if let image = image {
                 self?.imageView.isHidden = false
                 self?.imageView.image = image
-                self?.imageView.hideSkeleton()
             }
         }
 

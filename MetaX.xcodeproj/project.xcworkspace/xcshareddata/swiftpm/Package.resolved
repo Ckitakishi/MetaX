@@ -1,5 +1,5 @@
 {
-  "originHash" : "55d56e52264a4d9990e5fa77ac30025010f58c00c4c509125d4325fb7fbcb2fe",
+  "originHash" : "69bb757876ce5d0730e4c5152ab8ff97b88eb99015b9cf4cbd9b31e56de85e2c",
   "pins" : [
     {
       "identity" : "r.swift",
@@ -8,15 +8,6 @@
       "state" : {
         "revision" : "a9abc6b0afe0fc4a5a71e1d7d2872143dff2d2f1",
         "version" : "7.8.0"
-      }
-    },
-    {
-      "identity" : "skeletonview",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Juanpe/SkeletonView.git",
-      "state" : {
-        "revision" : "2f5274827d310e32c09325dd3e0007120940988e",
-        "version" : "1.31.0"
       }
     },
     {

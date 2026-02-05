@@ -16,7 +16,7 @@ class DetailSectionHeaderView: UIView {
     
     override func awakeFromNib() {
         super.awakeFromNib()
-        titleLabel.addBorder(.left, color: .greenSea, thickness: 6.0)
+        titleLabel.addBorder(.left, color: UIColor(named: "greenSea") ?? .systemTeal, thickness: 6.0)
     }
     
     var headetTitle: String = "" {
