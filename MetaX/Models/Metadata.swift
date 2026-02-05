@@ -31,79 +31,77 @@ public struct Metadata {
         self.init(ciimage: ciimage)
     }
     
-    public init(ciimage: CIImage) {
+    public init?(ciimage: CIImage) {
         self.init(props: ciimage.properties)
     }
     
-    public init(props: [String: Any]) {
-        
+    public init?(props: [String: Any]) {
+
         sourceProperties = props
-        
+
         var tmpPhotoProps: [[String: Any]] = []
         var tmpCameraProps: [[String: Any]] = []
         var tmpLensProps: [[String: Any]] = []
         var tmpMetaProps: [[String: [[String: Any]]]] = []
-        
+
         var tmpTimeProp: String?
         var tmpGPSProp: CLLocation?
-        
-        guard let path = Bundle.main.path(forResource: "MetadataPlus", ofType: "plist") else {
-            fatalError("MetadataPlus.plist is not exist.")
+
+        guard let path = Bundle.main.path(forResource: "MetadataPlus", ofType: "plist"),
+              let dic = NSDictionary(contentsOfFile: path) else {
+            return nil
         }
 
-        if let dic = NSDictionary(contentsOfFile: path) {
+        let photoKeys = dic.object(forKey: "PhotoProps") as? [String] ?? []
+        let cameraKeys = dic.object(forKey: "CameraProps") as? [String] ?? []
+        let lensKeys = dic.object(forKey: "LensProps") as? [String] ?? []
+        let timeStampKey = dic.object(forKey: "TimeProp") as? String
 
-            let photoKeys = dic.object(forKey: "PhotoProps") as! [String]
-            let cameraKeys = dic.object(forKey: "CameraProps") as! [String]
-            let lensKeys = dic.object(forKey: "LensProps") as! [String]
-            let timeStampKey = dic.object(forKey: "TimeProp") as! String
-            
-            for pKey in photoKeys {
-                if let val = props[pKey] {
-                    tmpPhotoProps.append([pKey: val])
-                }
+        for pKey in photoKeys {
+            if let val = props[pKey] {
+                tmpPhotoProps.append([pKey: val])
             }
-            
-            if let exifInfo = props["{Exif}"] as? [String: Any],
-                let tiffInfo = props["{TIFF}"] as? [String: Any] {
-                
-                for cKey in cameraKeys {
-                    if let val = exifInfo[cKey] {
-                        tmpCameraProps.append([cKey: val])
-                        continue
-                    }
-                    if let val = tiffInfo[cKey] {
-                        tmpCameraProps.append([cKey: val])
-                    }
+        }
+
+        if let exifInfo = props["{Exif}"] as? [String: Any],
+           let tiffInfo = props["{TIFF}"] as? [String: Any] {
+
+            for cKey in cameraKeys {
+                if let val = exifInfo[cKey] {
+                    tmpCameraProps.append([cKey: val])
+                    continue
                 }
-            }
-            
-            if let exifInfo = props["{Exif}"] as? [String: Any] {
-                // lens info
-                for lKey in lensKeys {
-                    if let val = exifInfo[lKey] {
-                        tmpLensProps.append([lKey: val])
-                    }
-                }
-                // timestamp
-                if let val = exifInfo[timeStampKey] as? String {
-                    tmpTimeProp = val
-                }
-            }
-            
-            if let gpsInfo = props["{GPS}"] as? [String: Any] {
-                // gps info
-                if let latitudeRef = gpsInfo["LatitudeRef"] as? String,
-                    let latitude = gpsInfo["Latitude"] as? Double,
-                    let longitudeRef = gpsInfo["LongitudeRef"] as? String,
-                    let longitude = gpsInfo["Longitude"] as? Double {
-                    
-                    tmpGPSProp = CLLocation(latitude: latitudeRef == "N" ? latitude : -latitude,
-                                         longitude: longitudeRef == "E" ? longitude : -longitude)
+                if let val = tiffInfo[cKey] {
+                    tmpCameraProps.append([cKey: val])
                 }
             }
         }
-        
+
+        if let exifInfo = props["{Exif}"] as? [String: Any] {
+            // lens info
+            for lKey in lensKeys {
+                if let val = exifInfo[lKey] {
+                    tmpLensProps.append([lKey: val])
+                }
+            }
+            // timestamp
+            if let timeStampKey = timeStampKey, let val = exifInfo[timeStampKey] as? String {
+                tmpTimeProp = val
+            }
+        }
+
+        if let gpsInfo = props["{GPS}"] as? [String: Any] {
+            // gps info
+            if let latitudeRef = gpsInfo["LatitudeRef"] as? String,
+                let latitude = gpsInfo["Latitude"] as? Double,
+                let longitudeRef = gpsInfo["LongitudeRef"] as? String,
+                let longitude = gpsInfo["Longitude"] as? Double {
+
+                tmpGPSProp = CLLocation(latitude: latitudeRef == "N" ? latitude : -latitude,
+                                     longitude: longitudeRef == "E" ? longitude : -longitude)
+            }
+        }
+
         photoProps = tmpPhotoProps
         cameraProps = tmpCameraProps
         lensProps = tmpLensProps

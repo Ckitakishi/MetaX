@@ -27,9 +27,10 @@ struct DetailCellModel: DetailCellModelRepresentable {
         
         self.init()
         
-        self.prop = propValue.map { $0.0 } [0]
-        let valueAny = propValue.map { $0.1 } [0]
-        self.value = self.typeExtension(valueAny: valueAny)
+        guard let firstProp = propValue.first else { return }
+        
+        self.prop = firstProp.key
+        self.value = self.typeExtension(valueAny: firstProp.value)
         self.value = self.symbolAndFormmatExtension()
     }
 }
@@ -38,23 +39,22 @@ extension DetailCellModel {
     
     func typeExtension(valueAny: Any) -> String {
         
-        if valueAny is Int {
-            return String(describing: valueAny)
-        } else if valueAny is Double {
+        if let val = valueAny as? Int {
+            return String(describing: val)
+        } else if let val = valueAny as? Double {
             if (self.prop == "ExposureTime") {
-                let rational = Rational.init(approximationOf: valueAny as! Double)
+                let rational = Rational.init(approximationOf: val)
                 if rational.num < rational.den {
                     return (String(describing: rational.num) + "/" + String(describing: rational.den))
                 }
             }
-            return String(describing: valueAny)
-        } else if valueAny is [Int] {
-            let valueAry = valueAny as! [Int]
+            return String(describing: val)
+        } else if let valueAry = valueAny as? [Int] {
             return valueAry.reduce("") { str, val in
                 return str + String(describing: val)
             }
         } else {
-           return valueAny as! String
+           return String(describing: valueAny)
         }
     }
     
