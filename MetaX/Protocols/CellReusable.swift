@@ -8,7 +8,7 @@
 
 import UIKit
 
-protocol Reusable: class {
+protocol Reusable: AnyObject {
     static var reuseIdentifier: String { get }
     static var nib: UINib? { get }
 }
