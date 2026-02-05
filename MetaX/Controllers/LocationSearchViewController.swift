@@ -10,119 +10,104 @@ import UIKit
 import MapKit
 import SVProgressHUD
 
-protocol LocationSearchDelegate {
+protocol LocationSearchDelegate: AnyObject {
     func didSelect(_ model: LocationModel)
 }
 
-class LocationSearchViewController: UIViewController  {
-    
+class LocationSearchViewController: UIViewController, ViewModelObserving {
+
+    // MARK: - ViewModel
+
+    private let viewModel = LocationSearchViewModel()
+
+    // MARK: - Properties
+
     @IBOutlet weak var searchBar: UISearchBar!
     @IBOutlet weak var listTableView: UITableView!
-    
-    var resultDataSource: [MKLocalSearchCompletion] = []
-    var selectedModel: MKLocalSearchCompletion!
-    
-    var delegate: LocationSearchDelegate!
-    let locationManager = CLLocationManager()
-    let completer = MKLocalSearchCompleter()
-    
+
+    weak var delegate: LocationSearchDelegate?
+
+    // MARK: - Life Cycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         searchBar.delegate = self
-        locationManager.delegate = self
         listTableView.delegate = self
         listTableView.dataSource = self
-        
         listTableView.keyboardDismissMode = .onDrag
-        
-        completer.delegate = self
+
+        setupBindings()
     }
-    
-    // MARK: Action
+
+    // MARK: - Bindings
+
+    private func setupBindings() {
+        observe(viewModel: viewModel, property: { $0.searchResults }) { [weak self] _ in
+            self?.listTableView.reloadData()
+        }
+
+        observe(viewModel: viewModel, property: { $0.error }) { [weak self] error in
+            if let error = error {
+                SVProgressHUD.showCustomErrorHUD(with: error.localizedDescription)
+            }
+        }
+    }
+
+    // MARK: - Actions
+
     @IBAction func cancel(_ sender: UIBarButtonItem) {
         dismiss(animated: true, completion: nil)
     }
-    
+
     @IBAction func neighborSearch(_ sender: UIBarButtonItem) {
-
-        let status = CLLocationManager.authorizationStatus()
-        if status == CLAuthorizationStatus.notDetermined {
-            locationManager.requestWhenInUseAuthorization()
-        }
-        locationManager.startUpdatingLocation()
+        viewModel.requestLocationAuthorization()
     }
 }
 
-// MARK: CLLocationManager Delegate
-extension LocationSearchViewController: CLLocationManagerDelegate {
-    
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-    }
-    
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+// MARK: - UISearchBarDelegate
 
-    }
-}
-
-// MARK: UISearchBar Delegate
 extension LocationSearchViewController: UISearchBarDelegate {
-    
+
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        if searchText.count > 0 {
-              completer.queryFragment = searchText
-        } else {
-            resultDataSource.removeAll()
-            listTableView.reloadData()
-        }
+        viewModel.search(query: searchText)
     }
 }
 
-// MARK: MKLocalSearchCompleter Delegate
-extension LocationSearchViewController: MKLocalSearchCompleterDelegate {
-    
-    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
-        self.resultDataSource = completer.results
-        listTableView.reloadData()
-    }
-    
-    func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
-        // handle error
-        SVProgressHUD.showCustomErrorHUD(with: error.localizedDescription)
-    }
-}
+// MARK: - UITableViewDataSource
 
-// MARK: ListTableView Datasource
 extension LocationSearchViewController: UITableViewDataSource {
-    
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return resultDataSource.count
+        return viewModel.searchResults.count
     }
-    
+
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: LocationTableViewCell.self), for: indexPath) as! LocationTableViewCell
-        cell.cellDataSource = resultDataSource[indexPath.row]
+        guard let cell = tableView.dequeueReusableCell(
+            withIdentifier: String(describing: LocationTableViewCell.self),
+            for: indexPath
+        ) as? LocationTableViewCell else {
+            return UITableViewCell()
+        }
+
+        if indexPath.row < viewModel.searchResults.count {
+            cell.cellDataSource = viewModel.searchResults[indexPath.row]
+        }
         return cell
     }
 }
 
-// MARK: ListTableView Delegate
+// MARK: - UITableViewDelegate
+
 extension LocationSearchViewController: UITableViewDelegate {
-    
+
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        dismiss(animated: true, completion: nil)
-        
-        selectedModel = resultDataSource[indexPath.row]
-        var completionModel = LocationModel(with: selectedModel)
-        
-        let searchRequest = MKLocalSearch.Request(completion: selectedModel)
-        let search = MKLocalSearch(request: searchRequest)
-        search.start { (response, error) in
-            if let coordinate = response?.mapItems[0].placemark.coordinate {
-                completionModel.coordinate = coordinate
+        dismiss(animated: true) { [weak self] in
+            self?.viewModel.selectLocation(at: indexPath.row) { locationModel in
+                if let model = locationModel {
+                    self?.delegate?.didSelect(model)
+                }
             }
-            self.delegate.didSelect(completionModel)
         }
     }
 }
-

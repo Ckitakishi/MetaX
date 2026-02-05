@@ -9,7 +9,6 @@
 import UIKit
 import Photos
 import PhotosUI
-import rswift
 import SkeletonView
 import SVProgressHUD
 
@@ -20,21 +19,22 @@ enum EditAlertAction: Int {
     case cancel = 2
 }
 
-enum ImageSaveError: Error {
-    case edition
-    case creation
-    case unknown
-}
+class DetailInfoViewController: UIViewController, ViewModelObserving {
 
-class DetailInfoViewController: UIViewController {
-    
-    var asset: PHAsset!
-    var assetCollection: PHAssetCollection!
-    
-    fileprivate let imageManager = PHCachingImageManager()
-    
-    var metaData: Metadata?
-    var tableViewDataSource: [[String: [DetailCellModel]]] = []
+    // MARK: - ViewModel
+
+    private var viewModel = DetailInfoViewModel()
+
+    // MARK: - Legacy Properties (for Storyboard segue)
+
+    var asset: PHAsset? {
+        didSet {
+            if let asset = asset {
+                viewModel.configure(with: asset, collection: assetCollection)
+            }
+        }
+    }
+    var assetCollection: PHAssetCollection?
     
     @IBOutlet weak var imageView: UIImageView!
     @IBOutlet weak var deleteButton: UIButton!
@@ -51,29 +51,114 @@ class DetailInfoViewController: UIViewController {
     fileprivate let sectionTitleHeight = 60
     fileprivate let rowHeight = 48
     
-    fileprivate var imageRequestId: PHImageRequestID?
-    fileprivate var editingInputRequestId: PHContentEditingInputRequestID?
     
-    
-    // Mark: Life Cycle
+    // MARK: - Life Cycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         let skeletonableViews: [UIView] = [imageView]
         for view in skeletonableViews {
             view.isSkeletonable = true
             view.showAnimatedGradientSkeleton()
         }
-        
+
         infoTableView.dataSource = self
         infoTableView.delegate = self
+
+        setupBindings()
+    }
+
+    // MARK: - Bindings
+
+    private func setupBindings() {
+        observe(viewModel: viewModel, property: { $0.image }) { [weak self] image in
+            if let image = image {
+                self?.imageView.isHidden = false
+                self?.imageView.image = image
+                self?.imageView.hideSkeleton()
+            }
+        }
+
+        observe(viewModel: viewModel, property: { $0.isLoading }) { [weak self] isLoading in
+            self?.view.isUserInteractionEnabled = !isLoading
+            if isLoading {
+                SVProgressHUD.showProcessingHUD(with: R.string.localizable.viewProcessing())
+            } else {
+                SVProgressHUD.dismiss()
+            }
+        }
+
+        observe(viewModel: viewModel, property: { $0.error }) { [weak self] error in
+            if let error = error {
+                SVProgressHUD.showCustomErrorHUD(with: error.localizedDescription)
+                if case .unsupportedMediaType = error {
+                    self?.navigationController?.popViewController(animated: true)
+                }
+                self?.viewModel.clearError()
+            }
+        }
+
+        observe(viewModel: viewModel, property: { $0.tableViewDataSource }) { [weak self] _ in
+            self?.infoTableView.reloadData()
+            self?.tableViewHeightConstraint.constant = self?.heightOfTableView() ?? 0
+        }
+
+        observe(viewModel: viewModel, property: { $0.timeStamp }) { [weak self] timeStamp in
+            self?.updateTimeStampUI(timeStamp)
+        }
+
+        observe(viewModel: viewModel, property: { ($0.locationDisplayText, $0.location) }) { [weak self] (displayText, location) in
+            self?.updateLocationUI(displayText: displayText, location: location)
+        }
+
+        observe(viewModel: viewModel, property: { $0.fileName }) { [weak self] fileName in
+            if !fileName.isEmpty {
+                self?.navigationItem.title = fileName
+            }
+        }
+    }
+
+    private func updateTimeStampUI(_ timeStamp: String?) {
+        if let timeStamp = timeStamp {
+            timeStampButton.titleText = timeStamp
+            timeStampButton.isEmpty = false
+        } else {
+            timeStampButton.titleText = R.string.localizable.viewAddDate()
+            timeStampButton.isEmpty = true
+        }
+        timeStampEditButton.isHidden = timeStampButton.isEmpty
+    }
+
+    private func updateLocationUI(displayText: String?, location: CLLocation?) {
+        if let displayText = displayText {
+            locationButton.titleText = displayText
+            locationButton.isEmpty = false
+        } else if let location = location {
+            locationButton.titleText = "\(location.coordinate.latitude), \(location.coordinate.longitude)"
+            locationButton.isEmpty = false
+        } else {
+            locationButton.titleText = R.string.localizable.viewAddLocation()
+            locationButton.isEmpty = true
+        }
+        locationEditButton.isHidden = locationButton.isEmpty
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         adjustImageView()
-        loadPhoto()
-        updateInfos()
+
+        // Configure viewModel if asset was set via segue
+        if let asset = asset {
+            viewModel.configure(with: asset, collection: assetCollection)
+        }
+
+        viewModel.loadPhoto(targetSize: targetSize)
+
+        Task {
+            await viewModel.loadMetadata()
+        }
+
         PHPhotoLibrary.shared().register(self)
     }
     
@@ -95,123 +180,15 @@ class DetailInfoViewController: UIViewController {
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        
-        if let imageReqID = imageRequestId, let inputReqId = editingInputRequestId {
-            PHImageManager.default().cancelImageRequest(imageReqID)
-            asset.cancelContentEditingInputRequest(inputReqId)
-        }
+        viewModel.cancelRequests()
     }
     
     deinit {
         PHPhotoLibrary.shared().unregisterChangeObserver(self)
     }
     
-    // Mark: Methods
-    func loadPhoto() {
-        // Prepare the options to pass when fetching the (photo, or video preview) image.
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .opportunistic
-        options.isNetworkAccessAllowed = true
-        
-        imageRequestId = PHImageManager.default().requestImage(for: asset, targetSize: targetSize, contentMode: .aspectFit, options: options, resultHandler: { image, _ in
+    // MARK: - Computed Properties
 
-            guard let image = image else {
-                return
-            }
-
-            self.imageView.isHidden = false
-            self.imageView.image = image
-            self.imageView.hideSkeleton()
-        })
-    }
-    
-    func updateInfos() {
-        // Update exif info
-        if asset.mediaType.rawValue != 1 || asset.mediaSubtypes.rawValue == 32 {
-            // not supported mediatype...or submediatype(gif)
-            SVProgressHUD.showCustomInfoHUD(with: R.string.localizable.infoNotSupport())
-            self.navigationController?.popViewController(animated: true)
-            return
-        }
-        
-        let options = PHContentEditingInputRequestOptions()
-        // Download asset metadata from iCloud if needed
-        options.isNetworkAccessAllowed = true
-        options.progressHandler = {(progress: Double, _) in
-            DispatchQueue.main.async {
-                SVProgressHUD.showCustomProgress(Float(progress), status: R.string.localizable.viewLoading())
-            }
-        }
-        
-        view.isUserInteractionEnabled = false
-        
-        editingInputRequestId = asset.requestContentEditingInput(with: options, completionHandler: { contentEditingInput, result in
-            
-            if let imageURL = contentEditingInput?.fullSizeImageURL {
-                let ciimage = CIImage(contentsOf: imageURL)
-                self.metaData = Metadata(ciimage: ciimage!)
-                
-                self.updateNavTitle(imageURL.lastPathComponent)
-                
-                SVProgressHUD.dismiss()
-                
-                self.updateInfosOfComponents()
-                self.infoTableView.reloadData()
-                self.tableViewHeightConstraint.constant = self.heightOfTableView()
-                
-            } else {
-                SVProgressHUD.dismiss()
-                
-                if let iCloudKey = result[PHContentEditingInputResultIsInCloudKey] {
-                    if iCloudKey as! Int == 1 {
-                        SVProgressHUD.showCustomErrorHUD(with: R.string.localizable.errorICloud())
-                        self.navigationController?.popViewController(animated: true)
-                        return
-                    }
-                }
-                
-                if let err = result[PHContentEditingInputErrorKey] as? Error {
-                    SVProgressHUD.showCustomErrorHUD(with: err.localizedDescription)
-                }
-                
-                self.navigationController?.popViewController(animated: true)
-            }
-            
-            self.editingInputRequestId = nil
-            self.view.isUserInteractionEnabled = true
-        })
-    }
-    
-    func updateNavTitle(_ title: String) {
-        navigationItem.title = title
-    }
-    
-    func updateInfosOfComponents() {
-        // init
-        tableViewDataSource = []
-        // update
-        updateInfoOfTime()
-        updateInfoOfLocation()
-        
-        for doc in metaData!.metaProps {
-            for (key, value) in doc {
-                tableViewDataSource.append(
-                    [key: value.map {
-                        DetailCellModel.init(propValue: $0)
-                        }]
-                )
-            }
-        }
-    }
-    
-    func updateInfoOfTime() {
-        timeStamp = metaData?.timeStampProp
-    }
-    
-    func updateInfoOfLocation() {
-        location = metaData?.GPSProp
-    }
-    
     var targetSize: CGSize {
         let scale = UIScreen.main.scale
         return CGSize(width: imageView.bounds.width * scale,
@@ -219,89 +196,40 @@ class DetailInfoViewController: UIViewController {
     }
     
     func adjustImageView() {
+        guard let asset = viewModel.asset else { return }
         imageViewHeightConstraint.constant = imageView.bounds.width * CGFloat(asset.pixelHeight) / CGFloat(asset.pixelWidth)
-        
+
         if UIDevice.current.userInterfaceIdiom == .pad {
             UIView.animate(withDuration: 0.2, animations: {
                 self.view.layoutIfNeeded()
             })
         }
     }
-    
-    // Mark: GPS & Timestamp
-    var location: CLLocation? = nil {
-        didSet {
-            guard let location = location else {
-                locationButton.titleText = R.string.localizable.viewAddLocation()
-                locationButton.isEmpty = true
-                updateLocationStatus()
-                return
-            }
-            locationButton.titleText = "\(location.coordinate.latitude), \(location.coordinate.longitude)"
-            locationButton.isEmpty = false
-            updateLocationStatus()
-            
-            CLGeocoder().reverseGeocodeLocation(location) { (placemarks, error) in
-                guard let placemarks = placemarks else {
-                    return
-                }
-                
-                if let placemark = placemarks.first {
-                    let infos = [placemark.thoroughfare, placemark.locality, placemark.administrativeArea, placemark.country]
-                    
-                    self.locationButton.titleText = infos.reduce("") { (locaitonText: String, info) in
-                        guard let infoText = info else {
-                            return ""
-                        }
-                        return "\(locaitonText)" + (locaitonText != "" ? "," : "") + "\(infoText)"
-                    }
-                }
-                self.updateLocationStatus()
-            }
-        }
-    }
-    
-    func updateLocationStatus() {
-        locationEditButton.isHidden = locationButton.isEmpty
-    }
-    
-    var timeStamp: String? = nil {
-        didSet {
-            guard let timeStamp = timeStamp else {
-                timeStampButton.titleText = R.string.localizable.viewAddDate()
-                timeStampButton.isEmpty = true
-                updateTimeStampStatus()
-                return
-            }
-            timeStampButton.titleText = timeStamp
-            timeStampButton.isEmpty = false
-            updateTimeStampStatus()
-        }
-    }
-    
-    func updateTimeStampStatus() {
-        timeStampEditButton.isHidden = timeStampButton.isEmpty
-    }
-    
-    // Mark: Action
-    @IBAction func editTimeStamp(_ sender: UIButton) {
-        clearTimeStamp()
-    }
-    
-    @IBAction func editLocation(_ sender: UIButton) {
-        clearLocation()
-    }
-    
-    @IBAction func clearAllMetadata(_ sender: UIButton) {
-        let newProps = metaData?.deleteAllExceptOrientation()
 
+    // MARK: - Actions
+    @IBAction func editTimeStamp(_ sender: UIButton) {
         deleteAlert { [weak self] action in
             guard let self = self, action != .cancel else { return }
             Task {
-                await self.saveImage(newProps: newProps!, doDelete: action == .addAndDel)
-                await MainActor.run {
-                    self.metaData = Metadata(props: newProps!)
-                }
+                await self.viewModel.clearTimeStamp(deleteOriginal: action == .addAndDel)
+            }
+        }
+    }
+
+    @IBAction func editLocation(_ sender: UIButton) {
+        deleteAlert { [weak self] action in
+            guard let self = self, action != .cancel else { return }
+            Task {
+                await self.viewModel.clearLocation(deleteOriginal: action == .addAndDel)
+            }
+        }
+    }
+
+    @IBAction func clearAllMetadata(_ sender: UIButton) {
+        deleteAlert { [weak self] action in
+            guard let self = self, action != .cancel else { return }
+            Task {
+                await self.viewModel.clearAllMetadata(deleteOriginal: action == .addAndDel)
             }
         }
     }
@@ -315,8 +243,9 @@ class DetailInfoViewController: UIViewController {
                 popover.delegate = self;
             }
         } else if segue.identifier == R.segue.detailInfoViewController.detailSearchLocation.identifier {
-            let searchView = segue.destination as! LocationSearchViewController
-            searchView.delegate = self
+            if let searchView = segue.destination as? LocationSearchViewController {
+                searchView.delegate = self
+            }
         }
     }
     
@@ -325,245 +254,36 @@ class DetailInfoViewController: UIViewController {
     }
 }
 
-// MARK: ileprivate Methods
+// MARK: - Private Methods
 fileprivate extension DetailInfoViewController {
-    
+
     func heightOfTableView() -> CGFloat {
-        
-        return tableViewDataSource.reduce(0) { height, dic in
-            return height + CGFloat(dic.map { $0.1 } [0].count * rowHeight + sectionTitleHeight)
+        return viewModel.tableViewDataSource.reduce(0) { height, dic in
+            guard let firstValue = dic.values.first else { return height }
+            return height + CGFloat(firstValue.count * rowHeight + sectionTitleHeight)
         }
     }
-    
+
     func addTimeStamp(_ date: Date) {
-        let newProps = metaData?.writeTimeOriginal(date)
-
         deleteAlert { [weak self] action in
             guard let self = self, action != .cancel else { return }
             Task {
-                await self.saveImage(newProps: newProps!, doDelete: action == .addAndDel)
-                await MainActor.run {
-                    self.metaData = Metadata(props: newProps!)
-                }
-                try? await PHPhotoLibrary.shared().performChanges {
-                    let request = PHAssetChangeRequest(for: self.asset)
-                    request.creationDate = date
-                }
+                await self.viewModel.addTimeStamp(date, deleteOriginal: action == .addAndDel)
             }
         }
     }
-    
-    func clearTimeStamp() {
-        let newProps = metaData?.deleteTimeOriginal()
 
-        deleteAlert { [weak self] action in
-            guard let self = self, action != .cancel else { return }
-            Task {
-                await self.saveImage(newProps: newProps!, doDelete: action == .addAndDel)
-                await MainActor.run {
-                    self.metaData = Metadata(props: newProps!)
-                }
-            }
-        }
-    }
-    
     func addLocation(_ location: CLLocation) {
-        let newProps = metaData?.writeLocation(location)
-
         deleteAlert { [weak self] action in
             guard let self = self, action != .cancel else { return }
             Task {
-                await self.saveImage(newProps: newProps!, doDelete: action == .addAndDel)
-                await MainActor.run {
-                    self.metaData = Metadata(props: newProps!)
-                }
-                try? await PHPhotoLibrary.shared().performChanges {
-                    let request = PHAssetChangeRequest(for: self.asset)
-                    request.location = location
-                }
+                await self.viewModel.addLocation(location, deleteOriginal: action == .addAndDel)
             }
         }
     }
-    
-    func clearLocation() {
-        let newProps = metaData?.deleteGPS()
 
-        deleteAlert { [weak self] action in
-            guard let self = self, action != .cancel else { return }
-            Task {
-                await self.saveImage(newProps: newProps!, doDelete: action == .addAndDel)
-                await MainActor.run {
-                    self.metaData = Metadata(props: newProps!)
-                }
-                try? await PHPhotoLibrary.shared().performChanges {
-                    let request = PHAssetChangeRequest(for: self.asset)
-                    request.location = CLLocation(latitude: 0, longitude: 0)
-                }
-            }
-        }
-    }
-    
-    
-    func createNewAlbum(albumTitle: String) async throws {
-        if checkAlbumExists(albumTitle) {
-            return
-        }
-        try await PHPhotoLibrary.shared().performChanges {
-            PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: albumTitle)
-        }
-    }
-    
-    func requestContentEditingInput(with options: PHContentEditingInputRequestOptions, newProps: [String: Any]) async throws -> URL {
-        return try await withCheckedThrowingContinuation { continuation in
-            asset.requestContentEditingInput(with: options) { contentEditingInput, _ in
-
-                guard let imageURL = contentEditingInput?.fullSizeImageURL else {
-                    continuation.resume(throwing: ImageSaveError.edition)
-                    return
-                }
-
-                let ciImageOfURL = CIImage(contentsOf: imageURL)
-                let context = CIContext(options: nil)
-
-                guard let ciImage = ciImageOfURL else {
-                    continuation.resume(throwing: ImageSaveError.edition)
-                    return
-                }
-
-                var tmpUrl = NSURL.fileURL(withPath: NSTemporaryDirectory() + imageURL.lastPathComponent)
-
-                let cgImage = context.createCGImage(ciImage, from: ciImage.extent)
-                let cgImageSource = CGImageSourceCreateWithURL(imageURL as CFURL, nil)
-
-                guard let sourceType = CGImageSourceGetType(cgImageSource!) else {
-                    continuation.resume(throwing: ImageSaveError.edition)
-                    return
-                }
-
-                var createdDestination: CGImageDestination? = CGImageDestinationCreateWithURL(tmpUrl as CFURL, sourceType, 1, nil)
-
-                if createdDestination == nil {
-                    // media type is unsupported: delete temp file, create new one with extension [.JPG].
-                    try? FileManager.default.removeItem(at: tmpUrl)
-                    tmpUrl = NSURL.fileURL(withPath: NSTemporaryDirectory() + imageURL.deletingPathExtension().lastPathComponent + ".JPG")
-                    createdDestination = CGImageDestinationCreateWithURL(tmpUrl as CFURL, "public.jpeg" as CFString, 1, nil)
-                }
-
-                guard let destination = createdDestination else {
-                    continuation.resume(throwing: ImageSaveError.edition)
-                    return
-                }
-
-                CGImageDestinationAddImage(destination, cgImage!, newProps as CFDictionary)
-                if !CGImageDestinationFinalize(destination) {
-                    continuation.resume(throwing: ImageSaveError.edition)
-                } else {
-                    continuation.resume(returning: tmpUrl)
-                }
-            }
-        }
-    }
-    
-    func createAsset(from tempURL: URL) async throws -> PHAsset {
-        var localId: String = ""
-
-        try await PHPhotoLibrary.shared().performChanges {
-            let request = PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: tempURL)
-            localId = request?.placeholderForCreatedAsset?.localIdentifier ?? ""
-
-            let fetchOptions = PHFetchOptions()
-            fetchOptions.predicate = NSPredicate(format: "title = %@", "MetaX")
-            let collection = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: fetchOptions)
-
-            if let album = collection.firstObject {
-                let albumChangeRequest = PHAssetCollectionChangeRequest(for: album)
-                let placeHolder = request?.placeholderForCreatedAsset
-                albumChangeRequest?.addAssets([placeHolder!] as NSArray)
-            }
-        }
-
-        let results = PHAsset.fetchAssets(withLocalIdentifiers: [localId], options: nil)
-        guard let asset = results.firstObject else {
-            throw ImageSaveError.creation
-        }
-
-        self.asset = asset
-        try? FileManager.default.removeItem(at: tempURL)
-
-        await MainActor.run {
-            self.loadPhoto()
-            self.updateInfos()
-        }
-
-        return asset
-    }
-    
-    func deleteAsset(_ asset: PHAsset?) async throws {
-        guard let asset = asset else { return }
-        try await PHPhotoLibrary.shared().performChanges {
-            PHAssetChangeRequest.deleteAssets([asset] as NSFastEnumeration)
-        }
-    }
-    
-    // MARK: Save Image Core
-    func saveImage(newProps: [String: Any], doDelete: Bool) async {
-        let oldAsset = self.asset
-
-        await MainActor.run {
-            SVProgressHUD.showProcessingHUD(with: R.string.localizable.viewProcessing())
-        }
-
-        do {
-            try await createNewAlbum(albumTitle: "MetaX")
-
-            let options = PHContentEditingInputRequestOptions()
-            options.isNetworkAccessAllowed = true // download asset metadata from iCloud if needed
-
-            let tmpURL = try await requestContentEditingInput(with: options, newProps: newProps)
-            _ = try await createAsset(from: tmpURL)
-
-            if doDelete {
-                try await deleteAsset(oldAsset)
-            }
-
-            await MainActor.run {
-                SVProgressHUD.dismiss()
-            }
-        } catch {
-            await MainActor.run {
-                SVProgressHUD.dismiss()
-
-                let errorMessage: String
-                switch error {
-                case ImageSaveError.edition:
-                    errorMessage = R.string.localizable.errorImageSaveEdition()
-                case ImageSaveError.creation:
-                    errorMessage = R.string.localizable.errorImageSaveCreation()
-                default:
-                    errorMessage = R.string.localizable.errorImageSaveUnknown()
-                }
-
-                SVProgressHUD.showCustomErrorHUD(with: errorMessage)
-            }
-        }
-    }
-    
-    func checkAlbumExists(_ title: String) -> Bool {
-        let albums = PHAssetCollection.fetchAssetCollections(with: PHAssetCollectionType.album, subtype:
-            PHAssetCollectionSubtype.albumRegular, options: nil)
-        for i in 0 ..< albums.count {
-            let album = albums.object(at: i)
-            if album.localizedTitle != nil && album.localizedTitle == title {
-                return true
-            }
-        }
-        return false
-    }
-    
     func deleteAlert(completionHandler: @escaping (EditAlertAction) -> Void) {
-        
-        
-        let message = asset.mediaSubtypes == .photoLive ? R.string.localizable.alertLiveAlertDesc() : R.string.localizable.alertConfirmDesc()
+        let message = viewModel.isLivePhoto ? R.string.localizable.alertLiveAlertDesc() : R.string.localizable.alertConfirmDesc()
         let alert: UIAlertController = UIAlertController(title: R.string.localizable.alertConfirm(),
                                                          message: message,
                                                          preferredStyle: .alert)
@@ -612,54 +332,59 @@ extension DetailInfoViewController: LocationSearchDelegate {
     }
 }
 
-// MARK: UITableViewDataSource
+// MARK: - UITableViewDataSource
 extension DetailInfoViewController: UITableViewDataSource {
-    
+
     func numberOfSections(in tableView: UITableView) -> Int {
-        return tableViewDataSource.count
+        return viewModel.tableViewDataSource.count
     }
-    
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return tableViewDataSource[section].map { $0.1 } [0].count
+        return viewModel.tableViewDataSource[section].values.first?.count ?? 0
     }
-    
+
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell: DetailTableViewCell = tableView.dequeueReusableCell(withIdentifier: String(describing: DetailTableViewCell.self), for: indexPath) as! DetailTableViewCell
-        
-        let sectionDataSource = tableViewDataSource[indexPath.section].map { $0.1 } [0]
-        cell.cellDataSource = sectionDataSource[indexPath.row]
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: DetailTableViewCell.self), for: indexPath) as? DetailTableViewCell else {
+            return UITableViewCell()
+        }
+
+        if let sectionDataSource = viewModel.tableViewDataSource[indexPath.section].values.first {
+            cell.cellDataSource = sectionDataSource[indexPath.row]
+        }
         return cell
     }
 }
 
-// MARK: UITableViewDelegate
+// MARK: - UITableViewDelegate
 extension DetailInfoViewController: UITableViewDelegate {
-    
+
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let headerView: DetailSectionHeaderView = UIView().instantiateFromNib(DetailSectionHeaderView.self)
-        headerView.headetTitle = tableViewDataSource[section].map { $0.0 } [0]
+        headerView.headetTitle = viewModel.tableViewDataSource[section].keys.first ?? ""
         return headerView
     }
 }
 
-// MARK: PHPhotoLibraryChangeObserver
+// MARK: - PHPhotoLibraryChangeObserver
 extension DetailInfoViewController: PHPhotoLibraryChangeObserver {
-    
+
     func photoLibraryDidChange(_ changeInstance: PHChange) {
-        guard let curAsset = asset, let details = changeInstance.changeDetails(for: curAsset) else {
-            return
-        }
-        asset = details.objectAfterChanges
-        
-        DispatchQueue.main.async {
-            guard let _ = self.asset else {
-                self.navigationController?.popViewController(animated: true)
+        Task { @MainActor in
+            guard let curAsset = viewModel.asset,
+                  let details = changeInstance.changeDetails(for: curAsset) else {
                 return
             }
-            
+
+            viewModel.updateAsset(details.objectAfterChanges)
+
+            guard viewModel.asset != nil else {
+                navigationController?.popViewController(animated: true)
+                return
+            }
+
             if details.assetContentChanged {
-                self.loadPhoto()
-                self.updateInfos()
+                viewModel.loadPhoto(targetSize: targetSize)
+                await viewModel.loadMetadata()
             }
         }
     }
