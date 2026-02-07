@@ -41,6 +41,7 @@
 		11E84E74208CDBE9003A8F88 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 11E84E76208CDBE9003A8F88 /* InfoPlist.strings */; };
 		11E84E80208CDC62003A8F88 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 11E84E82208CDC62003A8F88 /* Localizable.strings */; };
 		56D07E202F31000000000001 /* MetaXError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E212F31000000000001 /* MetaXError.swift */; };
+		56D07EA02F37000000000001 /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07EA12F37000000000001 /* DependencyContainer.swift */; };
 		56D07E222F31000000000002 /* PhotoLibraryServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E232F31000000000002 /* PhotoLibraryServiceProtocol.swift */; };
 		56D07E242F31000000000003 /* PhotoLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E252F31000000000003 /* PhotoLibraryService.swift */; };
 		56D07E2A2F31000000000010 /* MetadataServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E2B2F31000000000010 /* MetadataServiceProtocol.swift */; };
@@ -113,6 +114,7 @@
 		11E84E84208CDC70003A8F88 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
 		448E7275208DA33D00D6F683 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Base; path = Base.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		56D07E212F31000000000001 /* MetaXError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetaXError.swift; sourceTree = "<group>"; };
+		56D07EA12F37000000000001 /* DependencyContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DependencyContainer.swift; sourceTree = "<group>"; };
 		56D07E232F31000000000002 /* PhotoLibraryServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibraryServiceProtocol.swift; sourceTree = "<group>"; };
 		56D07E252F31000000000003 /* PhotoLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibraryService.swift; sourceTree = "<group>"; };
 		56D07E2B2F31000000000010 /* MetadataServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataServiceProtocol.swift; sourceTree = "<group>"; };
@@ -287,6 +289,7 @@
 		56D07E262F31000000000004 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				56D07EA12F37000000000001 /* DependencyContainer.swift */,
 				56D07E272F31000000000005 /* Errors */,
 			);
 			path = Core;
@@ -450,6 +453,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				56D07E202F31000000000001 /* MetaXError.swift in Sources */,
+				56D07EA02F37000000000001 /* DependencyContainer.swift in Sources */,
 				56D07E222F31000000000002 /* PhotoLibraryServiceProtocol.swift in Sources */,
 				56D07E242F31000000000003 /* PhotoLibraryService.swift in Sources */,
 				56D07E2A2F31000000000010 /* MetadataServiceProtocol.swift in Sources */,

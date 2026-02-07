@@ -11,21 +11,26 @@ import UIKit
 class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDelegate {
 
     var window: UIWindow?
+    private var container: DependencyContainer?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         let window = UIWindow(windowScene: windowScene)
+        let container = DependencyContainer()
+        self.container = container
 
-        // Master: Album list
-        let albumVC = AlbumViewController()
+        // 1. Master: Album list
+        let albumVC = AlbumViewController(container: container)
         let masterNav = UINavigationController(rootViewController: albumVC)
 
-        // Detail: Photo grid (empty state initially)
-        let photoGridVC = PhotoGridViewController()
+        // 2. Detail: Photo grid
+        let photoGridVC = PhotoGridViewController(container: container)
+        photoGridVC.title = NSLocalizedString("All Photos", comment: "")
+
         let detailNav = UINavigationController(rootViewController: photoGridVC)
 
-        // Split View Controller
+        // 3. Split View Controller
         let splitVC = UISplitViewController()
         splitVC.viewControllers = [masterNav, detailNav]
         splitVC.delegate = self
@@ -34,5 +39,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
         window.rootViewController = splitVC
         window.makeKeyAndVisible()
         self.window = window
+    }
+
+    // MARK: - UISplitViewControllerDelegate
+    
+    // Ensures that on iPhone (collapsed), we start with the Photo grid.
+    func splitViewController(_ splitViewController: UISplitViewController, collapseSecondary secondaryViewController: UIViewController, onto primaryViewController: UIViewController) -> Bool {
+        // Return false to let the split view perform default collapse behavior,
+        // which shows the Secondary (Detail) view on top for iPhone.
+        return false
     }
 }

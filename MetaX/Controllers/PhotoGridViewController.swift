@@ -12,10 +12,14 @@ import PhotosUI
 
 class PhotoGridViewController: UIViewController, ViewModelObserving {
 
+    // MARK: - Dependencies
+
+    private let container: DependencyContainer
+
     // MARK: - UI Components
-    
+
     private var collectionView: UICollectionView!
-    
+
     // MARK: - ViewModel
 
     private let viewModel = PhotoGridViewModel()
@@ -23,6 +27,17 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
     // MARK: - Properties
 
     private var thumbnailSize: CGSize = .zero
+
+    // MARK: - Initialization
+
+    init(container: DependencyContainer) {
+        self.container = container
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     // MARK: - Configuration (called from AlbumViewController)
 
@@ -192,9 +207,9 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        // Create destination (Pure programmatic)
-        let destination = DetailInfoViewController()
-        
+        // Create destination
+        let destination = DetailInfoViewController(container: container)
+
         destination.asset = viewModel.asset(at: indexPath.item)
         destination.assetCollection = viewModel.assetCollection
         

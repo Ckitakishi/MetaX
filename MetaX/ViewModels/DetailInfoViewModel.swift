@@ -57,9 +57,9 @@ final class DetailInfoViewModel {
     // MARK: - Initialization
 
     init(
-        metadataService: MetadataServiceProtocol = MetadataService.shared,
-        imageSaveService: ImageSaveServiceProtocol = ImageSaveService(),
-        photoLibraryService: PhotoLibraryServiceProtocol = PhotoLibraryService.shared
+        metadataService: MetadataServiceProtocol,
+        imageSaveService: ImageSaveServiceProtocol,
+        photoLibraryService: PhotoLibraryServiceProtocol
     ) {
         self.metadataService = metadataService
         self.imageSaveService = imageSaveService
@@ -105,7 +105,7 @@ final class DetailInfoViewModel {
 
         // Validate media type
         guard asset.mediaType == .image, asset.mediaSubtypes.rawValue != 32 else {
-            self.error = .unsupportedMediaType
+            self.error = .metadata(.unsupportedMediaType)
             return
         }
 

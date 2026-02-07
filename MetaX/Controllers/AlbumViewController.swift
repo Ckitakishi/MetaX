@@ -11,9 +11,13 @@ import Photos
 
 class AlbumViewController: UITableViewController, ViewModelObserving {
 
+    // MARK: - Dependencies
+
+    private let container: DependencyContainer
+
     // MARK: - ViewModel
 
-    private let viewModel = AlbumViewModel()
+    private let viewModel: AlbumViewModel
 
     // MARK: - Properties
 
@@ -24,13 +28,15 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     ]
 
     // MARK: - Initialization
-    
-    init() {
+
+    init(container: DependencyContainer) {
+        self.container = container
+        self.viewModel = AlbumViewModel(photoLibraryService: container.photoLibraryService)
         super.init(style: .insetGrouped)
     }
-    
+
     required init?(coder: NSCoder) {
-        super.init(coder: coder)
+        fatalError("init(coder:) has not been implemented")
     }
 
     // MARK: - Life Cycle
@@ -155,8 +161,8 @@ extension AlbumViewController {
         // Retrieve data
         let (fetchResult, collection, title) = viewModel.fetchResult(for: indexPath)
 
-        // Create destination (Pure programmatic)
-        let destination = PhotoGridViewController()
+        // Create destination
+        let destination = PhotoGridViewController(container: container)
 
         // Configure destination
         destination.configureWithViewModel(fetchResult: fetchResult, collection: collection)

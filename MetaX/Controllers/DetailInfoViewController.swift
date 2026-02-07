@@ -22,7 +22,7 @@ enum EditAlertAction: Int {
 class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     // MARK: - ViewModel
-    private var viewModel = DetailInfoViewModel()
+    private let viewModel: DetailInfoViewModel
 
     // MARK: - UI Components
     private let tableView: UITableView = {
@@ -46,6 +46,21 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     // MARK: - Properties
     var asset: PHAsset?
     var assetCollection: PHAssetCollection?
+
+    // MARK: - Initialization
+
+    init(container: DependencyContainer) {
+        self.viewModel = DetailInfoViewModel(
+            metadataService: container.metadataService,
+            imageSaveService: container.imageSaveService,
+            photoLibraryService: container.photoLibraryService
+        )
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     // MARK: - Life Cycle
     override func viewDidLoad() {
@@ -146,7 +161,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         observe(viewModel: viewModel, property: { $0.error }) { [weak self] error in
             if let error = error {
                 SVProgressHUD.showCustomErrorHUD(with: error.localizedDescription)
-                if case .unsupportedMediaType = error {
+                if case .metadata(.unsupportedMediaType) = error {
                     self?.navigationController?.popViewController(animated: true)
                 }
                 self?.viewModel.clearError()

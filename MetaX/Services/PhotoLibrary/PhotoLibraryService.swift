@@ -9,12 +9,8 @@
 import Photos
 import UIKit
 
-/// Singleton service for photo library operations
+/// Service for photo library operations
 final class PhotoLibraryService: PhotoLibraryServiceProtocol {
-
-    // MARK: - Singleton
-
-    static let shared = PhotoLibraryService()
 
     // MARK: - Properties
 
@@ -22,7 +18,7 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     // MARK: - Initialization
 
-    private init() {
+    init() {
         self.imageManager = PHCachingImageManager()
     }
 
@@ -39,12 +35,12 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
             if newStatus == .authorized || newStatus == .limited {
                 return .success(())
             } else {
-                return .failure(.photoLibraryAccessDenied)
+                return .failure(.photoLibrary(.accessDenied))
             }
         case .denied, .restricted:
-            return .failure(.photoLibraryAccessDenied)
+            return .failure(.photoLibrary(.accessDenied))
         @unknown default:
-            return .failure(.photoLibraryUnavailable)
+            return .failure(.photoLibrary(.unavailable))
         }
     }
 
@@ -108,12 +104,12 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
                     withLocalIdentifiers: [placeholder.localIdentifier],
                     options: nil
                   ).firstObject else {
-                return .failure(.albumCreationFailed)
+                return .failure(.imageSave(.albumCreationFailed))
             }
 
             return .success(album)
         } catch {
-            return .failure(.albumCreationFailed)
+            return .failure(.imageSave(.albumCreationFailed))
         }
     }
 
@@ -159,7 +155,7 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
                 if let image = image {
                     continuation.resume(returning: .success(image))
                 } else {
-                    continuation.resume(returning: .failure(.assetFetchFailed(underlying: nil)))
+                    continuation.resume(returning: .failure(.photoLibrary(.assetFetchFailed(underlying: nil))))
                 }
             }
         }
@@ -194,7 +190,7 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
             }
             return .success(())
         } catch {
-            return .failure(.assetFetchFailed(underlying: error))
+            return .failure(.photoLibrary(.assetFetchFailed(underlying: error)))
         }
     }
 

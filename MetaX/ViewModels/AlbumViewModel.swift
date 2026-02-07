@@ -39,7 +39,7 @@ final class AlbumViewModel: NSObject {
 
     // MARK: - Initialization
 
-    init(photoLibraryService: PhotoLibraryServiceProtocol = PhotoLibraryService.shared) {
+    init(photoLibraryService: PhotoLibraryServiceProtocol) {
         self.photoLibraryService = photoLibraryService
         super.init()
     }

@@ -29,7 +29,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
 
     // MARK: - Initialization
 
-    init(photoLibraryService: PhotoLibraryServiceProtocol = PhotoLibraryService.shared) {
+    init(photoLibraryService: PhotoLibraryServiceProtocol) {
         self.photoLibraryService = photoLibraryService
     }
 
@@ -43,7 +43,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         // 1. Ensure MetaX album exists
         let albumResult = await photoLibraryService.createAlbumIfNeeded(title: "MetaX")
         guard case .success = albumResult else {
-            return .failure(.albumCreationFailed)
+            return .failure(.imageSave(.albumCreationFailed))
         }
 
         // 2. Request content editing input and create temp file
@@ -52,7 +52,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             if case .failure(let error) = tempURLResult {
                 return .failure(error)
             }
-            return .failure(.imageEditionFailed)
+            return .failure(.imageSave(.editionFailed))
         }
 
         // 3. Create new asset from temp file
@@ -65,7 +65,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             if case .failure(let error) = createResult {
                 return .failure(error)
             }
-            return .failure(.imageCreationFailed)
+            return .failure(.imageSave(.creationFailed))
         }
 
         // 5. Delete original if requested
@@ -88,12 +88,12 @@ final class ImageSaveService: ImageSaveServiceProtocol {
 
             asset.requestContentEditingInput(with: options) { contentEditingInput, _ in
                 guard let imageURL = contentEditingInput?.fullSizeImageURL else {
-                    continuation.resume(returning: .failure(.imageEditionFailed))
+                    continuation.resume(returning: .failure(.imageSave(.editionFailed)))
                     return
                 }
 
                 guard let ciImage = CIImage(contentsOf: imageURL) else {
-                    continuation.resume(returning: .failure(.imageEditionFailed))
+                    continuation.resume(returning: .failure(.imageSave(.editionFailed)))
                     return
                 }
 
@@ -103,7 +103,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
                 guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent),
                       let cgImageSource = CGImageSourceCreateWithURL(imageURL as CFURL, nil),
                       let sourceType = CGImageSourceGetType(cgImageSource) else {
-                    continuation.resume(returning: .failure(.imageEditionFailed))
+                    continuation.resume(returning: .failure(.imageSave(.editionFailed)))
                     return
                 }
 
@@ -117,7 +117,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
                 }
 
                 guard let destination = createdDestination else {
-                    continuation.resume(returning: .failure(.imageEditionFailed))
+                    continuation.resume(returning: .failure(.imageSave(.editionFailed)))
                     return
                 }
 
@@ -125,7 +125,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
                 if CGImageDestinationFinalize(destination) {
                     continuation.resume(returning: .success(tmpUrl))
                 } else {
-                    continuation.resume(returning: .failure(.imageEditionFailed))
+                    continuation.resume(returning: .failure(.imageSave(.editionFailed)))
                 }
             }
         }
@@ -152,12 +152,12 @@ final class ImageSaveService: ImageSaveServiceProtocol {
 
             let results = PHAsset.fetchAssets(withLocalIdentifiers: [localId], options: nil)
             guard let asset = results.firstObject else {
-                return .failure(.imageCreationFailed)
+                return .failure(.imageSave(.creationFailed))
             }
 
             return .success(asset)
         } catch {
-            return .failure(.imageCreationFailed)
+            return .failure(.imageSave(.creationFailed))
         }
     }
 }
