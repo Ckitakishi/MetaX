@@ -91,27 +91,27 @@ extension MetaXError: LocalizedError {
         let message: String
         switch self {
         case .photoLibrary(.accessDenied):
-            message = R.string.localizable.alertPhotoAccess()
+            message = String(localized: .alertPhotoAccess)
         case .photoLibrary(.unavailable),
              .photoLibrary(.assetNotFound),
              .photoLibrary(.assetFetchFailed):
-            message = R.string.localizable.errorImageSaveUnknown()
+            message = String(localized: .errorImageSaveUnknown)
         case .metadata(.readFailed), .metadata(.writeFailed):
-            message = R.string.localizable.errorImageSaveEdition()
+            message = String(localized: .errorImageSaveEdition)
         case .metadata(.unsupportedMediaType):
-            message = R.string.localizable.infoNotSupport()
+            message = String(localized: .infoNotSupport)
         case .metadata(.iCloudSyncRequired), .metadata(.iCloudSyncFailed):
-            message = R.string.localizable.errorICloud()
+            message = String(localized: .errorICloud)
         case .imageSave(.editionFailed), .imageSave(.temporaryFileError):
-            message = R.string.localizable.errorImageSaveEdition()
+            message = String(localized: .errorImageSaveEdition)
         case .imageSave(.creationFailed), .imageSave(.albumCreationFailed):
-            message = R.string.localizable.errorImageSaveCreation()
+            message = String(localized: .errorImageSaveCreation)
         case .location(.accessDenied):
-            message = R.string.localizable.alertPhotoAccess()
+            message = String(localized: .alertPhotoAccess)
         case .location(.geocodingFailed), .location(.coordinateNotAvailable):
-            message = R.string.localizable.errorCoordinateFetch()
+            message = String(localized: .errorCoordinateFetch)
         case .unknown:
-            message = R.string.localizable.errorImageSaveUnknown()
+            message = String(localized: .errorImageSaveUnknown)
         }
         return "\(message) (MX-\(code))"
     }

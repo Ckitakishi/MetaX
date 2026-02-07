@@ -2,29 +2,36 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>PhotoProps</key>
-	<array>
-		<string>PixelWidth</string>
-		<string>PixelHeight</string>
-		<string>DPIWidth</string>
-		<string>DPIHeight</string>
-		<string>Depth</string>
-		<string>ColorModel</string>
-	</array>
-	<key>CameraProps</key>
+	<key>DeviceProps</key>
 	<array>
 		<string>Make</string>
 		<string>Model</string>
-		<string>ISOSpeedRatings</string>
-		<string>ExposureTime</string>
-	</array>
-	<key>LensProps</key>
-	<array>
 		<string>LensMake</string>
 		<string>LensModel</string>
+	</array>
+	<key>ShootingProps</key>
+	<array>
+		<string>ExposureTime</string>
 		<string>FNumber</string>
-		<string>FocalLenIn35mmFilm</string>
+		<string>ISOSpeedRatings</string>
+		<string>ExposureBiasValue</string>
+		<string>ExposureProgram</string>
+		<string>MeteringMode</string>
 		<string>FocalLength</string>
+		<string>FocalLenIn35mmFilm</string>
+		<string>WhiteBalance</string>
+		<string>Flash</string>
+	</array>
+	<key>ImageProps</key>
+	<array>
+		<string>PixelWidth</string>
+		<string>PixelHeight</string>
+		<string>ProfileName</string>
+	</array>
+	<key>RightsProps</key>
+	<array>
+		<string>Artist</string>
+		<string>Copyright</string>
 	</array>
 	<key>TimeProp</key>
 	<string>DateTimeOriginal</string>

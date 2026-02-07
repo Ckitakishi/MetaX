@@ -14,13 +14,8 @@ public struct Metadata {
     
     public let sourceProperties: [String: Any]
     
-    public let metaPropKeys = ["Photo", "Camera", "Lens"]
-    
     public let metaProps: [[String: [[String: Any]]]]
-    public let photoProps: [[String: Any]]
-    public let cameraProps: [[String: Any]]
-    public let lensProps: [[String: Any]]
-    
+
     public let timeStampProp: String?
     public let GPSProp: CLLocation?
 
@@ -39,9 +34,6 @@ public struct Metadata {
 
         sourceProperties = props
 
-        var tmpPhotoProps: [[String: Any]] = []
-        var tmpCameraProps: [[String: Any]] = []
-        var tmpLensProps: [[String: Any]] = []
         var tmpMetaProps: [[String: [[String: Any]]]] = []
 
         var tmpTimeProp: String?
@@ -52,42 +44,31 @@ public struct Metadata {
             return nil
         }
 
-        let photoKeys = dic.object(forKey: "PhotoProps") as? [String] ?? []
-        let cameraKeys = dic.object(forKey: "CameraProps") as? [String] ?? []
-        let lensKeys = dic.object(forKey: "LensProps") as? [String] ?? []
         let timeStampKey = dic.object(forKey: "TimeProp") as? String
 
-        for pKey in photoKeys {
-            if let val = props[pKey] {
-                tmpPhotoProps.append([pKey: val])
+        let groupPlistKeys = ["DeviceProps", "ShootingProps",
+                              "ImageProps", "RightsProps"]
+        let metaPropKeys = ["Device", "Shooting", "Image", "Rights"]
+
+        let exifInfo = props["{Exif}"] as? [String: Any] ?? [:]
+        let tiffInfo = props["{TIFF}"] as? [String: Any] ?? [:]
+
+        for (idx, groupKey) in groupPlistKeys.enumerated() {
+            let keys = dic.object(forKey: groupKey) as? [String] ?? []
+            var groupProps: [[String: Any]] = []
+            for key in keys {
+                if let val = props[key] { groupProps.append([key: val]) }
+                else if let val = exifInfo[key] { groupProps.append([key: val]) }
+                else if let val = tiffInfo[key] { groupProps.append([key: val]) }
+            }
+            if !groupProps.isEmpty {
+                tmpMetaProps.append([metaPropKeys[idx]: groupProps])
             }
         }
 
-        if let exifInfo = props["{Exif}"] as? [String: Any],
-           let tiffInfo = props["{TIFF}"] as? [String: Any] {
-
-            for cKey in cameraKeys {
-                if let val = exifInfo[cKey] {
-                    tmpCameraProps.append([cKey: val])
-                    continue
-                }
-                if let val = tiffInfo[cKey] {
-                    tmpCameraProps.append([cKey: val])
-                }
-            }
-        }
-
-        if let exifInfo = props["{Exif}"] as? [String: Any] {
-            // lens info
-            for lKey in lensKeys {
-                if let val = exifInfo[lKey] {
-                    tmpLensProps.append([lKey: val])
-                }
-            }
-            // timestamp
-            if let timeStampKey = timeStampKey, let val = exifInfo[timeStampKey] as? String {
-                tmpTimeProp = val
-            }
+        // timestamp
+        if let timeStampKey = timeStampKey, let val = exifInfo[timeStampKey] as? String {
+            tmpTimeProp = val
         }
 
         if let gpsInfo = props["{GPS}"] as? [String: Any] {
@@ -102,26 +83,14 @@ public struct Metadata {
             }
         }
 
-        photoProps = tmpPhotoProps
-        cameraProps = tmpCameraProps
-        lensProps = tmpLensProps
-        
         if let timeProp = tmpTimeProp, let date = DateFormatter(with: .yMdHms).getDate(from: timeProp) {
             let dateFormatter = DateFormatter(with: .yMd)
             timeStampProp = dateFormatter.getStr(from: date)
         } else {
-             timeStampProp = tmpTimeProp
+            timeStampProp = tmpTimeProp
         }
 
         GPSProp = tmpGPSProp
-        
-        
-        for (idx, ary) in[photoProps, cameraProps, lensProps].enumerated() {
-            if ary.count > 0 {
-                tmpMetaProps.append([metaPropKeys[idx]: ary])
-            }
-        }
-
         metaProps = tmpMetaProps
     }
     

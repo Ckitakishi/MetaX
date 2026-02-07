@@ -101,7 +101,7 @@ final class AlbumViewModel: NSObject {
         case .allPhotos:
             let count = allPhotos?.count ?? 0
             let asset = count > 0 ? allPhotos?.object(at: 0) : nil
-            return (R.string.localizable.viewAllPhotos(), count, asset)
+            return (String(localized: .viewAllPhotos), count, asset)
 
         case .smartAlbums:
             guard indexPath.row < nonEmptySmartAlbums.count else { return (nil, 0, nil) }
@@ -125,7 +125,7 @@ final class AlbumViewModel: NSObject {
 
         switch section {
         case .allPhotos:
-            return (allPhotos, nil, R.string.localizable.viewAllPhotos())
+            return (allPhotos, nil, String(localized: .viewAllPhotos))
 
         case .smartAlbums:
             guard indexPath.row < nonEmptySmartAlbums.count else { return (nil, nil, nil) }

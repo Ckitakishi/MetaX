@@ -1,9 +1,0 @@
-/* 
-  InfoPlist.strings
-  MetaX
-
-  Created by Ckitakishi on 2018/4/23.
-  Copyright © 2018年 Yuhan Chen. All rights reserved.
-*/
-
-"NSPhotoLibraryUsageDescription" = "我们需要您的允许，以读取及保存照片。";

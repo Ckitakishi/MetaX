@@ -26,7 +26,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
 
         // 2. Detail: Photo grid
         let photoGridVC = PhotoGridViewController(container: container)
-        photoGridVC.title = NSLocalizedString("All Photos", comment: "")
+        photoGridVC.title = String(localized: .viewAllPhotos)
 
         let detailNav = UINavigationController(rootViewController: photoGridVC)
 
@@ -42,7 +42,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
     }
 
     // MARK: - UISplitViewControllerDelegate
-    
+
     // Ensures that on iPhone (collapsed), we start with the Photo grid.
     func splitViewController(_ splitViewController: UISplitViewController, collapseSecondary secondaryViewController: UIViewController, onto primaryViewController: UIViewController) -> Bool {
         // Return false to let the split view perform default collapse behavior,

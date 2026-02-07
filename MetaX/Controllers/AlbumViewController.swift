@@ -23,8 +23,8 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
 
     let sectionLocalizedTitles = [
         "",
-        NSLocalizedString(R.string.localizable.viewSmartAlbums(), comment: ""),
-        NSLocalizedString(R.string.localizable.viewMyAlbums(), comment: "")
+        String(localized: .viewSmartAlbums),
+        String(localized: .viewMyAlbums)
     ]
 
     // MARK: - Initialization
@@ -43,7 +43,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         setupUI()
         checkAuthorizationAndLoad()
         setupBindings()
@@ -55,14 +55,14 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
             vm.unregisterPhotoLibraryObserver()
         }
     }
-    
+
     // MARK: - UI Setup
-    
+
     private func setupUI() {
-        title = NSLocalizedString("Albums", comment: "")
+        title = String(localized: .albums)
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
-        
+
         tableView.register(AlbumTableViewCell.self, forCellReuseIdentifier: String(describing: AlbumTableViewCell.self))
         tableView.rowHeight = 88 // Taller cells for better touch targets
     }
@@ -105,9 +105,9 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         if let topView = navigationController?.view {
             lockView.frame = topView.frame
             lockView.delegate = self
-            lockView.title = R.string.localizable.alertPhotoAccess()
-            lockView.detail = R.string.localizable.alertPhotoAccessDesc()
-            lockView.buttonTitle = R.string.localizable.alertPhotoAuth()
+            lockView.title = String(localized: .alertPhotoAccess)
+            lockView.detail = String(localized: .alertPhotoAccessDesc)
+            lockView.buttonTitle = String(localized: .alertPhotoAuth)
             topView.addSubview(lockView)
         }
     }
@@ -154,7 +154,7 @@ extension AlbumViewController {
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         return sectionLocalizedTitles[section]
     }
-    
+
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
 

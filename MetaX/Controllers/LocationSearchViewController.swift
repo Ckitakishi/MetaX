@@ -25,7 +25,7 @@ class LocationSearchViewController: UIViewController, ViewModelObserving {
         table.translatesAutoresizingMaskIntoConstraints = false
         return table
     }()
-    
+
     private let searchController = UISearchController(searchResultsController: nil)
 
     weak var delegate: LocationSearchDelegate?
@@ -38,28 +38,28 @@ class LocationSearchViewController: UIViewController, ViewModelObserving {
     }
 
     private func setupUI() {
-        title = NSLocalizedString("Search Location", comment: "")
+        title = String(localized: .searchLocation)
         view.backgroundColor = .systemBackground
-        
+
         // Navigation Bar
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancel))
         navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "location.fill"), style: .plain, target: self, action: #selector(neighborSearch))
-        
+
         // Search Controller
         searchController.searchResultsUpdater = self
         searchController.obscuresBackgroundDuringPresentation = false
-        searchController.searchBar.placeholder = NSLocalizedString("Search address", comment: "")
+        searchController.searchBar.placeholder = String(localized: .searchAddress)
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
         definesPresentationContext = true
-        
+
         // TableView
         view.addSubview(tableView)
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(LocationTableViewCell.self, forCellReuseIdentifier: String(describing: LocationTableViewCell.self))
         tableView.keyboardDismissMode = .onDrag
-        
+
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),

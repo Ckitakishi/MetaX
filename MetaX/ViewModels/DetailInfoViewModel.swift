@@ -238,7 +238,8 @@ final class DetailInfoViewModel {
         var dataSource: [[String: [DetailCellModel]]] = []
         for doc in metadata.metaProps {
             for (key, value) in doc {
-                dataSource.append([key: value.map { DetailCellModel(propValue: $0) }])
+                let localizedKey = NSLocalizedString(key, comment: "")
+                dataSource.append([localizedKey: value.map { DetailCellModel(propValue: $0) }])
             }
         }
         self.tableViewDataSource = dataSource

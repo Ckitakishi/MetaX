@@ -152,7 +152,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         observe(viewModel: viewModel, property: { $0.isLoading }) { [weak self] isLoading in
             self?.view.isUserInteractionEnabled = !isLoading
             if isLoading {
-                SVProgressHUD.showProcessingHUD(with: R.string.localizable.viewProcessing())
+                SVProgressHUD.showProcessingHUD(with: String(localized: .viewProcessing))
             } else {
                 SVProgressHUD.dismiss()
             }
@@ -235,14 +235,14 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.section == 0 {
             let cell = UITableViewCell(style: .value1, reuseIdentifier: "TimeCell")
-            cell.textLabel?.text = R.string.localizable.viewAddDate()
+            cell.textLabel?.text = String(localized: .viewAddDate)
             cell.detailTextLabel?.text = viewModel.timeStamp ?? "---"
             cell.accessoryType = .disclosureIndicator
             cell.imageView?.image = UIImage(systemName: "calendar")
             return cell
         } else if indexPath.section == 1 {
             let cell = UITableViewCell(style: .value1, reuseIdentifier: "LocationCell")
-            cell.textLabel?.text = R.string.localizable.viewAddLocation()
+            cell.textLabel?.text = String(localized: .viewAddLocation)
             if let displayText = viewModel.locationDisplayText {
                 cell.detailTextLabel?.text = displayText
             } else if let location = viewModel.location {
@@ -289,11 +289,11 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
 // MARK: - Logic & Alerts
 fileprivate extension DetailInfoViewController {
     func deleteAlert(completionHandler: @escaping (EditAlertAction) -> Void) {
-        let message = viewModel.isLivePhoto ? R.string.localizable.alertLiveAlertDesc() : R.string.localizable.alertConfirmDesc()
-        let alert = UIAlertController(title: R.string.localizable.alertConfirm(), message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: R.string.localizable.alertAddAndDel(), style: .destructive) { _ in completionHandler(.addAndDel) })
-        alert.addAction(UIAlertAction(title: R.string.localizable.alertAdd(), style: .default) { _ in completionHandler(.add) })
-        alert.addAction(UIAlertAction(title: R.string.localizable.alertCancel(), style: .cancel) { _ in completionHandler(.cancel) })
+        let message = viewModel.isLivePhoto ? String(localized: .alertLiveAlertDesc) : String(localized: .alertConfirmDesc)
+        let alert = UIAlertController(title: String(localized: .alertConfirm), message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: .alertAddAndDel), style: .destructive) { _ in completionHandler(.addAndDel) })
+        alert.addAction(UIAlertAction(title: String(localized: .alertAdd), style: .default) { _ in completionHandler(.add) })
+        alert.addAction(UIAlertAction(title: String(localized: .alertCancel), style: .cancel) { _ in completionHandler(.cancel) })
         present(alert, animated: true)
     }
 }
@@ -316,7 +316,7 @@ extension DetailInfoViewController: UIPopoverPresentationControllerDelegate, Loc
 
     func didSelect(_ model: LocationModel) {
         guard let coord = model.coordinate else {
-            SVProgressHUD.showCustomErrorHUD(with: R.string.localizable.errorCoordinateFetch())
+            SVProgressHUD.showCustomErrorHUD(with: String(localized: .errorCoordinateFetch))
             return
         }
         deleteAlert { [weak self] action in
