@@ -23,11 +23,22 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         NSLocalizedString(R.string.localizable.viewMyAlbums(), comment: "")
     ]
 
+    // MARK: - Initialization
+    
+    init() {
+        super.init(style: .insetGrouped)
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
     // MARK: - Life Cycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
+        setupUI()
         checkAuthorizationAndLoad()
         setupBindings()
     }
@@ -37,6 +48,17 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         Task { @MainActor in
             vm.unregisterPhotoLibraryObserver()
         }
+    }
+    
+    // MARK: - UI Setup
+    
+    private func setupUI() {
+        title = NSLocalizedString("Albums", comment: "")
+        navigationController?.navigationBar.prefersLargeTitles = true
+        navigationItem.largeTitleDisplayMode = .always
+        
+        tableView.register(AlbumTableViewCell.self, forCellReuseIdentifier: String(describing: AlbumTableViewCell.self))
+        tableView.rowHeight = 88 // Taller cells for better touch targets
     }
 
     // MARK: - Bindings
@@ -73,7 +95,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     }
 
     private func showLockView() {
-        let lockView: AuthLockView = UIView().instantiateFromNib(AuthLockView.self)
+        let lockView = AuthLockView()
         if let topView = navigationController?.view {
             lockView.frame = topView.frame
             lockView.delegate = self
@@ -83,27 +105,9 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
             topView.addSubview(lockView)
         }
     }
-
-    // MARK: - Segues
-
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        guard let navigationController = segue.destination as? UINavigationController,
-              let destination = navigationController.topViewController as? PhotoGridViewController else {
-            return
-        }
-
-        guard let cell = sender as? UITableViewCell,
-              let indexPath = tableView.indexPath(for: cell) else {
-            return
-        }
-
-        let (fetchResult, collection, title) = viewModel.fetchResult(for: indexPath)
-        destination.configureWithViewModel(fetchResult: fetchResult, collection: collection)
-        destination.title = title
-    }
 }
 
-// MARK: - UITableViewDataSource
+// MARK: - UITableViewDataSource & Delegate
 
 extension AlbumViewController {
 
@@ -143,6 +147,27 @@ extension AlbumViewController {
 
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         return sectionLocalizedTitles[section]
+    }
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+
+        // Retrieve data
+        let (fetchResult, collection, title) = viewModel.fetchResult(for: indexPath)
+
+        // Create destination (Pure programmatic)
+        let destination = PhotoGridViewController()
+
+        // Configure destination
+        destination.configureWithViewModel(fetchResult: fetchResult, collection: collection)
+        destination.title = title
+
+        // Navigate - Use showDetailViewController for iPad split view support
+        // This replaces the detail pane on iPad, or pushes on iPhone
+        splitViewController?.showDetailViewController(
+            UINavigationController(rootViewController: destination),
+            sender: self
+        )
     }
 }
 

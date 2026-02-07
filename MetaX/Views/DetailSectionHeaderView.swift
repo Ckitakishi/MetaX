@@ -8,29 +8,52 @@
 
 import UIKit
 
-extension DetailSectionHeaderView: NibLoadable {}
-
 class DetailSectionHeaderView: UIView {
     
-    @IBOutlet weak var titleLabel: UILabel!
+    private let accentBar: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor(named: "greenSea") ?? .systemTeal
+        view.layer.cornerRadius = 2
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     
-    override func awakeFromNib() {
-        super.awakeFromNib()
-        titleLabel.addBorder(.left, color: UIColor(named: "greenSea") ?? .systemTeal, thickness: 6.0)
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 20, weight: .semibold)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
+    var headerTitle: String = "" {
+        didSet {
+            titleLabel.text = headerTitle
+        }
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupUI()
     }
     
-    var headetTitle: String = "" {
-        didSet {
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    private func setupUI() {
+        backgroundColor = .clear
+        addSubview(accentBar)
+        addSubview(titleLabel)
+        
+        NSLayoutConstraint.activate([
+            accentBar.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            accentBar.centerYAnchor.constraint(equalTo: centerYAnchor),
+            accentBar.widthAnchor.constraint(equalToConstant: 4),
+            accentBar.heightAnchor.constraint(equalTo: heightAnchor, multiplier: 0.5),
             
-            let paragraphStyle = NSMutableParagraphStyle()
-            paragraphStyle.firstLineHeadIndent = 16;
-            
-            let stringAttributes: [NSAttributedString.Key: Any] = [
-                .font: UIFont.systemFont(ofSize: 24.0),
-                .paragraphStyle: paragraphStyle
-            ]
-
-            titleLabel.attributedText = NSAttributedString(string: headetTitle, attributes:stringAttributes)
-        }
+            titleLabel.leadingAnchor.constraint(equalTo: accentBar.trailingAnchor, constant: 8),
+            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
     }
 }

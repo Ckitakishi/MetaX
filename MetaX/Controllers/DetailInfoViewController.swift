@@ -10,6 +10,7 @@ import UIKit
 import Photos
 import PhotosUI
 import SVProgressHUD
+import CoreLocation
 
 // MARK: Enum -
 enum EditAlertAction: Int {
@@ -21,57 +22,116 @@ enum EditAlertAction: Int {
 class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     // MARK: - ViewModel
-
     private var viewModel = DetailInfoViewModel()
 
-    // MARK: - Legacy Properties (for Storyboard segue)
+    // MARK: - UI Components
+    private let tableView: UITableView = {
+        let table = UITableView(frame: .zero, style: .insetGrouped)
+        table.translatesAutoresizingMaskIntoConstraints = false
+        return table
+    }()
 
-    var asset: PHAsset? {
-        didSet {
-            if let asset = asset {
-                viewModel.configure(with: asset, collection: assetCollection)
-            }
-        }
-    }
+    private let heroImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        imageView.clipsToBounds = true
+        imageView.backgroundColor = .secondarySystemFill
+        return imageView
+    }()
+
+    private lazy var clearAllButton: UIBarButtonItem = {
+        UIBarButtonItem(image: UIImage(systemName: "trash"), style: .plain, target: self, action: #selector(clearAllMetadata))
+    }()
+
+    // MARK: - Properties
+    var asset: PHAsset?
     var assetCollection: PHAssetCollection?
-    
-    @IBOutlet weak var imageView: UIImageView!
-    @IBOutlet weak var deleteButton: UIButton!
-    @IBOutlet weak var infoTableView: UITableView!
-    @IBOutlet weak var timeStampButton: EditableButton!
-    @IBOutlet weak var locationButton: EditableButton!
-    @IBOutlet weak var locationEditButton: UIButton!
-    @IBOutlet weak var timeStampEditButton: UIButton!
-    weak var datePickerPopover: DetailDatePickerPopover?
-    
-    @IBOutlet weak var imageViewHeightConstraint: NSLayoutConstraint!
-    @IBOutlet weak var tableViewHeightConstraint: NSLayoutConstraint!
-    
-    fileprivate let sectionTitleHeight = 60
-    fileprivate let rowHeight = 48
-    
-    
-    // MARK: - Life Cycle
 
+    // MARK: - Life Cycle
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        imageView.isHidden = true
-
-        infoTableView.dataSource = self
-        infoTableView.delegate = self
-
+        setupUI()
         setupBindings()
+
+        if let asset = asset {
+            viewModel.configure(with: asset, collection: assetCollection)
+        }
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        updateHeaderHeight()
+        viewModel.loadPhoto(targetSize: targetSize)
+        Task {
+            await viewModel.loadMetadata()
+        }
+        PHPhotoLibrary.shared().register(self)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        viewModel.cancelRequests()
+    }
+
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: nil) { _ in
+            self.updateHeaderHeight()
+        }
+    }
+
+    deinit {
+        PHPhotoLibrary.shared().unregisterChangeObserver(self)
+    }
+
+    // MARK: - UI Setup
+    private func setupUI() {
+        view.backgroundColor = .systemGroupedBackground
+        navigationItem.rightBarButtonItem = clearAllButton
+
+        // TableView setup
+        view.addSubview(tableView)
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.register(DetailTableViewCell.self, forCellReuseIdentifier: String(describing: DetailTableViewCell.self))
+
+        // Header Setup
+        let headerContainer = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 300))
+        headerContainer.addSubview(heroImageView)
+        heroImageView.frame = headerContainer.bounds
+        heroImageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        tableView.tableHeaderView = headerContainer
+
+        NSLayoutConstraint.activate([
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
+
+    private func updateHeaderHeight() {
+        guard let asset = viewModel.asset else { return }
+        let width = view.bounds.width
+        let height = width * CGFloat(asset.pixelHeight) / CGFloat(asset.pixelWidth)
+        let clampedHeight = min(height, view.bounds.height * 0.5)
+
+        if let header = tableView.tableHeaderView {
+            header.frame.size = CGSize(width: width, height: clampedHeight)
+            tableView.tableHeaderView = header
+        }
+    }
+
+    private var targetSize: CGSize {
+        let scale = UIScreen.main.scale
+        let headerHeight = tableView.tableHeaderView?.frame.height ?? 300
+        return CGSize(width: view.bounds.width * scale, height: headerHeight * scale)
     }
 
     // MARK: - Bindings
-
     private func setupBindings() {
         observe(viewModel: viewModel, property: { $0.image }) { [weak self] image in
-            if let image = image {
-                self?.imageView.isHidden = false
-                self?.imageView.image = image
-            }
+            self?.heroImageView.image = image
         }
 
         observe(viewModel: viewModel, property: { $0.isLoading }) { [weak self] isLoading in
@@ -94,16 +154,17 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         }
 
         observe(viewModel: viewModel, property: { $0.tableViewDataSource }) { [weak self] _ in
-            self?.infoTableView.reloadData()
-            self?.tableViewHeightConstraint.constant = self?.heightOfTableView() ?? 0
+            self?.tableView.reloadData()
         }
 
-        observe(viewModel: viewModel, property: { $0.timeStamp }) { [weak self] timeStamp in
-            self?.updateTimeStampUI(timeStamp)
+        observe(viewModel: viewModel, property: { $0.timeStamp }) { [weak self] _ in
+            guard let self = self, self.isViewLoaded, self.view.window != nil else { return }
+            self.tableView.reloadData()
         }
 
-        observe(viewModel: viewModel, property: { ($0.locationDisplayText, $0.location) }) { [weak self] (displayText, location) in
-            self?.updateLocationUI(displayText: displayText, location: location)
+        observe(viewModel: viewModel, property: { ($0.locationDisplayText, $0.location) }) { [weak self] _ in
+            guard let self = self, self.isViewLoaded, self.view.window != nil else { return }
+            self.tableView.reloadData()
         }
 
         observe(viewModel: viewModel, property: { $0.fileName }) { [weak self] fileName in
@@ -113,113 +174,8 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         }
     }
 
-    private func updateTimeStampUI(_ timeStamp: String?) {
-        if let timeStamp = timeStamp {
-            timeStampButton.titleText = timeStamp
-            timeStampButton.isEmpty = false
-        } else {
-            timeStampButton.titleText = R.string.localizable.viewAddDate()
-            timeStampButton.isEmpty = true
-        }
-        timeStampEditButton.isHidden = timeStampButton.isEmpty
-    }
-
-    private func updateLocationUI(displayText: String?, location: CLLocation?) {
-        if let displayText = displayText {
-            locationButton.titleText = displayText
-            locationButton.isEmpty = false
-        } else if let location = location {
-            locationButton.titleText = "\(location.coordinate.latitude), \(location.coordinate.longitude)"
-            locationButton.isEmpty = false
-        } else {
-            locationButton.titleText = R.string.localizable.viewAddLocation()
-            locationButton.isEmpty = true
-        }
-        locationEditButton.isHidden = locationButton.isEmpty
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        adjustImageView()
-
-        // Configure viewModel if asset was set via segue
-        if let asset = asset {
-            viewModel.configure(with: asset, collection: assetCollection)
-        }
-
-        viewModel.loadPhoto(targetSize: targetSize)
-
-        Task {
-            await viewModel.loadMetadata()
-        }
-
-        PHPhotoLibrary.shared().register(self)
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            adjustImageView()
-        }
-    }
-    
-    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
-        super.viewWillTransition(to: size, with: coordinator)
-        
-        coordinator.animate(alongsideTransition: nil, completion: { _ in
-            self.adjustImageView()
-        })
-    }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        viewModel.cancelRequests()
-    }
-    
-    deinit {
-        PHPhotoLibrary.shared().unregisterChangeObserver(self)
-    }
-    
-    // MARK: - Computed Properties
-
-    var targetSize: CGSize {
-        let scale = UIScreen.main.scale
-        return CGSize(width: imageView.bounds.width * scale,
-                      height: imageView.bounds.height * scale)
-    }
-    
-    func adjustImageView() {
-        guard let asset = viewModel.asset else { return }
-        imageViewHeightConstraint.constant = imageView.bounds.width * CGFloat(asset.pixelHeight) / CGFloat(asset.pixelWidth)
-
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            UIView.animate(withDuration: 0.2, animations: {
-                self.view.layoutIfNeeded()
-            })
-        }
-    }
-
     // MARK: - Actions
-    @IBAction func editTimeStamp(_ sender: UIButton) {
-        deleteAlert { [weak self] action in
-            guard let self = self, action != .cancel else { return }
-            Task {
-                await self.viewModel.clearTimeStamp(deleteOriginal: action == .addAndDel)
-            }
-        }
-    }
-
-    @IBAction func editLocation(_ sender: UIButton) {
-        deleteAlert { [weak self] action in
-            guard let self = self, action != .cancel else { return }
-            Task {
-                await self.viewModel.clearLocation(deleteOriginal: action == .addAndDel)
-            }
-        }
-    }
-
-    @IBAction func clearAllMetadata(_ sender: UIButton) {
+    @objc private func clearAllMetadata() {
         deleteAlert { [weak self] action in
             guard let self = self, action != .cancel else { return }
             Task {
@@ -227,155 +183,144 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
             }
         }
     }
-    
-    
-    // MARK: Prepare
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == R.segue.detailInfoViewController.detailPickDate.identifier {
-            datePickerPopover = segue.destination as? DetailDatePickerPopover
-            if let popover = datePickerPopover?.popoverPresentationController {
-                popover.delegate = self;
-            }
-        } else if segue.identifier == R.segue.detailInfoViewController.detailSearchLocation.identifier {
-            if let searchView = segue.destination as? LocationSearchViewController {
-                searchView.delegate = self
-            }
-        }
-    }
-    
-    func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
-        return .none
-    }
-}
 
-// MARK: - Private Methods
-fileprivate extension DetailInfoViewController {
+    private func showDatePicker() {
+        let popover = DetailDatePickerPopover()
+        popover.modalPresentationStyle = .popover
+        popover.popoverPresentationController?.delegate = self
+        popover.popoverPresentationController?.sourceView = view
+        popover.popoverPresentationController?.sourceRect = CGRect(
+            x: view.bounds.midX, y: view.bounds.midY,
+            width: 0, height: 0
+        )
+        popover.popoverPresentationController?.permittedArrowDirections = []
 
-    func heightOfTableView() -> CGFloat {
-        return viewModel.tableViewDataSource.reduce(0) { height, dic in
-            guard let firstValue = dic.values.first else { return height }
-            return height + CGFloat(firstValue.count * rowHeight + sectionTitleHeight)
-        }
+        present(popover, animated: true)
     }
 
-    func addTimeStamp(_ date: Date) {
-        deleteAlert { [weak self] action in
-            guard let self = self, action != .cancel else { return }
-            Task {
-                await self.viewModel.addTimeStamp(date, deleteOriginal: action == .addAndDel)
-            }
-        }
-    }
-
-    func addLocation(_ location: CLLocation) {
-        deleteAlert { [weak self] action in
-            guard let self = self, action != .cancel else { return }
-            Task {
-                await self.viewModel.addLocation(location, deleteOriginal: action == .addAndDel)
-            }
-        }
-    }
-
-    func deleteAlert(completionHandler: @escaping (EditAlertAction) -> Void) {
-        let message = viewModel.isLivePhoto ? R.string.localizable.alertLiveAlertDesc() : R.string.localizable.alertConfirmDesc()
-        let alert: UIAlertController = UIAlertController(title: R.string.localizable.alertConfirm(),
-                                                         message: message,
-                                                         preferredStyle: .alert)
-        
-        let addAndDelAction: UIAlertAction = UIAlertAction(title: R.string.localizable.alertAddAndDel(), style: .default, handler:{
-            (action: UIAlertAction!) -> Void in
-            completionHandler(EditAlertAction.addAndDel)
-        })
-        
-        let addAction: UIAlertAction = UIAlertAction(title: R.string.localizable.alertAdd(), style: .default, handler:{
-            (action: UIAlertAction!) -> Void in
-            completionHandler(EditAlertAction.add)
-        })
-
-        let cancelAction: UIAlertAction = UIAlertAction(title: R.string.localizable.alertCancel(), style: .cancel, handler:{
-            (action: UIAlertAction!) -> Void in
-            completionHandler(EditAlertAction.cancel)
-        })
-
-        alert.addAction(addAndDelAction)
-        alert.addAction(addAction)
-        alert.addAction(cancelAction)
-        present(alert, animated: true, completion: nil)
+    private func showLocationSearch() {
+        let searchVC = LocationSearchViewController()
+        searchVC.delegate = self
+        present(UINavigationController(rootViewController: searchVC), animated: true)
     }
 }
 
-// MARK: UIPopoverPresentationControllerDelegate
-extension DetailInfoViewController: UIPopoverPresentationControllerDelegate {
-    
-    func popoverPresentationControllerDidDismissPopover(_ popoverPresentationController: UIPopoverPresentationController) {
-        if let popover = datePickerPopover {
-            addTimeStamp(popover.curDate)
-        }
-    }
-}
-
-// MARK: LocationSearchDelegate
-extension DetailInfoViewController: LocationSearchDelegate {
-    
-    func didSelect(_ model: LocationModel) {
-        guard let coordinate = model.coordinate else {
-            SVProgressHUD.showCustomErrorHUD(with: R.string.localizable.errorCoordinateFetch())
-            return
-        }
-        addLocation(CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude))
-    }
-}
-
-// MARK: - UITableViewDataSource
-extension DetailInfoViewController: UITableViewDataSource {
+// MARK: - UITableViewDataSource & Delegate
+extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
 
     func numberOfSections(in tableView: UITableView) -> Int {
-        return viewModel.tableViewDataSource.count
+        return 2 + viewModel.tableViewDataSource.count
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.tableViewDataSource[section].values.first?.count ?? 0
+        if section < 2 { return 1 }
+        return viewModel.tableViewDataSource[section - 2].values.first?.count ?? 0
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        if indexPath.section == 0 {
+            let cell = UITableViewCell(style: .value1, reuseIdentifier: "TimeCell")
+            cell.textLabel?.text = R.string.localizable.viewAddDate()
+            cell.detailTextLabel?.text = viewModel.timeStamp ?? "---"
+            cell.accessoryType = .disclosureIndicator
+            cell.imageView?.image = UIImage(systemName: "calendar")
+            return cell
+        } else if indexPath.section == 1 {
+            let cell = UITableViewCell(style: .value1, reuseIdentifier: "LocationCell")
+            cell.textLabel?.text = R.string.localizable.viewAddLocation()
+            if let displayText = viewModel.locationDisplayText {
+                cell.detailTextLabel?.text = displayText
+            } else if let location = viewModel.location {
+                cell.detailTextLabel?.text = "\(location.coordinate.latitude), \(location.coordinate.longitude)"
+            } else {
+                cell.detailTextLabel?.text = "---"
+            }
+            cell.accessoryType = .disclosureIndicator
+            cell.imageView?.image = UIImage(systemName: "mappin.and.ellipse")
+            return cell
+        }
+
         guard let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: DetailTableViewCell.self), for: indexPath) as? DetailTableViewCell else {
             return UITableViewCell()
         }
 
-        if let sectionDataSource = viewModel.tableViewDataSource[indexPath.section].values.first {
+        if let sectionDataSource = viewModel.tableViewDataSource[indexPath.section - 2].values.first {
             cell.cellDataSource = sectionDataSource[indexPath.row]
         }
         return cell
     }
-}
-
-// MARK: - UITableViewDelegate
-extension DetailInfoViewController: UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-        let headerView: DetailSectionHeaderView = UIView().instantiateFromNib(DetailSectionHeaderView.self)
-        headerView.headetTitle = viewModel.tableViewDataSource[section].keys.first ?? ""
+        if section < 2 { return nil }
+        let headerView = DetailSectionHeaderView()
+        headerView.headerTitle = viewModel.tableViewDataSource[section - 2].keys.first ?? ""
         return headerView
+    }
+
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return section < 2 ? 0.1 : 50
+    }
+
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        if indexPath.section == 0 {
+            showDatePicker()
+        } else if indexPath.section == 1 {
+            showLocationSearch()
+        }
+    }
+}
+
+// MARK: - Logic & Alerts
+fileprivate extension DetailInfoViewController {
+    func deleteAlert(completionHandler: @escaping (EditAlertAction) -> Void) {
+        let message = viewModel.isLivePhoto ? R.string.localizable.alertLiveAlertDesc() : R.string.localizable.alertConfirmDesc()
+        let alert = UIAlertController(title: R.string.localizable.alertConfirm(), message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: R.string.localizable.alertAddAndDel(), style: .destructive) { _ in completionHandler(.addAndDel) })
+        alert.addAction(UIAlertAction(title: R.string.localizable.alertAdd(), style: .default) { _ in completionHandler(.add) })
+        alert.addAction(UIAlertAction(title: R.string.localizable.alertCancel(), style: .cancel) { _ in completionHandler(.cancel) })
+        present(alert, animated: true)
+    }
+}
+
+// MARK: - Delegates
+extension DetailInfoViewController: UIPopoverPresentationControllerDelegate, LocationSearchDelegate {
+
+    func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
+        return .none
+    }
+
+    func popoverPresentationControllerDidDismissPopover(_ popoverPresentationController: UIPopoverPresentationController) {
+        if let datePicker = popoverPresentationController.presentedViewController as? DetailDatePickerPopover {
+            deleteAlert { [weak self] action in
+                guard let self = self, action != .cancel else { return }
+                Task { await self.viewModel.addTimeStamp(datePicker.curDate, deleteOriginal: action == .addAndDel) }
+            }
+        }
+    }
+
+    func didSelect(_ model: LocationModel) {
+        guard let coord = model.coordinate else {
+            SVProgressHUD.showCustomErrorHUD(with: R.string.localizable.errorCoordinateFetch())
+            return
+        }
+        deleteAlert { [weak self] action in
+            guard let self = self, action != .cancel else { return }
+            Task { await self.viewModel.addLocation(CLLocation(latitude: coord.latitude, longitude: coord.longitude), deleteOriginal: action == .addAndDel) }
+        }
     }
 }
 
 // MARK: - PHPhotoLibraryChangeObserver
 extension DetailInfoViewController: PHPhotoLibraryChangeObserver {
-
     func photoLibraryDidChange(_ changeInstance: PHChange) {
         Task { @MainActor in
-            guard let curAsset = viewModel.asset,
-                  let details = changeInstance.changeDetails(for: curAsset) else {
-                return
-            }
-
+            guard let curAsset = viewModel.asset, let details = changeInstance.changeDetails(for: curAsset) else { return }
             viewModel.updateAsset(details.objectAfterChanges)
-
             guard viewModel.asset != nil else {
                 navigationController?.popViewController(animated: true)
                 return
             }
-
             if details.assetContentChanged {
                 viewModel.loadPhoto(targetSize: targetSize)
                 await viewModel.loadMetadata()

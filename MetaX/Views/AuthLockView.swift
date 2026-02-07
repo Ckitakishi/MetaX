@@ -8,46 +8,85 @@
 
 import UIKit
 
-extension AuthLockView: NibLoadable {}
-
-protocol AuthLockViewDelegate {
+protocol AuthLockViewDelegate: AnyObject {
     func toSetting()
 }
 
 class AuthLockView: UIView {
     
-    @IBOutlet private weak var titleLabel: UILabel!
-    @IBOutlet private weak var descriptionLabel: UILabel!
-    @IBOutlet private weak var actionButton: UIButton!
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 24, weight: .bold)
+        label.textColor = .label
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        return label
+    }()
     
-    var delegate: AuthLockViewDelegate? = nil
+    private let descriptionLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 16)
+        label.textColor = .secondaryLabel
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        return label
+    }()
     
-    override func awakeFromNib() {
-        super.awakeFromNib()
-    }
+    private let actionButton: UIButton = {
+        var config = UIButton.Configuration.borderedProminent()
+        config.cornerStyle = .capsule
+        config.baseBackgroundColor = UIColor(named: "greenSea") ?? .systemTeal
+        let button = UIButton(configuration: config)
+        return button
+    }()
+    
+    weak var delegate: AuthLockViewDelegate? = nil
     
     var title: String = "Denied." {
-        didSet {
-            titleLabel.text = title
-        }
+        didSet { titleLabel.text = title }
     }
-    
+
     var detail: String = "" {
-        didSet {
-            descriptionLabel.text = detail
-        }
+        didSet { descriptionLabel.text = detail }
     }
-    
+
     var buttonTitle: String = "Setting" {
-        didSet {
-            actionButton.setTitle(buttonTitle, for: .normal)
-            actionButton.addBorder(.all, color: UIColor.white, thickness: 2.0)
-        }
+        didSet { actionButton.setTitle(buttonTitle, for: .normal) }
     }
     
-    @IBAction func goToAction(_ sender: UIButton) {
-        if delegate != nil {
-            delegate?.toSetting()
-        }
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupUI()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    private func setupUI() {
+        backgroundColor = .systemBackground
+        
+        let stack = UIStackView(arrangedSubviews: [titleLabel, descriptionLabel, actionButton])
+        stack.axis = .vertical
+        stack.spacing = 20
+        stack.alignment = .center
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        
+        addSubview(stack)
+        
+        NSLayoutConstraint.activate([
+            stack.centerYAnchor.constraint(equalTo: centerYAnchor),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 40),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -40),
+            
+            actionButton.heightAnchor.constraint(equalToConstant: 50),
+            actionButton.widthAnchor.constraint(equalToConstant: 200)
+        ])
+        
+        actionButton.addTarget(self, action: #selector(goToAction), for: .touchUpInside)
+    }
+    
+    @objc private func goToAction() {
+        delegate?.toSetting()
     }
 }

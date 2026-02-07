@@ -17,34 +17,61 @@ protocol LocationSearchDelegate: AnyObject {
 class LocationSearchViewController: UIViewController, ViewModelObserving {
 
     // MARK: - ViewModel
-
     private let viewModel = LocationSearchViewModel()
 
-    // MARK: - Properties
-
-    @IBOutlet weak var searchBar: UISearchBar!
-    @IBOutlet weak var listTableView: UITableView!
+    // MARK: - UI Components
+    private let tableView: UITableView = {
+        let table = UITableView()
+        table.translatesAutoresizingMaskIntoConstraints = false
+        return table
+    }()
+    
+    private let searchController = UISearchController(searchResultsController: nil)
 
     weak var delegate: LocationSearchDelegate?
 
     // MARK: - Life Cycle
-
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        searchBar.delegate = self
-        listTableView.delegate = self
-        listTableView.dataSource = self
-        listTableView.keyboardDismissMode = .onDrag
-
+        setupUI()
         setupBindings()
     }
 
-    // MARK: - Bindings
+    private func setupUI() {
+        title = NSLocalizedString("Search Location", comment: "")
+        view.backgroundColor = .systemBackground
+        
+        // Navigation Bar
+        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancel))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "location.fill"), style: .plain, target: self, action: #selector(neighborSearch))
+        
+        // Search Controller
+        searchController.searchResultsUpdater = self
+        searchController.obscuresBackgroundDuringPresentation = false
+        searchController.searchBar.placeholder = NSLocalizedString("Search address", comment: "")
+        navigationItem.searchController = searchController
+        navigationItem.hidesSearchBarWhenScrolling = false
+        definesPresentationContext = true
+        
+        // TableView
+        view.addSubview(tableView)
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.register(LocationTableViewCell.self, forCellReuseIdentifier: String(describing: LocationTableViewCell.self))
+        tableView.keyboardDismissMode = .onDrag
+        
+        NSLayoutConstraint.activate([
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
 
+    // MARK: - Bindings
     private func setupBindings() {
         observe(viewModel: viewModel, property: { $0.searchResults }) { [weak self] _ in
-            self?.listTableView.reloadData()
+            self?.tableView.reloadData()
         }
 
         observe(viewModel: viewModel, property: { $0.error }) { [weak self] error in
@@ -55,29 +82,24 @@ class LocationSearchViewController: UIViewController, ViewModelObserving {
     }
 
     // MARK: - Actions
-
-    @IBAction func cancel(_ sender: UIBarButtonItem) {
+    @objc private func cancel() {
         dismiss(animated: true, completion: nil)
     }
 
-    @IBAction func neighborSearch(_ sender: UIBarButtonItem) {
+    @objc private func neighborSearch() {
         viewModel.requestLocationAuthorization()
     }
 }
 
-// MARK: - UISearchBarDelegate
-
-extension LocationSearchViewController: UISearchBarDelegate {
-
-    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        viewModel.search(query: searchText)
+// MARK: - UISearchResultsUpdating
+extension LocationSearchViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        viewModel.search(query: searchController.searchBar.text ?? "")
     }
 }
 
 // MARK: - UITableViewDataSource
-
 extension LocationSearchViewController: UITableViewDataSource {
-
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return viewModel.searchResults.count
     }
@@ -98,9 +120,7 @@ extension LocationSearchViewController: UITableViewDataSource {
 }
 
 // MARK: - UITableViewDelegate
-
 extension LocationSearchViewController: UITableViewDelegate {
-
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         dismiss(animated: true) { [weak self] in
             self?.viewModel.selectLocation(at: indexPath.row) { locationModel in

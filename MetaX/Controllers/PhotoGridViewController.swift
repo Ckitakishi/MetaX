@@ -10,17 +10,12 @@ import UIKit
 import Photos
 import PhotosUI
 
-private extension UICollectionView {
-    func indexPathsForElements(in rect: CGRect) -> [IndexPath] {
-        guard let allLayoutAttributes = collectionViewLayout.layoutAttributesForElements(in: rect) else {
-            return []
-        }
-        return allLayoutAttributes.map { $0.indexPath }
-    }
-}
+class PhotoGridViewController: UIViewController, ViewModelObserving {
 
-class PhotoGridViewController: UICollectionViewController, ViewModelObserving {
-
+    // MARK: - UI Components
+    
+    private var collectionView: UICollectionView!
+    
     // MARK: - ViewModel
 
     private let viewModel = PhotoGridViewModel()
@@ -39,27 +34,17 @@ class PhotoGridViewController: UICollectionViewController, ViewModelObserving {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
+        setupUI()
+        setupBindings()
+        
         viewModel.loadDefaultPhotosIfNeeded()
         viewModel.registerPhotoLibraryObserver()
-        setupBindings()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-
-        let scale = UIScreen.main.scale
-        if let flowLayout = collectionViewLayout as? UICollectionViewFlowLayout {
-            let cellSize = flowLayout.itemSize
-            thumbnailSize = CGSize(width: cellSize.width * scale, height: cellSize.height * scale)
-            viewModel.setThumbnailSize(thumbnailSize)
-
-            let layout = UICollectionViewFlowLayout()
-            layout.itemSize = cellSize
-            layout.minimumInteritemSpacing = 2
-            layout.minimumLineSpacing = 2
-            collectionView?.collectionViewLayout = layout
-        }
+        updateThumbnailSize()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -67,21 +52,57 @@ class PhotoGridViewController: UICollectionViewController, ViewModelObserving {
         updateCachedAssets()
     }
 
-    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
-        super.viewWillTransition(to: size, with: coordinator)
-        collectionView?.frame.size = size
-    }
-
-    override func viewDidLayoutSubviews() {
-        guard let wrapperView = collectionView?.superview else { return }
-        collectionView?.frame = wrapperView.frame
-    }
-
     deinit {
         let vm = viewModel
         Task { @MainActor in
             vm.unregisterPhotoLibraryObserver()
         }
+    }
+    
+    // MARK: - UI Setup
+    
+    private func setupUI() {
+        view.backgroundColor = .systemBackground
+        
+        // 1. Create Layout
+        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1/3),
+                                             heightDimension: .fractionalWidth(1/3))
+        let item = NSCollectionLayoutItem(layoutSize: itemSize)
+        item.contentInsets = NSDirectionalEdgeInsets(top: 1, leading: 1, bottom: 1, trailing: 1)
+        
+        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
+                                              heightDimension: .fractionalWidth(1/3))
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+        
+        let section = NSCollectionLayoutSection(group: group)
+        let layout = UICollectionViewCompositionalLayout(section: section)
+        
+        // 2. Create CollectionView
+        collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        collectionView.backgroundColor = .systemBackground
+        collectionView.delegate = self
+        collectionView.dataSource = self
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // 3. Register Cell
+        collectionView.register(PhotoCollectionViewCell.self, forCellWithReuseIdentifier: String(describing: PhotoCollectionViewCell.self))
+        
+        view.addSubview(collectionView)
+        
+        NSLayoutConstraint.activate([
+            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
+
+    private func updateThumbnailSize() {
+        let width = view.bounds.width / 3
+        let scale = UIScreen.main.scale
+        thumbnailSize = CGSize(width: width * scale, height: width * scale)
+        viewModel.setThumbnailSize(thumbnailSize)
     }
 
     // MARK: - Bindings
@@ -96,52 +117,55 @@ class PhotoGridViewController: UICollectionViewController, ViewModelObserving {
 
     private func handlePhotoLibraryChanges(_ changes: PHFetchResultChangeDetails<PHAsset>) {
         if changes.hasIncrementalChanges {
-            guard let collectionView = collectionView else { return }
-
             collectionView.performBatchUpdates({
                 if let removed = changes.removedIndexes, !removed.isEmpty {
-                    collectionView.deleteItems(at: removed.map { IndexPath(item: $0, section: 0) })
+                    self.collectionView.deleteItems(at: removed.map { IndexPath(item: $0, section: 0) })
                 }
                 if let inserted = changes.insertedIndexes, !inserted.isEmpty {
-                    collectionView.insertItems(at: inserted.map { IndexPath(item: $0, section: 0) })
+                    self.collectionView.insertItems(at: inserted.map { IndexPath(item: $0, section: 0) })
                 }
                 if let changed = changes.changedIndexes, !changed.isEmpty {
-                    collectionView.reloadItems(at: changed.map { IndexPath(item: $0, section: 0) })
+                    self.collectionView.reloadItems(at: changed.map { IndexPath(item: $0, section: 0) })
                 }
 
                 changes.enumerateMoves { fromIndex, toIndex in
-                    collectionView.moveItem(
+                    self.collectionView.moveItem(
                         at: IndexPath(item: fromIndex, section: 0),
                         to: IndexPath(item: toIndex, section: 0)
                     )
                 }
             })
         } else {
-            collectionView?.reloadData()
+            collectionView.reloadData()
         }
         viewModel.resetCachedAssets()
     }
 
-    // MARK: - Segues
+    // MARK: - Asset Caching
 
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        guard let destination = segue.destination as? DetailInfoViewController,
-              let cell = sender as? UICollectionViewCell,
-              let indexPath = collectionView?.indexPath(for: cell) else {
-            return
+    private func updateCachedAssets() {
+        guard isViewLoaded, view.window != nil else { return }
+
+        let visibleRect = CGRect(origin: collectionView.contentOffset, size: collectionView.bounds.size)
+
+        viewModel.updateCachedAssets(
+            visibleRect: visibleRect,
+            viewBoundsHeight: view.bounds.height
+        ) { [weak self] rect in
+            self?.collectionView.indexPathsForElements(in: rect) ?? []
         }
-
-        destination.asset = viewModel.asset(at: indexPath.item)
-        destination.assetCollection = viewModel.assetCollection
     }
+}
 
-    // MARK: - UICollectionViewDataSource
+// MARK: - UICollectionViewDataSource & Delegate
 
-    override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewDelegate {
+
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return viewModel.numberOfItems
     }
 
-    override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let asset = viewModel.asset(at: indexPath.item),
               let cell = collectionView.dequeueReusableCell(
                   withReuseIdentifier: String(describing: PhotoCollectionViewCell.self),
@@ -152,6 +176,8 @@ class PhotoGridViewController: UICollectionViewController, ViewModelObserving {
 
         if asset.mediaSubtypes.contains(.photoLive) {
             cell.livePhotoBadgeImage = PHLivePhotoView.livePhotoBadgeImage(options: .overContent)
+        } else {
+            cell.livePhotoBadgeImage = nil
         }
 
         cell.representedAssetIdentifier = asset.localIdentifier
@@ -164,25 +190,29 @@ class PhotoGridViewController: UICollectionViewController, ViewModelObserving {
 
         return cell
     }
-
-    // MARK: - UIScrollViewDelegate
-
-    override func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        updateCachedAssets()
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        // Create destination (Pure programmatic)
+        let destination = DetailInfoViewController()
+        
+        destination.asset = viewModel.asset(at: indexPath.item)
+        destination.assetCollection = viewModel.assetCollection
+        
+        navigationController?.pushViewController(destination, animated: true)
     }
 
-    // MARK: - Asset Caching
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        updateCachedAssets()
+    }
+}
 
-    private func updateCachedAssets() {
-        guard isViewLoaded, view.window != nil, let collectionView = collectionView else { return }
+// MARK: - Helper Extension
 
-        let visibleRect = CGRect(origin: collectionView.contentOffset, size: collectionView.bounds.size)
-
-        viewModel.updateCachedAssets(
-            visibleRect: visibleRect,
-            viewBoundsHeight: view.bounds.height
-        ) { [weak collectionView] rect in
-            collectionView?.indexPathsForElements(in: rect) ?? []
+private extension UICollectionView {
+    func indexPathsForElements(in rect: CGRect) -> [IndexPath] {
+        guard let allLayoutAttributes = collectionViewLayout.layoutAttributesForElements(in: rect) else {
+            return []
         }
+        return allLayoutAttributes.map { $0.indexPath }
     }
 }
