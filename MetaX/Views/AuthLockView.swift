@@ -3,7 +3,7 @@
 //  MetaX
 //
 //  Created by Ckitakishi on 2018/04/19.
-//  Copyright © 2018年 Yuhan Chen. All rights reserved.
+//  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
 import UIKit
@@ -35,7 +35,7 @@ class AuthLockView: UIView {
     private let actionButton: UIButton = {
         var config = UIButton.Configuration.borderedProminent()
         config.cornerStyle = .capsule
-        config.baseBackgroundColor = UIColor(named: "greenSea") ?? .systemTeal
+        config.baseBackgroundColor = Theme.Colors.accent
         let button = UIButton(configuration: config)
         return button
     }()
@@ -64,7 +64,7 @@ class AuthLockView: UIView {
     }
     
     private func setupUI() {
-        backgroundColor = .systemBackground
+        backgroundColor = Theme.Colors.mainBackground
         
         let stack = UIStackView(arrangedSubviews: [titleLabel, descriptionLabel, actionButton])
         stack.axis = .vertical
@@ -76,11 +76,8 @@ class AuthLockView: UIView {
         
         NSLayoutConstraint.activate([
             stack.centerYAnchor.constraint(equalTo: centerYAnchor),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 40),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -40),
-            
-            actionButton.heightAnchor.constraint(equalToConstant: 50),
-            actionButton.widthAnchor.constraint(equalToConstant: 200)
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Theme.Layout.horizontalMargin * 2),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Theme.Layout.horizontalMargin * 2)
         ])
         
         actionButton.addTarget(self, action: #selector(goToAction), for: .touchUpInside)

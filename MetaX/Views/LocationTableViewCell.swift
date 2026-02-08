@@ -3,7 +3,7 @@
 //  MetaX
 //
 //  Created by Ckitakishi on 2018/04/11.
-//  Copyright © 2018年 Yuhan Chen. All rights reserved.
+//  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
 import UIKit
@@ -13,14 +13,15 @@ class LocationTableViewCell: UITableViewCell {
     
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 16, weight: .medium)
+        label.font = Theme.Typography.bodyMedium
+        label.textColor = .label
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
     private let subTitleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 13)
+        label.font = Theme.Typography.footnote
         label.textColor = .secondaryLabel
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -44,18 +45,19 @@ class LocationTableViewCell: UITableViewCell {
     }
     
     private func setupUI() {
+        backgroundColor = .clear
         let stack = UIStackView(arrangedSubviews: [titleLabel, subTitleLabel])
         stack.axis = .vertical
-        stack.spacing = 2
+        stack.spacing = 4
         stack.translatesAutoresizingMaskIntoConstraints = false
         
         contentView.addSubview(stack)
         
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
-            stack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8)
+            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Theme.Layout.horizontalMargin),
+            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Theme.Layout.horizontalMargin),
+            stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
+            stack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12)
         ])
     }
 }

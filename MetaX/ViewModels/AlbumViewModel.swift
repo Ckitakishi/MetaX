@@ -13,10 +13,22 @@ import Observation
 /// Section types for album list
 enum AlbumSection: Int, CaseIterable {
     case allPhotos = 0
-    case smartAlbums
     case userCollections
+    case smartAlbums
 
     static var count: Int { allCases.count }
+}
+
+enum AlbumSortOption: CaseIterable {
+    case `default`
+    case name
+
+    var title: String {
+        switch self {
+        case .default: return String(localized: .sortDefault)
+        case .name: return String(localized: .sortName)
+        }
+    }
 }
 
 /// ViewModel for AlbumViewController
@@ -27,11 +39,21 @@ final class AlbumViewModel: NSObject {
 
     private(set) var allPhotos: PHFetchResult<PHAsset>?
     private(set) var smartAlbums: PHFetchResult<PHAssetCollection>?
-    private(set) var nonEmptySmartAlbums: [PHAssetCollection] = []
     private(set) var userCollections: PHFetchResult<PHCollection>?
-    private(set) var userAssetCollections: [PHAssetCollection] = []
+
+    // Raw data
+    private var userAssetCollections: [PHAssetCollection] = []
+    private var nonEmptySmartAlbums: [PHAssetCollection] = []
+
+    // Display data (filtered + sorted)
+    private(set) var displayedUserCollections: [PHAssetCollection] = []
+    private(set) var displayedSmartAlbums: [PHAssetCollection] = []
+
+    var searchText: String = "" { didSet { applySearchAndSort() } }
+    var sortOption: AlbumSortOption = .default { didSet { applySearchAndSort() } }
+
     private(set) var isAuthorized: Bool = true
-    private(set) var needsReload: Bool = false
+    private(set) var reloadToken: Int = 0
 
     // MARK: - Dependencies
 
@@ -57,18 +79,17 @@ final class AlbumViewModel: NSObject {
     }
 
     func loadAlbums() {
-        // Fetch all photos
         let allPhotosOptions = PHFetchOptions()
         allPhotosOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         allPhotos = PHAsset.fetchAssets(with: allPhotosOptions)
 
-        // Fetch smart albums
-        smartAlbums = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .albumRegular, options: nil)
-        nonEmptySmartAlbums = updatedNonEmptyAlbums()
-
-        // Fetch user collections
         userCollections = PHCollectionList.fetchTopLevelUserCollections(with: nil)
         userAssetCollections = updatedUserAssetCollections()
+
+        smartAlbums = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .any, options: nil)
+        nonEmptySmartAlbums = updatedNonEmptyAlbums()
+
+        applySearchAndSort()
     }
 
     func registerPhotoLibraryObserver() {
@@ -84,11 +105,11 @@ final class AlbumViewModel: NSObject {
     func numberOfRows(in section: AlbumSection) -> Int {
         switch section {
         case .allPhotos:
-            return 1
-        case .smartAlbums:
-            return nonEmptySmartAlbums.count
+            return searchText.isEmpty ? 1 : 0
         case .userCollections:
-            return userAssetCollections.count
+            return displayedUserCollections.count
+        case .smartAlbums:
+            return displayedSmartAlbums.count
         }
     }
 
@@ -103,14 +124,14 @@ final class AlbumViewModel: NSObject {
             let asset = count > 0 ? allPhotos?.object(at: 0) : nil
             return (String(localized: .viewAllPhotos), count, asset)
 
-        case .smartAlbums:
-            guard indexPath.row < nonEmptySmartAlbums.count else { return (nil, 0, nil) }
-            let collection = nonEmptySmartAlbums[indexPath.row]
+        case .userCollections:
+            guard indexPath.row < displayedUserCollections.count else { return (nil, 0, nil) }
+            let collection = displayedUserCollections[indexPath.row]
             return (collection.localizedTitle, collection.imagesCount, collection.newestImage())
 
-        case .userCollections:
-            guard indexPath.row < userAssetCollections.count else { return (nil, 0, nil) }
-            let collection = userAssetCollections[indexPath.row]
+        case .smartAlbums:
+            guard indexPath.row < displayedSmartAlbums.count else { return (nil, 0, nil) }
+            let collection = displayedSmartAlbums[indexPath.row]
             return (collection.localizedTitle, collection.imagesCount, collection.newestImage())
         }
     }
@@ -127,32 +148,32 @@ final class AlbumViewModel: NSObject {
         case .allPhotos:
             return (allPhotos, nil, String(localized: .viewAllPhotos))
 
-        case .smartAlbums:
-            guard indexPath.row < nonEmptySmartAlbums.count else { return (nil, nil, nil) }
-            let collection = nonEmptySmartAlbums[indexPath.row]
-            let result = PHAsset.fetchAssets(in: collection, options: options)
-            return (result, collection, collection.localizedTitle)
-
         case .userCollections:
-            guard indexPath.row < userAssetCollections.count else { return (nil, nil, nil) }
-            let collection = userAssetCollections[indexPath.row]
-            let result = PHAsset.fetchAssets(in: collection, options: options)
-            return (result, collection, collection.localizedTitle)
+            guard indexPath.row < displayedUserCollections.count else { return (nil, nil, nil) }
+            let collection = displayedUserCollections[indexPath.row]
+            return (PHAsset.fetchAssets(in: collection, options: options), collection, collection.localizedTitle)
+
+        case .smartAlbums:
+            guard indexPath.row < displayedSmartAlbums.count else { return (nil, nil, nil) }
+            let collection = displayedSmartAlbums[indexPath.row]
+            return (PHAsset.fetchAssets(in: collection, options: options), collection, collection.localizedTitle)
         }
     }
 
     // MARK: - Thumbnail
 
-    func getThumbnail(for asset: PHAsset, completion: @escaping (UIImage?) -> Void) {
+    func getThumbnail(for asset: PHAsset, targetSize: CGSize? = nil, completion: @escaping (UIImage?) -> Void) {
         let options = PHImageRequestOptions()
-        options.deliveryMode = .fastFormat
+        options.deliveryMode = .opportunistic
         options.isSynchronous = false
-        options.isNetworkAccessAllowed = false
+        options.isNetworkAccessAllowed = true
+
+        let size = targetSize ?? CGSize(width: 100.0, height: 100.0)
 
         PHImageManager.default().requestImage(
             for: asset,
-            targetSize: CGSize(width: 92.0, height: 92.0),
-            contentMode: .aspectFit,
+            targetSize: size,
+            contentMode: .aspectFill,
             options: options
         ) { image, _ in
             completion(image)
@@ -160,6 +181,28 @@ final class AlbumViewModel: NSObject {
     }
 
     // MARK: - Private Methods
+
+    private func applySearchAndSort() {
+        var users = userAssetCollections
+        var smarts = nonEmptySmartAlbums
+
+        if !searchText.isEmpty {
+            users = users.filter { $0.localizedTitle?.localizedCaseInsensitiveContains(searchText) ?? false }
+            smarts = smarts.filter { $0.localizedTitle?.localizedCaseInsensitiveContains(searchText) ?? false }
+        }
+
+        switch sortOption {
+        case .default:
+            break
+        case .name:
+            users.sort { ($0.localizedTitle ?? "") < ($1.localizedTitle ?? "") }
+            smarts.sort { ($0.localizedTitle ?? "") < ($1.localizedTitle ?? "") }
+        }
+
+        displayedUserCollections = users
+        displayedSmartAlbums = smarts
+        reloadToken += 1
+    }
 
     private func updatedNonEmptyAlbums() -> [PHAssetCollection] {
         guard let smartAlbums = smartAlbums else { return [] }
@@ -221,14 +264,8 @@ extension AlbumViewModel: PHPhotoLibraryChangeObserver {
                 self.userCollections = changeDetails.fetchResultAfterChanges
                 self.userAssetCollections = updatedUserAssetCollections()
             }
-            
-            // Toggle to trigger UI update for table reload
-            // Note: Since we are observing, setting a property triggers render.
-            // But sometimes we just want to signal "reload".
-            // A simple way is to use a dedicated property or ensure data properties change.
-            self.needsReload = true
-            // Reset it immediately if needed, or handle it in VC.
-            // For withObservationTracking, simply changing it is enough.
+
+            applySearchAndSort()
         }
     }
 }

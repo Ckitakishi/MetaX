@@ -3,7 +3,7 @@
 //  MetaX
 //
 //  Created by Ckitakishi on 2018/3/20.
-//  Copyright © 2018年 Yuhan Chen. All rights reserved.
+//  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
 import UIKit
@@ -21,21 +21,37 @@ enum EditAlertAction: Int {
 
 class DetailInfoViewController: UIViewController, ViewModelObserving {
 
+    private enum HeroLayout {
+        static let inset: CGFloat = 8
+        static let cornerLength: CGFloat = 20
+        static let cornerThickness: CGFloat = 3
+    }
+
     // MARK: - ViewModel
     private let viewModel: DetailInfoViewModel
 
     // MARK: - UI Components
     private let tableView: UITableView = {
-        let table = UITableView(frame: .zero, style: .insetGrouped)
+        let table = UITableView(frame: .zero, style: .grouped)
+        table.backgroundColor = .clear
+        table.separatorStyle = .none
         table.translatesAutoresizingMaskIntoConstraints = false
         return table
+    }()
+
+    private let heroCardView: UIView = {
+        let view = UIView()
+        view.backgroundColor = Theme.Colors.cardBackground
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
 
     private let heroImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
         imageView.clipsToBounds = true
-        imageView.backgroundColor = .secondarySystemFill
+        imageView.backgroundColor = Theme.Colors.cardBackground
+        imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
     }()
 
@@ -101,7 +117,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     // MARK: - UI Setup
     private func setupUI() {
-        view.backgroundColor = .systemGroupedBackground
+        view.backgroundColor = Theme.Colors.mainBackground
         navigationItem.rightBarButtonItem = clearAllButton
 
         // TableView setup
@@ -111,10 +127,23 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         tableView.register(DetailTableViewCell.self, forCellReuseIdentifier: String(describing: DetailTableViewCell.self))
 
         // Header Setup
-        let headerContainer = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 300))
-        headerContainer.addSubview(heroImageView)
-        heroImageView.frame = headerContainer.bounds
-        heroImageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        let headerContainer = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 320))
+        headerContainer.addSubview(heroCardView)
+        heroCardView.addSubview(heroImageView)
+
+        NSLayoutConstraint.activate([
+            heroCardView.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: Theme.Layout.cardPadding),
+            heroCardView.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: Theme.Layout.cardPadding),
+            heroCardView.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -Theme.Layout.cardPadding),
+            heroCardView.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -Theme.Layout.cardPadding),
+
+            heroImageView.topAnchor.constraint(equalTo: heroCardView.topAnchor, constant: HeroLayout.inset),
+            heroImageView.leadingAnchor.constraint(equalTo: heroCardView.leadingAnchor, constant: HeroLayout.inset),
+            heroImageView.trailingAnchor.constraint(equalTo: heroCardView.trailingAnchor, constant: -HeroLayout.inset),
+            heroImageView.bottomAnchor.constraint(equalTo: heroCardView.bottomAnchor, constant: -HeroLayout.inset)
+        ])
+        
+        addCornerMarks(to: heroCardView)
         tableView.tableHeaderView = headerContainer
 
         NSLayoutConstraint.activate([
@@ -125,14 +154,55 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         ])
     }
 
+    private func addCornerMarks(to view: UIView) {
+        let length = HeroLayout.cornerLength
+        let thickness = HeroLayout.cornerThickness
+
+        // (xAnchor, isLeading, yAnchor, isTop)
+        let corners: [(NSLayoutXAxisAnchor, Bool, NSLayoutYAxisAnchor, Bool)] = [
+            (view.leadingAnchor,  true,  view.topAnchor,    true),
+            (view.trailingAnchor, false, view.topAnchor,    true),
+            (view.leadingAnchor,  true,  view.bottomAnchor, false),
+            (view.trailingAnchor, false, view.bottomAnchor, false),
+        ]
+
+        for (xAnchor, isLeading, yAnchor, isTop) in corners {
+            let h = UIView()
+            h.backgroundColor = .black
+            h.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(h)
+
+            let v = UIView()
+            v.backgroundColor = .black
+            v.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(v)
+
+            NSLayoutConstraint.activate([
+                h.leadingAnchor.constraint(equalTo: xAnchor, constant: isLeading ? 0 : -length),
+                h.topAnchor.constraint(equalTo: yAnchor, constant: isTop ? 0 : -thickness),
+                h.widthAnchor.constraint(equalToConstant: length),
+                h.heightAnchor.constraint(equalToConstant: thickness),
+
+                v.leadingAnchor.constraint(equalTo: xAnchor, constant: isLeading ? 0 : -thickness),
+                v.topAnchor.constraint(equalTo: yAnchor, constant: isTop ? 0 : -length),
+                v.widthAnchor.constraint(equalToConstant: thickness),
+                v.heightAnchor.constraint(equalToConstant: length),
+            ])
+        }
+    }
+
     private func updateHeaderHeight() {
         guard let asset = viewModel.asset else { return }
-        let width = view.bounds.width
-        let height = width * CGFloat(asset.pixelHeight) / CGFloat(asset.pixelWidth)
-        let clampedHeight = min(height, view.bounds.height * 0.5)
-
+        let padding = Theme.Layout.cardPadding
+        let cardWidth = view.bounds.width - padding * 2
+        let cardHeight: CGFloat
+        if asset.pixelWidth > asset.pixelHeight {
+            cardHeight = cardWidth * CGFloat(asset.pixelHeight) / CGFloat(asset.pixelWidth)
+        } else {
+            cardHeight = cardWidth
+        }
         if let header = tableView.tableHeaderView {
-            header.frame.size = CGSize(width: width, height: clampedHeight)
+            header.frame.size = CGSize(width: view.bounds.width, height: cardHeight + padding * 2)
             tableView.tableHeaderView = header
         }
     }
@@ -233,34 +303,21 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        if indexPath.section == 0 {
-            let cell = UITableViewCell(style: .value1, reuseIdentifier: "TimeCell")
-            cell.textLabel?.text = String(localized: .viewAddDate)
-            cell.detailTextLabel?.text = viewModel.timeStamp ?? "---"
-            cell.accessoryType = .disclosureIndicator
-            cell.imageView?.image = UIImage(systemName: "calendar")
-            return cell
-        } else if indexPath.section == 1 {
-            let cell = UITableViewCell(style: .value1, reuseIdentifier: "LocationCell")
-            cell.textLabel?.text = String(localized: .viewAddLocation)
-            if let displayText = viewModel.locationDisplayText {
-                cell.detailTextLabel?.text = displayText
-            } else if let location = viewModel.location {
-                cell.detailTextLabel?.text = "\(location.coordinate.latitude), \(location.coordinate.longitude)"
-            } else {
-                cell.detailTextLabel?.text = "---"
-            }
-            cell.accessoryType = .disclosureIndicator
-            cell.imageView?.image = UIImage(systemName: "mappin.and.ellipse")
-            return cell
-        }
-
         guard let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: DetailTableViewCell.self), for: indexPath) as? DetailTableViewCell else {
             return UITableViewCell()
         }
-
-        if let sectionDataSource = viewModel.tableViewDataSource[indexPath.section - 2].values.first {
-            cell.cellDataSource = sectionDataSource[indexPath.row]
+        switch indexPath.section {
+        case 0:
+            cell.cellDataSource = DetailCellModel(prop: String(localized: .viewAddDate), value: viewModel.timeStamp ?? "---")
+        case 1:
+            let locationText = viewModel.locationDisplayText
+                ?? viewModel.location.map { "\($0.coordinate.latitude), \($0.coordinate.longitude)" }
+                ?? "---"
+            cell.cellDataSource = DetailCellModel(prop: String(localized: .viewAddLocation), value: locationText)
+        default:
+            if let sectionData = viewModel.tableViewDataSource[indexPath.section - 2].values.first {
+                cell.cellDataSource = sectionData[indexPath.row]
+            }
         }
         return cell
     }
@@ -273,7 +330,14 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        return section < 2 ? 0.1 : 50
+        return section < 2 ? 0.1 : Theme.Layout.sectionHeaderHeight
+    }
+
+    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        guard let detailCell = cell as? DetailTableViewCell else { return }
+        let isFirst = indexPath.row == 0
+        let isLast = indexPath.row == tableView.numberOfRows(inSection: indexPath.section) - 1
+        detailCell.applyCardBorders(isFirst: isFirst, isLast: isLast)
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {

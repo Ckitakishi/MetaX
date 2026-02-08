@@ -3,7 +3,7 @@
 //  MetaX
 //
 //  Created by Ckitakishi on 2018/3/18.
-//  Copyright © 2018年 Yuhan Chen. All rights reserved.
+//  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
 import UIKit
@@ -12,10 +12,20 @@ class PhotoCollectionViewCell: UICollectionViewCell {
     
     // MARK: - UI Components
     
+    private let containerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = Theme.Colors.cardBackground
+        Theme.Shadows.applyCardShadow(to: view.layer)
+        Theme.Shadows.applyCardBorder(to: view.layer)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
     private let imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
+        imageView.layer.cornerRadius = Theme.Layout.imageCornerRadius
         imageView.backgroundColor = .secondarySystemFill
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
@@ -47,9 +57,8 @@ class PhotoCollectionViewCell: UICollectionViewCell {
     
     override var isHighlighted: Bool {
         didSet {
-            UIView.animate(withDuration: 0.2) {
-                self.contentView.alpha = self.isHighlighted ? 0.7 : 1.0
-                self.contentView.transform = self.isHighlighted ? CGAConfiguration.shrink : .identity
+            UIView.animate(withDuration: 0.1) {
+                Theme.Shadows.applyPressEffect(to: self.containerView, isPressed: self.isHighlighted)
             }
         }
     }
@@ -66,19 +75,23 @@ class PhotoCollectionViewCell: UICollectionViewCell {
     }
     
     private func setupUI() {
-        contentView.addSubview(imageView)
-        contentView.addSubview(livePhotoBadgeImageView)
+        contentView.addSubview(containerView)
+        containerView.addSubview(imageView)
+        containerView.addSubview(livePhotoBadgeImageView)
         
         NSLayoutConstraint.activate([
-            // Image View
-            imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            containerView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             
-            // Badge View
-            livePhotoBadgeImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
-            livePhotoBadgeImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 4),
+            imageView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            imageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            imageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            imageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            
+            livePhotoBadgeImageView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 6),
+            livePhotoBadgeImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 6),
             livePhotoBadgeImageView.widthAnchor.constraint(equalToConstant: 24),
             livePhotoBadgeImageView.heightAnchor.constraint(equalToConstant: 24)
         ])
@@ -90,10 +103,5 @@ class PhotoCollectionViewCell: UICollectionViewCell {
         livePhotoBadgeImageView.image = nil
         representedAssetIdentifier = nil
     }
-}
-
-// MARK: - Helpers
-private enum CGAConfiguration {
-    static let shrink = CGAffineTransform(scaleX: 0.95, y: 0.95)
 }
 

@@ -3,7 +3,7 @@
 //  MetaX
 //
 //  Created by Ckitakishi on 2018/4/9.
-//  Copyright © 2018年 Yuhan Chen. All rights reserved.
+//  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
 import UIKit

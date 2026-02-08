@@ -3,31 +3,35 @@
 //  MetaX
 //
 //  Created by Ckitakishi on 2018/4/14.
-//  Copyright © 2018年 Yuhan Chen. All rights reserved.
+//  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
 import UIKit
 
 class DetailSectionHeaderView: UIView {
     
-    private let accentBar: UIView = {
+    private let indicatorBlock: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(named: "greenSea") ?? .systemTeal
-        view.layer.cornerRadius = 2
+        view.backgroundColor = Theme.Colors.accent
+        view.layer.cornerRadius = 0
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 20, weight: .semibold)
+        label.font = Theme.Typography.subheadline
+        label.textColor = .black
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
     var headerTitle: String = "" {
         didSet {
-            titleLabel.text = headerTitle
+            let text = headerTitle.uppercased()
+            let attributedString = NSMutableAttributedString(string: text)
+            attributedString.addAttribute(.kern, value: 2.0, range: NSRange(location: 0, length: text.count))
+            titleLabel.attributedText = attributedString
         }
     }
 
@@ -42,18 +46,18 @@ class DetailSectionHeaderView: UIView {
     
     private func setupUI() {
         backgroundColor = .clear
-        addSubview(accentBar)
+        addSubview(indicatorBlock)
         addSubview(titleLabel)
-        
+
         NSLayoutConstraint.activate([
-            accentBar.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            accentBar.centerYAnchor.constraint(equalTo: centerYAnchor),
-            accentBar.widthAnchor.constraint(equalToConstant: 4),
-            accentBar.heightAnchor.constraint(equalTo: heightAnchor, multiplier: 0.5),
-            
-            titleLabel.leadingAnchor.constraint(equalTo: accentBar.trailingAnchor, constant: 8),
-            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor)
+            indicatorBlock.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Theme.Layout.cardPadding),
+            indicatorBlock.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -20),
+            indicatorBlock.widthAnchor.constraint(equalToConstant: 8),
+            indicatorBlock.heightAnchor.constraint(equalToConstant: 8),
+
+            titleLabel.leadingAnchor.constraint(equalTo: indicatorBlock.trailingAnchor, constant: 12),
+            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Theme.Layout.cardPadding),
+            titleLabel.centerYAnchor.constraint(equalTo: indicatorBlock.centerYAnchor)
         ])
     }
 }

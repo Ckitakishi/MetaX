@@ -37,16 +37,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
         splitVC.preferredDisplayMode = .allVisible
 
         window.rootViewController = splitVC
+        window.tintColor = UIColor(named: "greenSea") ?? .systemTeal
         window.makeKeyAndVisible()
         self.window = window
     }
 
     // MARK: - UISplitViewControllerDelegate
 
-    // Ensures that on iPhone (collapsed), we start with the Photo grid.
+    // Ensures that on iPhone (collapsed), we start with the Album list.
     func splitViewController(_ splitViewController: UISplitViewController, collapseSecondary secondaryViewController: UIViewController, onto primaryViewController: UIViewController) -> Bool {
-        // Return false to let the split view perform default collapse behavior,
-        // which shows the Secondary (Detail) view on top for iPhone.
-        return false
+        // Return true to indicate that we have handled the collapse,
+        // which will cause the UISplitViewController to show the Primary (Master) view on top for iPhone.
+        return true
     }
 }

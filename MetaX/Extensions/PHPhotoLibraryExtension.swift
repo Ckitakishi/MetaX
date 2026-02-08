@@ -3,7 +3,7 @@
 //  MetaX
 //
 //  Created by Ckitakishi on 2018/04/19.
-//  Copyright © 2018年 Yuhan Chen. All rights reserved.
+//  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
 import Photos
@@ -15,20 +15,15 @@ extension PHPhotoLibrary {
         let status = PHPhotoLibrary.authorizationStatus()
         switch status {
         case .notDetermined:
-            PHPhotoLibrary.requestAuthorization { status -> Void in
-
+            PHPhotoLibrary.requestAuthorization { status in
                 DispatchQueue.main.async {
-                    if status != .authorized {
-                        completionHandler(false)
-                    }
+                    completionHandler(status == .authorized)
                 }
             }
-            break
         case .denied:
             completionHandler(false)
         default:
             completionHandler(true)
-            break
         }
     }
 
