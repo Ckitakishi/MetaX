@@ -9,13 +9,14 @@
 import UIKit
 
 class PhotoCollectionViewCell: UICollectionViewCell {
-    
+
     // MARK: - UI Components
-    
+
+    private var stackedLayer: UIView?
+
     private let containerView: UIView = {
         let view = UIView()
         view.backgroundColor = Theme.Colors.cardBackground
-        Theme.Shadows.applyCardShadow(to: view.layer)
         Theme.Shadows.applyCardBorder(to: view.layer)
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -75,7 +76,15 @@ class PhotoCollectionViewCell: UICollectionViewCell {
     }
     
     private func setupUI() {
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (cell: PhotoCollectionViewCell, _: UITraitCollection) in
+            Theme.Shadows.updateLayerColors(for: cell.containerView.layer)
+            if let layer = cell.stackedLayer {
+                Theme.Shadows.updateLayerColors(for: layer.layer)
+            }
+        }
+
         contentView.addSubview(containerView)
+        stackedLayer = Theme.Shadows.applyStackedLayer(to: containerView, in: contentView)
         containerView.addSubview(imageView)
         containerView.addSubview(livePhotoBadgeImageView)
         
@@ -103,5 +112,5 @@ class PhotoCollectionViewCell: UICollectionViewCell {
         livePhotoBadgeImageView.image = nil
         representedAssetIdentifier = nil
     }
-}
 
+}

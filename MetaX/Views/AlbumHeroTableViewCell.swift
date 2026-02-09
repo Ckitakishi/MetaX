@@ -10,10 +10,11 @@ import UIKit
 
 class AlbumHeroTableViewCell: UITableViewCell {
 
+    private var stackedLayer: UIView?
+
     private let cardView: UIView = {
         let view = UIView()
         view.backgroundColor = Theme.Colors.cardBackground
-        Theme.Shadows.applyCardShadow(to: view.layer)
         Theme.Shadows.applyCardBorder(to: view.layer)
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -32,7 +33,7 @@ class AlbumHeroTableViewCell: UITableViewCell {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 20, weight: .bold)
-        label.textColor = .black
+        label.textColor = Theme.Colors.text
         label.textAlignment = .left
         label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -41,16 +42,16 @@ class AlbumHeroTableViewCell: UITableViewCell {
 
     private let countTagView: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = Theme.Colors.tagBackground
         view.layer.borderWidth = 1.0
-        view.layer.borderColor = UIColor.black.cgColor
+        view.layer.borderColor = Theme.Colors.border.cgColor
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
     private let countIconView: UIImageView = {
         let imageView = UIImageView(image: UIImage(systemName: "photo.stack"))
-        imageView.tintColor = .black
+        imageView.tintColor = Theme.Colors.text
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
@@ -59,7 +60,7 @@ class AlbumHeroTableViewCell: UITableViewCell {
     private let countLabel: UILabel = {
         let label = UILabel()
         label.font = Theme.Typography.captionMono
-        label.textColor = .black
+        label.textColor = Theme.Colors.text
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -94,8 +95,18 @@ class AlbumHeroTableViewCell: UITableViewCell {
     private func setupUI() {
         selectionStyle = .none
         backgroundColor = .clear
-        
+
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (cell: AlbumHeroTableViewCell, _: UITraitCollection) in
+            Theme.Shadows.updateLayerColors(for: cell.cardView.layer)
+            Theme.Shadows.updateLayerColors(for: cell.thumbnailImageView.layer)
+            Theme.Shadows.updateLayerColors(for: cell.countTagView.layer)
+            if let layer = cell.stackedLayer {
+                Theme.Shadows.updateLayerColors(for: layer.layer)
+            }
+        }
+
         contentView.addSubview(cardView)
+        stackedLayer = Theme.Shadows.applyStackedLayer(to: cardView, in: contentView)
         cardView.addSubview(thumbnailImageView)
         cardView.addSubview(countTagView)
         countTagView.addSubview(countIconView)
@@ -139,4 +150,5 @@ class AlbumHeroTableViewCell: UITableViewCell {
             Theme.Shadows.applyPressEffect(to: self.cardView, isPressed: highlighted)
         }
     }
+
 }

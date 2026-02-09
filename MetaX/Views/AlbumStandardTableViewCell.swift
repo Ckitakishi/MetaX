@@ -10,10 +10,11 @@ import UIKit
 
 class AlbumStandardTableViewCell: UITableViewCell {
 
+    private var stackedLayer: UIView?
+
     private let cardView: UIView = {
         let view = UIView()
         view.backgroundColor = Theme.Colors.cardBackground
-        Theme.Shadows.applyCardShadow(to: view.layer)
         Theme.Shadows.applyCardBorder(to: view.layer)
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -31,7 +32,7 @@ class AlbumStandardTableViewCell: UITableViewCell {
     
     private let imageRightBorder: UIView = {
         let view = UIView()
-        view.backgroundColor = .black
+        view.backgroundColor = Theme.Colors.border
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -39,7 +40,7 @@ class AlbumStandardTableViewCell: UITableViewCell {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Theme.Typography.headline
-        label.textColor = .black
+        label.textColor = Theme.Colors.text
         label.numberOfLines = 2
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -47,7 +48,7 @@ class AlbumStandardTableViewCell: UITableViewCell {
 
     private let countTagView: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = Theme.Colors.tagBackground
         Theme.Shadows.applyCardBorder(to: view.layer)
         view.layer.cornerRadius = 2
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -56,7 +57,7 @@ class AlbumStandardTableViewCell: UITableViewCell {
 
     private let countIconView: UIImageView = {
         let imageView = UIImageView(image: UIImage(systemName: "photo.stack"))
-        imageView.tintColor = .black
+        imageView.tintColor = Theme.Colors.text
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
@@ -65,7 +66,7 @@ class AlbumStandardTableViewCell: UITableViewCell {
     private let countLabel: UILabel = {
         let label = UILabel()
         label.font = Theme.Typography.captionMono
-        label.textColor = .black
+        label.textColor = Theme.Colors.text
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -94,8 +95,17 @@ class AlbumStandardTableViewCell: UITableViewCell {
     private func setupUI() {
         selectionStyle = .none
         backgroundColor = .clear
-        
+
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (cell: AlbumStandardTableViewCell, _: UITraitCollection) in
+            Theme.Shadows.updateLayerColors(for: cell.cardView.layer)
+            Theme.Shadows.updateLayerColors(for: cell.countTagView.layer)
+            if let layer = cell.stackedLayer {
+                Theme.Shadows.updateLayerColors(for: layer.layer)
+            }
+        }
+
         contentView.addSubview(cardView)
+        stackedLayer = Theme.Shadows.applyStackedLayer(to: cardView, in: contentView)
         cardView.addSubview(thumbnailImageView)
         cardView.addSubview(imageRightBorder)
         
@@ -151,4 +161,5 @@ class AlbumStandardTableViewCell: UITableViewCell {
             Theme.Shadows.applyPressEffect(to: self.cardView, isPressed: highlighted)
         }
     }
+    
 }

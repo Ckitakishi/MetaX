@@ -18,7 +18,7 @@ class DetailTableViewCell: UITableViewCell {
 
     private let rowSeparator: UIView = {
         let v = UIView()
-        v.backgroundColor = UIColor.black.withAlphaComponent(0.4)
+        v.backgroundColor = Theme.Colors.border.withAlphaComponent(0.4)
         v.translatesAutoresizingMaskIntoConstraints = false
         return v
     }()
@@ -41,7 +41,7 @@ class DetailTableViewCell: UITableViewCell {
     private let valueLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 17, weight: .bold)
-        label.textColor = .black
+        label.textColor = Theme.Colors.text
         label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -76,7 +76,7 @@ class DetailTableViewCell: UITableViewCell {
 
     private static func makeBorderView() -> UIView {
         let v = UIView()
-        v.backgroundColor = .black
+        v.backgroundColor = Theme.Colors.border
         v.translatesAutoresizingMaskIntoConstraints = false
         return v
     }

@@ -21,7 +21,7 @@ class DetailSectionHeaderView: UIView {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Theme.Typography.subheadline
-        label.textColor = .black
+        label.textColor = Theme.Colors.text
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()

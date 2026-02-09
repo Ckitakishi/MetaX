@@ -168,12 +168,12 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
         for (xAnchor, isLeading, yAnchor, isTop) in corners {
             let h = UIView()
-            h.backgroundColor = .black
+            h.backgroundColor = Theme.Colors.border
             h.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview(h)
 
             let v = UIView()
-            v.backgroundColor = .black
+            v.backgroundColor = Theme.Colors.border
             v.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview(v)
 

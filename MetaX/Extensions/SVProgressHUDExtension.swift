@@ -11,9 +11,9 @@ import SVProgressHUD
 extension SVProgressHUD {
     
     class func customInit() {
-        SVProgressHUD.setBackgroundColor(UIColor.black)
-        SVProgressHUD.setForegroundColor(UIColor.white)
-        SVProgressHUD.setDefaultStyle(.dark)
+        SVProgressHUD.setBackgroundColor(Theme.Colors.tagBackground)
+        SVProgressHUD.setForegroundColor(Theme.Colors.text)
+        SVProgressHUD.setDefaultStyle(.custom)
     }
     
     class func showProcessingHUD(with message: String) {

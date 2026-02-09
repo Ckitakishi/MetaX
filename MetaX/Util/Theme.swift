@@ -13,6 +13,9 @@ enum Theme {
         static let accent = UIColor(named: "greenSea") ?? .systemTeal
         static let cardBackground = UIColor.secondarySystemGroupedBackground
         static let mainBackground = UIColor.systemGroupedBackground
+        static let border = UIColor.label
+        static let text = UIColor.label
+        static let tagBackground = UIColor.systemBackground
     }
     
     // MARK: - Layout
@@ -27,24 +30,40 @@ enum Theme {
     
     // MARK: - Shadows
     enum Shadows {
-        static let normalShadowOffset = CGSize(width: 4, height: 4)
-        static let pressedShadowOffset = CGSize(width: 1.5, height: 1.5)
+        static let layerOffset: CGFloat = 4
+        static let pressedTranslation: CGFloat = 4
 
-        static func applyCardShadow(to layer: CALayer) {
-            layer.shadowColor = UIColor.black.cgColor
-            layer.shadowOpacity = 1.0
-            layer.shadowOffset = normalShadowOffset
-            layer.shadowRadius = 0
+        /// Adds a stacked layer behind the card for Neo-Brutalist depth effect
+        @discardableResult
+        static func applyStackedLayer(to cardView: UIView, in parentView: UIView) -> UIView {
+            let layerView = UIView()
+            layerView.backgroundColor = Colors.cardBackground
+            layerView.translatesAutoresizingMaskIntoConstraints = false
+            parentView.insertSubview(layerView, belowSubview: cardView)
+
+            applyCardBorder(to: layerView.layer)
+
+            NSLayoutConstraint.activate([
+                layerView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: layerOffset),
+                layerView.topAnchor.constraint(equalTo: cardView.topAnchor, constant: layerOffset),
+                layerView.widthAnchor.constraint(equalTo: cardView.widthAnchor),
+                layerView.heightAnchor.constraint(equalTo: cardView.heightAnchor),
+            ])
+
+            return layerView
         }
 
         static func applyCardBorder(to layer: CALayer) {
             layer.borderWidth = 1
-            layer.borderColor = UIColor.black.cgColor
+            layer.borderColor = Colors.border.cgColor
+        }
+
+        static func updateLayerColors(for layer: CALayer) {
+            layer.borderColor = Colors.border.cgColor
         }
 
         static func applyPressEffect(to view: UIView, isPressed: Bool) {
-            view.transform = isPressed ? CGAffineTransform(translationX: 1.5, y: 1.5) : .identity
-            view.layer.shadowOffset = isPressed ? pressedShadowOffset : normalShadowOffset
+            view.transform = isPressed ? CGAffineTransform(translationX: pressedTranslation, y: pressedTranslation) : .identity
         }
     }
     
