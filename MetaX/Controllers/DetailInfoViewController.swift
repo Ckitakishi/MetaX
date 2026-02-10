@@ -9,7 +9,6 @@
 import UIKit
 import Photos
 import PhotosUI
-import SVProgressHUD
 import CoreLocation
 
 // MARK: Enum -
@@ -27,8 +26,13 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         static let cornerThickness: CGFloat = 3
     }
 
-    // MARK: - ViewModel
+    // MARK: - Dependencies
     private let viewModel: DetailInfoViewModel
+    private let container: DependencyContainer
+    
+    // MARK: - Properties
+    private var asset: PHAsset?
+    private var assetCollection: PHAssetCollection?
 
     // MARK: - UI Components
     private let tableView: UITableView = {
@@ -55,17 +59,29 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         return imageView
     }()
 
-    private lazy var clearAllButton: UIBarButtonItem = {
-        UIBarButtonItem(image: UIImage(systemName: "trash"), style: .plain, target: self, action: #selector(clearAllMetadata))
+    private lazy var moreMenuButton: UIBarButtonItem = {
+        let editAction = UIAction(
+            title: String(localized: .viewEditMetadata),
+            image: UIImage(systemName: "pencil.and.outline")
+        ) { [weak self] _ in
+            self?.showMetadataEditor()
+        }
+        
+        let removeAllAction = UIAction(
+            title: String(localized: .viewClearAllMetadata),
+            image: UIImage(systemName: "trash")
+        ) { [weak self] _ in
+            self?.clearAllMetadata()
+        }
+        
+        let menu = UIMenu(title: "", children: [editAction, removeAllAction])
+        return UIBarButtonItem(image: UIImage(systemName: "slider.horizontal.3"), menu: menu)
     }()
-
-    // MARK: - Properties
-    var asset: PHAsset?
-    var assetCollection: PHAssetCollection?
 
     // MARK: - Initialization
 
     init(container: DependencyContainer) {
+        self.container = container
         self.viewModel = DetailInfoViewModel(
             metadataService: container.metadataService,
             imageSaveService: container.imageSaveService,
@@ -76,6 +92,11 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    func configure(with asset: PHAsset?, collection: PHAssetCollection?) {
+        self.asset = asset
+        self.assetCollection = collection
     }
 
     // MARK: - Life Cycle
@@ -118,7 +139,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     // MARK: - UI Setup
     private func setupUI() {
         view.backgroundColor = Theme.Colors.mainBackground
-        navigationItem.rightBarButtonItem = clearAllButton
+        navigationItem.rightBarButtonItem = moreMenuButton
 
         // TableView setup
         view.addSubview(tableView)
@@ -131,15 +152,21 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         headerContainer.addSubview(heroCardView)
         heroCardView.addSubview(heroImageView)
 
+        let cardTrailing = heroCardView.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -Theme.Layout.cardPadding)
+        cardTrailing.priority = UILayoutPriority(999)
+        
+        let imageTrailing = heroImageView.trailingAnchor.constraint(equalTo: heroCardView.trailingAnchor, constant: -HeroLayout.inset)
+        imageTrailing.priority = UILayoutPriority(999)
+
         NSLayoutConstraint.activate([
             heroCardView.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: Theme.Layout.cardPadding),
             heroCardView.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: Theme.Layout.cardPadding),
-            heroCardView.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -Theme.Layout.cardPadding),
+            cardTrailing,
             heroCardView.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -Theme.Layout.cardPadding),
 
             heroImageView.topAnchor.constraint(equalTo: heroCardView.topAnchor, constant: HeroLayout.inset),
             heroImageView.leadingAnchor.constraint(equalTo: heroCardView.leadingAnchor, constant: HeroLayout.inset),
-            heroImageView.trailingAnchor.constraint(equalTo: heroCardView.trailingAnchor, constant: -HeroLayout.inset),
+            imageTrailing,
             heroImageView.bottomAnchor.constraint(equalTo: heroCardView.bottomAnchor, constant: -HeroLayout.inset)
         ])
         
@@ -219,18 +246,18 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
             self?.heroImageView.image = image
         }
 
-        observe(viewModel: viewModel, property: { $0.isLoading }) { [weak self] isLoading in
-            self?.view.isUserInteractionEnabled = !isLoading
-            if isLoading {
-                SVProgressHUD.showProcessingHUD(with: String(localized: .viewProcessing))
+        observe(viewModel: viewModel, property: { $0.isSaving }) { [weak self] isSaving in
+            self?.view.isUserInteractionEnabled = !isSaving
+            if isSaving {
+                HUD.showProcessing(with: String(localized: .viewProcessing))
             } else {
-                SVProgressHUD.dismiss()
+                HUD.dismiss()
             }
         }
 
         observe(viewModel: viewModel, property: { $0.error }) { [weak self] error in
             if let error = error {
-                SVProgressHUD.showCustomErrorHUD(with: error.localizedDescription)
+                HUD.showError(with: error.localizedDescription)
                 if case .metadata(.unsupportedMediaType) = error {
                     self?.navigationController?.popViewController(animated: true)
                 }
@@ -243,11 +270,6 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         }
 
         observe(viewModel: viewModel, property: { $0.timeStamp }) { [weak self] _ in
-            guard let self = self, self.isViewLoaded, self.view.window != nil else { return }
-            self.tableView.reloadData()
-        }
-
-        observe(viewModel: viewModel, property: { ($0.locationDisplayText, $0.location) }) { [weak self] _ in
             guard let self = self, self.isViewLoaded, self.view.window != nil else { return }
             self.tableView.reloadData()
         }
@@ -269,24 +291,12 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         }
     }
 
-    private func showDatePicker() {
-        let popover = DetailDatePickerPopover()
-        popover.modalPresentationStyle = .popover
-        popover.popoverPresentationController?.delegate = self
-        popover.popoverPresentationController?.sourceView = view
-        popover.popoverPresentationController?.sourceRect = CGRect(
-            x: view.bounds.midX, y: view.bounds.midY,
-            width: 0, height: 0
-        )
-        popover.popoverPresentationController?.permittedArrowDirections = []
-
-        present(popover, animated: true)
-    }
-
-    private func showLocationSearch() {
-        let searchVC = LocationSearchViewController()
-        searchVC.delegate = self
-        present(UINavigationController(rootViewController: searchVC), animated: true)
+    private func showMetadataEditor() {
+        guard let metadata = viewModel.metadata else { return }
+        let editorVC = MetadataEditViewController(metadata: metadata, container: container)
+        editorVC.delegate = self
+        let nav = UINavigationController(rootViewController: editorVC)
+        present(nav, animated: true)
     }
 }
 
@@ -294,43 +304,33 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
 
     func numberOfSections(in tableView: UITableView) -> Int {
-        return 2 + viewModel.tableViewDataSource.count
+        return viewModel.tableViewDataSource.count
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if section < 2 { return 1 }
-        return viewModel.tableViewDataSource[section - 2].values.first?.count ?? 0
+        return viewModel.tableViewDataSource[section].values.first?.count ?? 0
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: DetailTableViewCell.self), for: indexPath) as? DetailTableViewCell else {
             return UITableViewCell()
         }
-        switch indexPath.section {
-        case 0:
-            cell.cellDataSource = DetailCellModel(prop: String(localized: .viewAddDate), value: viewModel.timeStamp ?? "---")
-        case 1:
-            let locationText = viewModel.locationDisplayText
-                ?? viewModel.location.map { "\($0.coordinate.latitude), \($0.coordinate.longitude)" }
-                ?? "---"
-            cell.cellDataSource = DetailCellModel(prop: String(localized: .viewAddLocation), value: locationText)
-        default:
-            if let sectionData = viewModel.tableViewDataSource[indexPath.section - 2].values.first {
-                cell.cellDataSource = sectionData[indexPath.row]
-            }
+        
+        if let sectionData = viewModel.tableViewDataSource[indexPath.section].values.first {
+            cell.cellDataSource = sectionData[indexPath.row]
         }
+        
         return cell
     }
 
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-        if section < 2 { return nil }
         let headerView = DetailSectionHeaderView()
-        headerView.headerTitle = viewModel.tableViewDataSource[section - 2].keys.first ?? ""
+        headerView.headerTitle = viewModel.tableViewDataSource[section].keys.first ?? ""
         return headerView
     }
 
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        return section < 2 ? 0.1 : Theme.Layout.sectionHeaderHeight
+        return Theme.Layout.sectionHeaderHeight
     }
 
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
@@ -342,11 +342,8 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        if indexPath.section == 0 {
-            showDatePicker()
-        } else if indexPath.section == 1 {
-            showLocationSearch()
-        }
+        
+        // Actions for individual rows removed in preparation for unified editing mode
     }
 }
 
@@ -380,12 +377,24 @@ extension DetailInfoViewController: UIPopoverPresentationControllerDelegate, Loc
 
     func didSelect(_ model: LocationModel) {
         guard let coord = model.coordinate else {
-            SVProgressHUD.showCustomErrorHUD(with: String(localized: .errorCoordinateFetch))
+            HUD.showError(with: String(localized: .errorCoordinateFetch))
             return
         }
         deleteAlert { [weak self] action in
             guard let self = self, action != .cancel else { return }
             Task { await self.viewModel.addLocation(CLLocation(latitude: coord.latitude, longitude: coord.longitude), deleteOriginal: action == .addAndDel) }
+        }
+    }
+}
+
+// MARK: - MetadataEditDelegate
+extension DetailInfoViewController: MetadataEditDelegate {
+    func metadataEditDidSave(fields: [String: Any]) {
+        deleteAlert { [weak self] action in
+            guard let self = self, action != .cancel else { return }
+            Task {
+                await self.viewModel.applyMetadataTemplate(fields: fields, deleteOriginal: action == .addAndDel)
+            }
         }
     }
 }

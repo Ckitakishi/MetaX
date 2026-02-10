@@ -84,4 +84,8 @@ final class MetadataService: MetadataServiceProtocol {
     func removeAllMetadata(from metadata: Metadata) -> [String: Any] {
         metadata.deleteAllExceptOrientation() ?? metadata.sourceProperties
     }
+    
+    func updateMetadata(with batch: [String: Any], in metadata: Metadata) -> [String: Any] {
+        metadata.write(batch: batch)
+    }
 }

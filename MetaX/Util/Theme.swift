@@ -70,9 +70,9 @@ enum Theme {
     // MARK: - Typography
     enum Typography {
         /// For the most prominent titles (originally cardTitle)
-        static let headline = UIFont.systemFont(ofSize: 15, weight: .bold)
+        static let headline = UIFont.systemFont(ofSize: 14, weight: .semibold)
         /// For secondary titles or Section Headers
-        static let subheadline = UIFont.systemFont(ofSize: 18, weight: .heavy)
+        static let subheadline = UIFont.systemFont(ofSize: 18, weight: .bold)
         /// Standard body text - medium weight (originally bodyMedium)
         static let bodyMedium = UIFont.systemFont(ofSize: 15, weight: .medium)
         /// Standard body text - regular weight (originally bodyRegular)

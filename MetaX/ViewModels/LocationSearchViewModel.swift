@@ -12,45 +12,60 @@ import Observation
 
 /// ViewModel for LocationSearchViewController
 @Observable @MainActor
-final class LocationSearchViewModel: NSObject {
+final class LocationSearchViewModel: LocationSearchServiceDelegate {
 
     // MARK: - Properties
 
     private(set) var searchResults: [MKLocalSearchCompletion] = []
+    private(set) var history: [HistoryLocation] = []
     private(set) var error: Error?
     private(set) var selectedLocation: LocationModel?
 
-    private let completer = MKLocalSearchCompleter()
-    private let locationManager = CLLocationManager()
+    private let historyService: LocationHistoryServiceProtocol
+    private var searchService: LocationSearchServiceProtocol
+    private var searchTask: Task<Void, Never>?
 
     // MARK: - Initialization
 
-    override init() {
-        super.init()
-        completer.delegate = self
-        locationManager.delegate = self
+    init(historyService: LocationHistoryServiceProtocol, searchService: LocationSearchServiceProtocol) {
+        self.historyService = historyService
+        self.searchService = searchService
+        self.history = historyService.fetchAll()
+        
+        self.searchService.delegate = self
     }
 
     // MARK: - Public Methods
 
     func search(query: String) {
+        searchTask?.cancel()
+        
         if query.isEmpty {
             searchResults = []
-        } else {
-            completer.queryFragment = query
+            refreshHistory()
+            return
         }
+
+        searchTask = Task {
+            // Debounce for 300ms
+            try? await Task.sleep(nanoseconds: 300 * 1_000_000)
+            if Task.isCancelled { return }
+            
+            searchService.search(query: query)
+        }
+    }
+
+    func refreshHistory() {
+        self.history = historyService.fetchAll()
+    }
+
+    func deleteHistory(at index: Int) {
+        historyService.delete(at: index)
+        refreshHistory()
     }
 
     func clearResults() {
         searchResults = []
-    }
-
-    func requestLocationAuthorization() {
-        let status = locationManager.authorizationStatus
-        if status == .notDetermined {
-            locationManager.requestWhenInUseAuthorization()
-        }
-        locationManager.startUpdatingLocation()
     }
 
     func selectLocation(at index: Int, completion: @escaping (LocationModel?) -> Void) {
@@ -60,56 +75,70 @@ final class LocationSearchViewModel: NSObject {
         }
 
         let selected = searchResults[index]
-        var locationModel = LocationModel(with: selected)
-
-        let searchRequest = MKLocalSearch.Request(completion: selected)
-        let search = MKLocalSearch(request: searchRequest)
-
-        search.start { response, error in
+        
+        searchService.resolve(completion: selected) { [weak self] result in
+            guard let self = self else { return }
+            
             Task { @MainActor in
-                if let error = error {
+                switch result {
+                case .success(let locationModel):
+                    self.selectedLocation = locationModel
+                    if let coord = locationModel.coordinate {
+                        let historyItem = HistoryLocation(
+                            title: locationModel.name,
+                            subtitle: locationModel.shortPlacemark,
+                            latitude: coord.latitude,
+                            longitude: coord.longitude,
+                            country: locationModel.country,
+                            countryCode: locationModel.countryCode,
+                            state: locationModel.state,
+                            city: locationModel.city,
+                            street: locationModel.street,
+                            houseNumber: locationModel.houseNumber
+                        )
+                        self.historyService.save(historyItem)
+                        self.refreshHistory()
+                    }
+                    completion(locationModel)
+                    
+                case .failure(let error):
                     self.error = error
                     completion(nil)
-                    return
                 }
-
-                if let coordinate = response?.mapItems.first?.placemark.coordinate {
-                    locationModel.coordinate = coordinate
-                }
-
-                self.selectedLocation = locationModel
-                completion(locationModel)
             }
         }
     }
-}
-
-// MARK: - MKLocalSearchCompleterDelegate
-
-extension LocationSearchViewModel: MKLocalSearchCompleterDelegate {
-
-    nonisolated func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+    
+    func selectHistory(at index: Int) -> LocationModel? {
+        guard index < history.count else { return nil }
+        let item = history[index]
+        var model = LocationModel(title: item.title, subtitle: item.subtitle)
+        model.coordinate = CLLocationCoordinate2D(latitude: item.latitude, longitude: item.longitude)
+        
+        // Restore rich data
+        model.country = item.country
+        model.countryCode = item.countryCode
+        model.state = item.state
+        model.city = item.city
+        model.street = item.street
+        model.houseNumber = item.houseNumber
+        
+        // Move to top of history
+        historyService.save(item)
+        refreshHistory()
+        
+        return model
+    }
+    
+    // MARK: - LocationSearchServiceDelegate
+    
+    nonisolated func didUpdate(results: [MKLocalSearchCompletion]) {
         Task { @MainActor in
-            self.searchResults = completer.results
+            self.searchResults = results
         }
     }
-
-    nonisolated func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
-        Task { @MainActor in
-            self.error = error
-        }
-    }
-}
-
-// MARK: - CLLocationManagerDelegate
-
-extension LocationSearchViewModel: CLLocationManagerDelegate {
-
-    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        // Location updates can be handled here if needed
-    }
-
-    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    
+    nonisolated func didFail(with error: Error) {
         Task { @MainActor in
             self.error = error
         }

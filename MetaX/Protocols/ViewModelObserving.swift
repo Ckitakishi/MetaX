@@ -33,8 +33,13 @@ extension ViewModelObserving where Self: UIViewController {
         property: @escaping (VM) -> T,
         update: @escaping (T) -> Void
     ) where VM: AnyObject {
-        withObservationTracking {
-            update(property(viewModel))
+        // Read the property inside withObservationTracking to register dependencies,
+        // then call update() OUTSIDE the tracking scope. This ensures only the
+        // specified property is tracked — not any @Observable reads that happen
+        // as side effects of the update closure (e.g. reloadData reading datasource
+        // properties), which would cause spurious extra re-triggers.
+        let value = withObservationTracking {
+            property(viewModel)
         } onChange: { [weak self, weak viewModel] in
             guard let viewModel = viewModel else { return }
             Task { @MainActor in
@@ -42,5 +47,6 @@ extension ViewModelObserving where Self: UIViewController {
                 self.observe(viewModel: viewModel, property: property, update: update)
             }
         }
+        update(value)
     }
 }

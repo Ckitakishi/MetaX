@@ -211,9 +211,7 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         // Create destination
         let destination = DetailInfoViewController(container: container)
-
-        destination.asset = viewModel.asset(at: indexPath.item)
-        destination.assetCollection = viewModel.assetCollection
+        destination.configure(with: viewModel.asset(at: indexPath.item), collection: viewModel.assetCollection)
         
         navigationController?.pushViewController(destination, animated: true)
     }

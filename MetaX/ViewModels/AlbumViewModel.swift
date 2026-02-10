@@ -49,6 +49,17 @@ final class AlbumViewModel: NSObject {
     private(set) var displayedUserCollections: [PHAssetCollection] = []
     private(set) var displayedSmartAlbums: [PHAssetCollection] = []
 
+    // Lazy per-cell cache — keyed by PHAssetCollection.localIdentifier.
+    // Data is loaded on demand when cells appear, avoiding bulk Photos DB
+    // queries that block the main thread or cause multiple reloadData flickers.
+    private var coverCache: [String: PHAsset?] = [:]
+    private var countCache: [String: Int] = [:]
+    private var pendingLoads: Set<String> = []
+    private var loadCompletions: [String: [(Int, PHAsset?) -> Void]] = [:]
+    // Incremented in invalidateCaches() so in-flight Task.detached blocks can
+    // detect that their results are stale and discard them.
+    private var cacheGeneration: Int = 0
+
     var searchText: String = "" { didSet { applySearchAndSort() } }
     var sortOption: AlbumSortOption = .default { didSet { applySearchAndSort() } }
 
@@ -79,25 +90,23 @@ final class AlbumViewModel: NSObject {
     }
 
     func loadAlbums() {
-        let allPhotosOptions = PHFetchOptions()
-        allPhotosOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-        allPhotos = PHAsset.fetchAssets(with: allPhotosOptions)
+        allPhotos = photoLibraryService.fetchAllPhotos()
 
-        userCollections = PHCollectionList.fetchTopLevelUserCollections(with: nil)
+        userCollections = photoLibraryService.fetchUserCollections()
         userAssetCollections = updatedUserAssetCollections()
 
-        smartAlbums = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .any, options: nil)
+        smartAlbums = photoLibraryService.fetchSmartAlbums()
         nonEmptySmartAlbums = updatedNonEmptyAlbums()
 
         applySearchAndSort()
     }
 
     func registerPhotoLibraryObserver() {
-        PHPhotoLibrary.shared().register(self)
+        photoLibraryService.registerChangeObserver(self)
     }
 
     func unregisterPhotoLibraryObserver() {
-        PHPhotoLibrary.shared().unregisterChangeObserver(self)
+        photoLibraryService.unregisterChangeObserver(self)
     }
 
     // MARK: - Section Data Access
@@ -113,9 +122,10 @@ final class AlbumViewModel: NSObject {
         }
     }
 
-    func albumInfo(at indexPath: IndexPath) -> (title: String?, count: Int, asset: PHAsset?) {
+    /// Returns cached album info. Count/asset are nil when not yet loaded.
+    func albumInfo(at indexPath: IndexPath) -> (title: String?, count: Int?, asset: PHAsset?) {
         guard let section = AlbumSection(rawValue: indexPath.section) else {
-            return (nil, 0, nil)
+            return (nil, nil, nil)
         }
 
         switch section {
@@ -125,14 +135,75 @@ final class AlbumViewModel: NSObject {
             return (String(localized: .viewAllPhotos), count, asset)
 
         case .userCollections:
-            guard indexPath.row < displayedUserCollections.count else { return (nil, 0, nil) }
+            guard indexPath.row < displayedUserCollections.count else { return (nil, nil, nil) }
             let collection = displayedUserCollections[indexPath.row]
-            return (collection.localizedTitle, collection.imagesCount, collection.newestImage())
+            let id = collection.localIdentifier
+            return (collection.localizedTitle, countCache[id], coverCache[id] ?? nil)
 
         case .smartAlbums:
-            guard indexPath.row < displayedSmartAlbums.count else { return (nil, 0, nil) }
+            guard indexPath.row < displayedSmartAlbums.count else { return (nil, nil, nil) }
             let collection = displayedSmartAlbums[indexPath.row]
-            return (collection.localizedTitle, collection.imagesCount, collection.newestImage())
+            let id = collection.localIdentifier
+            return (collection.localizedTitle, countCache[id], coverCache[id] ?? nil)
+        }
+    }
+
+    /// Returns the collection's localIdentifier for the given indexPath (nil for allPhotos).
+    func collectionIdentifier(at indexPath: IndexPath) -> String? {
+        guard let section = AlbumSection(rawValue: indexPath.section) else { return nil }
+        switch section {
+        case .allPhotos: return nil
+        case .userCollections:
+            guard indexPath.row < displayedUserCollections.count else { return nil }
+            return displayedUserCollections[indexPath.row].localIdentifier
+        case .smartAlbums:
+            guard indexPath.row < displayedSmartAlbums.count else { return nil }
+            return displayedSmartAlbums[indexPath.row].localIdentifier
+        }
+    }
+
+    /// Loads count + cover asset for the cell at `indexPath` if not already cached.
+    /// The completion fires on the main actor once the data is ready.
+    /// No-op for the allPhotos section (always available synchronously).
+    func loadCellDataIfNeeded(at indexPath: IndexPath, completion: @escaping (Int, PHAsset?) -> Void) {
+        guard let section = AlbumSection(rawValue: indexPath.section), section != .allPhotos else { return }
+
+        let collection: PHAssetCollection
+        switch section {
+        case .allPhotos: fatalError("unreachable — guarded above")
+        case .userCollections:
+            guard indexPath.row < displayedUserCollections.count else { return }
+            collection = displayedUserCollections[indexPath.row]
+        case .smartAlbums:
+            guard indexPath.row < displayedSmartAlbums.count else { return }
+            collection = displayedSmartAlbums[indexPath.row]
+        }
+
+        let id = collection.localIdentifier
+
+        // Already cached — nothing to do (cellForRowAt already got the data via albumInfo).
+        if countCache[id] != nil { return }
+
+        // Queue the completion; avoid duplicate Tasks for the same collection.
+        loadCompletions[id, default: []].append(completion)
+        guard !pendingLoads.contains(id) else { return }
+        pendingLoads.insert(id)
+
+        // Capture the current generation so the task can discard stale results
+        // if invalidateCaches() fires while the fetch is in flight.
+        let generation = cacheGeneration
+        Task.detached { [weak self] in
+            let cover = collection.newestImage()
+            let count = collection.imagesCount
+            await MainActor.run { [weak self] in
+                guard let self, self.cacheGeneration == generation else { return }
+                self.coverCache[id] = cover
+                self.countCache[id] = count
+                self.pendingLoads.remove(id)
+                for cb in self.loadCompletions.removeValue(forKey: id) ?? [] {
+                    cb(count, cover)
+                }
+            }
         }
     }
 
@@ -141,8 +212,7 @@ final class AlbumViewModel: NSObject {
             return (nil, nil, nil)
         }
 
-        let options = PHFetchOptions()
-        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        let sortDescriptor = NSSortDescriptor(key: "creationDate", ascending: false)
 
         switch section {
         case .allPhotos:
@@ -151,32 +221,23 @@ final class AlbumViewModel: NSObject {
         case .userCollections:
             guard indexPath.row < displayedUserCollections.count else { return (nil, nil, nil) }
             let collection = displayedUserCollections[indexPath.row]
-            return (PHAsset.fetchAssets(in: collection, options: options), collection, collection.localizedTitle)
+            return (photoLibraryService.fetchAssets(in: collection, sortedBy: sortDescriptor), collection, collection.localizedTitle)
 
         case .smartAlbums:
             guard indexPath.row < displayedSmartAlbums.count else { return (nil, nil, nil) }
             let collection = displayedSmartAlbums[indexPath.row]
-            return (PHAsset.fetchAssets(in: collection, options: options), collection, collection.localizedTitle)
+            return (photoLibraryService.fetchAssets(in: collection, sortedBy: sortDescriptor), collection, collection.localizedTitle)
         }
     }
 
     // MARK: - Thumbnail
 
     func getThumbnail(for asset: PHAsset, targetSize: CGSize? = nil, completion: @escaping (UIImage?) -> Void) {
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .opportunistic
-        options.isSynchronous = false
-        options.isNetworkAccessAllowed = true
-
         let size = targetSize ?? CGSize(width: 100.0, height: 100.0)
-
-        PHImageManager.default().requestImage(
-            for: asset,
-            targetSize: size,
-            contentMode: .aspectFill,
-            options: options
-        ) { image, _ in
-            completion(image)
+        let service = photoLibraryService
+        Task.detached {
+            let image = service.requestThumbnail(for: asset, targetSize: size)
+            await MainActor.run { completion(image) }
         }
     }
 
@@ -204,12 +265,20 @@ final class AlbumViewModel: NSObject {
         reloadToken += 1
     }
 
+    private func invalidateCaches() {
+        cacheGeneration += 1
+        coverCache.removeAll()
+        countCache.removeAll()
+        pendingLoads.removeAll()
+        loadCompletions.removeAll()
+    }
+
     private func updatedNonEmptyAlbums() -> [PHAssetCollection] {
         guard let smartAlbums = smartAlbums else { return [] }
 
         var result: [PHAssetCollection] = []
         smartAlbums.enumerateObjects { collection, _, _ in
-            if collection.imagesCount > 0 {
+            if collection.hasImages {
                 result.append(collection)
             }
         }
@@ -220,11 +289,11 @@ final class AlbumViewModel: NSObject {
         guard let userCollections = userCollections else { return [] }
 
         var result: [PHAssetCollection] = []
-        userCollections.enumerateObjects { [weak self] collection, _, _ in
+        userCollections.enumerateObjects { collection, _, _ in
             if let assetCollection = collection as? PHAssetCollection {
                 result.append(assetCollection)
             } else if let collectionList = collection as? PHCollectionList {
-                result.append(contentsOf: self?.flattenCollectionList(collectionList) ?? [])
+                result.append(contentsOf: self.flattenCollectionList(collectionList))
             }
         }
         return result
@@ -234,11 +303,11 @@ final class AlbumViewModel: NSObject {
         var assetCollections: [PHAssetCollection] = []
         let tempCollections = PHCollectionList.fetchCollections(in: list, options: nil)
 
-        tempCollections.enumerateObjects { [weak self] collection, _, _ in
+        tempCollections.enumerateObjects { collection, _, _ in
             if let assetCollection = collection as? PHAssetCollection {
                 assetCollections.append(assetCollection)
             } else if let collectionList = collection as? PHCollectionList {
-                assetCollections.append(contentsOf: self?.flattenCollectionList(collectionList) ?? [])
+                assetCollections.append(contentsOf: self.flattenCollectionList(collectionList))
             }
         }
         return assetCollections
@@ -265,6 +334,7 @@ extension AlbumViewModel: PHPhotoLibraryChangeObserver {
                 self.userAssetCollections = updatedUserAssetCollections()
             }
 
+            invalidateCaches()
             applySearchAndSort()
         }
     }

@@ -35,4 +35,7 @@ protocol MetadataServiceProtocol {
 
     /// Remove all metadata except orientation, returns modified properties dictionary
     func removeAllMetadata(from metadata: Metadata) -> [String: Any]
+    
+    /// Update multiple metadata fields at once
+    func updateMetadata(with batch: [String: Any], in metadata: Metadata) -> [String: Any]
 }

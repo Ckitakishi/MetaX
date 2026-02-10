@@ -32,7 +32,7 @@ class DetailTableViewCell: UITableViewCell {
 
     private let propLabel: UILabel = {
         let label = UILabel()
-        label.font = .monospacedDigitSystemFont(ofSize: 10, weight: .bold)
+        label.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
         label.textColor = .secondaryLabel
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -40,7 +40,7 @@ class DetailTableViewCell: UITableViewCell {
 
     private let valueLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 17, weight: .bold)
+        label.font = .systemFont(ofSize: 17, weight: .semibold)
         label.textColor = Theme.Colors.text
         label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -50,7 +50,7 @@ class DetailTableViewCell: UITableViewCell {
     var cellDataSource: DetailCellModel? {
         didSet {
             guard let dataSource = cellDataSource else { return }
-            let text = dataSource.prop.uppercased()
+            let text = dataSource.prop
             let attributed = NSMutableAttributedString(string: text)
             attributed.addAttribute(.kern, value: 1.0, range: NSRange(location: 0, length: text.count))
             propLabel.attributedText = attributed

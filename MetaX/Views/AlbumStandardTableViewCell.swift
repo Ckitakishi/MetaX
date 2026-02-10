@@ -71,16 +71,18 @@ class AlbumStandardTableViewCell: UITableViewCell {
         return label
     }()
 
+    var representedIdentifier: String?
+
     var title: String? {
-        didSet { titleLabel.text = title?.uppercased() }
+        didSet { titleLabel.text = title }
     }
 
-    var count: Int = 0 {
-        didSet { countLabel.text = "\(count)" }
+    var count: Int? {
+        didSet { countLabel.text = count.map { "\($0)" } ?? "—" }
     }
 
-    var thumnail: UIImage? {
-        didSet { thumbnailImageView.image = thumnail }
+    var thumbnail: UIImage? {
+        didSet { thumbnailImageView.image = thumbnail }
     }
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -155,11 +157,18 @@ class AlbumStandardTableViewCell: UITableViewCell {
         ])
     }
     
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        representedIdentifier = nil
+        thumbnailImageView.image = nil
+        countLabel.text = "—"
+    }
+
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         super.setHighlighted(highlighted, animated: animated)
         UIView.animate(withDuration: 0.1) {
             Theme.Shadows.applyPressEffect(to: self.cardView, isPressed: highlighted)
         }
     }
-    
+
 }

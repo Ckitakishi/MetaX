@@ -20,21 +20,26 @@ final class DetailInfoViewModel {
     private(set) var image: UIImage?
     private(set) var metadata: Metadata?
     private(set) var fileName: String = ""
-    private(set) var location: CLLocation?
-    private(set) var locationDisplayText: String?
-    private(set) var timeStamp: String?
+    private(set) var currentLocation: CLLocation?
     private(set) var tableViewDataSource: [[String: [DetailCellModel]]] = []
     private(set) var isLoading: Bool = false
+    private(set) var isSaving: Bool = false
     private(set) var error: MetaXError?
 
     // MARK: - Computed Properties
 
     var hasLocation: Bool {
-        location != nil
+        currentLocation != nil
     }
 
     var hasTimeStamp: Bool {
-        timeStamp != nil
+        let exif = metadata?.sourceProperties["{Exif}"] as? [String: Any]
+        return exif?[MetadataKeys.dateTimeOriginal] != nil
+    }
+
+    var timeStamp: String? {
+        let exif = metadata?.sourceProperties["{Exif}"] as? [String: Any]
+        return exif?[MetadataKeys.dateTimeOriginal] as? String
     }
 
     var isLivePhoto: Bool {
@@ -184,6 +189,13 @@ final class DetailInfoViewModel {
         let newProps = metadataService.removeAllMetadata(from: metadata)
         await saveImageWithProperties(newProps, deleteOriginal: deleteOriginal)
     }
+    
+    func applyMetadataTemplate(fields: [String: Any], deleteOriginal: Bool) async {
+        guard let metadata = metadata else { return }
+        
+        let newProps = metadataService.updateMetadata(with: fields, in: metadata)
+        await saveImageWithProperties(newProps, deleteOriginal: deleteOriginal)
+    }
 
     // MARK: - Cancel Requests
 
@@ -203,7 +215,7 @@ final class DetailInfoViewModel {
     private func saveImageWithProperties(_ properties: [String: Any], deleteOriginal: Bool) async -> Bool {
         guard let asset = asset else { return false }
 
-        self.isLoading = true
+        self.isSaving = true
 
         let result = await imageSaveService.saveImage(
             asset: asset,
@@ -211,7 +223,7 @@ final class DetailInfoViewModel {
             deleteOriginal: deleteOriginal
         )
 
-        self.isLoading = false
+        self.isSaving = false
 
         switch result {
         case .success(let newAsset):
@@ -228,27 +240,22 @@ final class DetailInfoViewModel {
     }
 
     private func updateDisplayData(from metadata: Metadata) {
-        // Update timestamp
-        self.timeStamp = metadata.timeStampProp
-
-        // Update location
-        self.location = metadata.GPSProp
+        // Update local state
+        self.currentLocation = metadata.rawGPS
 
         // Build table view data source
         var dataSource: [[String: [DetailCellModel]]] = []
         for doc in metadata.metaProps {
             for (key, value) in doc {
-                let localizedKey = NSLocalizedString(key, comment: "")
-                dataSource.append([localizedKey: value.map { DetailCellModel(propValue: $0) }])
+                let sectionTitle = key // e.g., "BASIC INFO"
+                dataSource.append([sectionTitle: value.map { DetailCellModel(propValue: $0) }])
             }
         }
         self.tableViewDataSource = dataSource
 
-        // Reverse geocode location for display
-        if let location = location {
+        // Reverse geocode location if present
+        if let location = currentLocation {
             reverseGeocodeLocation(location)
-        } else {
-            self.locationDisplayText = nil
         }
     }
 
@@ -257,11 +264,27 @@ final class DetailInfoViewModel {
             guard let self = self, let placemark = placemarks?.first else { return }
 
             let infos = [placemark.thoroughfare, placemark.locality, placemark.administrativeArea, placemark.country]
-            let displayText = infos.compactMap { $0 }.joined(separator: ",")
+            let displayText = infos.compactMap { $0 }.joined(separator: ", ")
+            if displayText.isEmpty { return }
 
-            // Ensure property update happens on MainActor
             Task { @MainActor in
-                self.locationDisplayText = displayText.isEmpty ? nil : displayText
+                self.updateLocationTextInDataSource(displayText)
+            }
+        }
+    }
+    
+    private func updateLocationTextInDataSource(_ text: String) {
+        for (sIdx, section) in tableViewDataSource.enumerated() {
+            guard let title = section.keys.first, title == MetadataKeys.basicInfoGroup,
+                  let models = section.values.first else { continue }
+            
+            for (rIdx, model) in models.enumerated() {
+                if model.prop == String(localized: .viewAddLocation) {
+                    var newModels = models
+                    newModels[rIdx] = DetailCellModel(prop: model.prop, value: text)
+                    tableViewDataSource[sIdx][title] = newModels
+                    return
+                }
             }
         }
     }

@@ -98,6 +98,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 120
         tableView.sectionHeaderTopPadding = 0
+        tableView.prefetchDataSource = self
         tableView.register(AlbumHeroTableViewCell.self, forCellReuseIdentifier: String(describing: AlbumHeroTableViewCell.self))
         tableView.register(AlbumStandardTableViewCell.self, forCellReuseIdentifier: String(describing: AlbumStandardTableViewCell.self))
     }
@@ -119,7 +120,9 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
 
     private func setupBindings() {
         observe(viewModel: viewModel, property: { $0.isAuthorized }) { [weak self] isAuthorized in
-            if !isAuthorized {
+            if isAuthorized {
+                self?.removeLockView()
+            } else {
                 self?.showLockView()
             }
         }
@@ -136,7 +139,6 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
                 Task { @MainActor in
                     self.viewModel.loadAlbums()
                     self.viewModel.registerPhotoLibraryObserver()
-                    self.tableView.reloadData()
                 }
             } else {
                 Task { @MainActor in
@@ -146,16 +148,23 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         }
     }
 
+    private static let lockViewTag = 9_001
+
     private func showLockView() {
+        guard let topView = navigationController?.view,
+              topView.viewWithTag(AlbumViewController.lockViewTag) == nil else { return }
         let lockView = AuthLockView()
-        if let topView = navigationController?.view {
-            lockView.frame = topView.frame
-            lockView.delegate = self
-            lockView.title = String(localized: .alertPhotoAccess)
-            lockView.detail = String(localized: .alertPhotoAccessDesc)
-            lockView.buttonTitle = String(localized: .alertPhotoAuth)
-            topView.addSubview(lockView)
-        }
+        lockView.tag = AlbumViewController.lockViewTag
+        lockView.frame = topView.frame
+        lockView.delegate = self
+        lockView.title = String(localized: .alertPhotoAccess)
+        lockView.detail = String(localized: .alertPhotoAccessDesc)
+        lockView.buttonTitle = String(localized: .alertPhotoAuth)
+        topView.addSubview(lockView)
+    }
+
+    private func removeLockView() {
+        navigationController?.view.viewWithTag(AlbumViewController.lockViewTag)?.removeFromSuperview()
     }
 }
 
@@ -174,6 +183,7 @@ extension AlbumViewController {
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let (title, count, asset) = viewModel.albumInfo(at: indexPath)
+        let collectionId = viewModel.collectionIdentifier(at: indexPath)
 
         if indexPath.section == 0 {
             guard let cell = tableView.dequeueReusableCell(
@@ -182,11 +192,16 @@ extension AlbumViewController {
             ) as? AlbumHeroTableViewCell else {
                 return UITableViewCell()
             }
+            cell.representedIdentifier = "allPhotos"
             cell.title = title
             cell.count = count
-            if let asset = asset {
+            cell.thumbnail = nil
+            if let asset {
                 viewModel.getThumbnail(for: asset, targetSize: CGSize(width: 600, height: 600)) { [weak cell] image in
-                    Task { @MainActor in cell?.thumnail = image }
+                    Task { @MainActor in
+                        guard cell?.representedIdentifier == "allPhotos" else { return }
+                        cell?.thumbnail = image
+                    }
                 }
             }
             return cell
@@ -197,13 +212,37 @@ extension AlbumViewController {
             ) as? AlbumStandardTableViewCell else {
                 return UITableViewCell()
             }
+            cell.representedIdentifier = collectionId
             cell.title = title
             cell.count = count
-            if let asset = asset {
+            cell.thumbnail = nil
+
+            // Show cached cover immediately if available
+            if let asset {
                 viewModel.getThumbnail(for: asset, targetSize: CGSize(width: 200, height: 200)) { [weak cell] image in
-                    Task { @MainActor in cell?.thumnail = image }
+                    // Guard inside Task to avoid TOCTOU: cell may be reused between
+                    // the callback firing and the Task body executing on the main actor.
+                    Task { @MainActor in
+                        guard let cell, cell.representedIdentifier == collectionId else { return }
+                        cell.thumbnail = image
+                    }
                 }
             }
+
+            // Async-load count + cover if not yet cached (no-op when already cached)
+            viewModel.loadCellDataIfNeeded(at: indexPath) { [weak self, weak cell] count, cover in
+                guard let self, let cell, cell.representedIdentifier == collectionId else { return }
+                cell.count = count
+                if let cover {
+                    self.viewModel.getThumbnail(for: cover, targetSize: CGSize(width: 200, height: 200)) { [weak cell] image in
+                        Task { @MainActor in
+                            guard let cell, cell.representedIdentifier == collectionId else { return }
+                            cell.thumbnail = image
+                        }
+                    }
+                }
+            }
+
             return cell
         }
     }
@@ -251,6 +290,22 @@ extension AlbumViewController: AuthLockViewDelegate {
 
     func toSetting() {
         PHPhotoLibrary.guideToSetting()
+    }
+}
+
+// MARK: - UITableViewDataSourcePrefetching
+
+extension AlbumViewController: UITableViewDataSourcePrefetching {
+
+    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
+        for indexPath in indexPaths where indexPath.section != 0 {
+            viewModel.loadCellDataIfNeeded(at: indexPath) { _, _ in }
+        }
+    }
+
+    func tableView(_ tableView: UITableView, cancelPrefetchingForRowsAt indexPaths: [IndexPath]) {
+        // loadCellDataIfNeeded results are cached, so cancelled prefetches are harmless;
+        // the cache will simply be used when the cell eventually appears.
     }
 }
 

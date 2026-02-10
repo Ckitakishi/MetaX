@@ -1,46 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-	<key>DeviceProps</key>
-	<array>
-		<string>Make</string>
-		<string>Model</string>
-		<string>LensMake</string>
-		<string>LensModel</string>
-	</array>
-	<key>ShootingProps</key>
-	<array>
-		<string>ExposureTime</string>
-		<string>FNumber</string>
-		<string>ISOSpeedRatings</string>
-		<string>ExposureBiasValue</string>
-		<string>ExposureProgram</string>
-		<string>MeteringMode</string>
-		<string>FocalLength</string>
-		<string>FocalLenIn35mmFilm</string>
-		<string>WhiteBalance</string>
-		<string>Flash</string>
-	</array>
-	<key>ImageProps</key>
-	<array>
-		<string>PixelWidth</string>
-		<string>PixelHeight</string>
-		<string>ProfileName</string>
-	</array>
-	<key>RightsProps</key>
-	<array>
-		<string>Artist</string>
-		<string>Copyright</string>
-	</array>
-	<key>TimeProp</key>
-	<string>DateTimeOriginal</string>
-	<key>GPSProps</key>
-	<array>
-		<string>LatitudeRef</string>
-		<string>Latitude</string>
-		<string>LongitudeRef</string>
-		<string>Longitude</string>
-	</array>
-</dict>
+<array>
+	<dict>
+		<key>Title</key>
+		<string>BASIC INFO</string>
+		<key>Props</key>
+		<array>
+			<string>DateTimeOriginal</string>
+			<string>Location</string>
+		</array>
+	</dict>
+	<dict>
+		<key>Title</key>
+		<string>GEAR</string>
+		<key>Props</key>
+		<array>
+			<string>Make</string>
+			<string>Model</string>
+			<string>LensMake</string>
+			<string>LensModel</string>
+		</array>
+	</dict>
+	<dict>
+		<key>Title</key>
+		<string>EXPOSURE</string>
+		<key>Props</key>
+		<array>
+			<string>ExposureTime</string>
+			<string>FNumber</string>
+			<string>ISOSpeedRatings</string>
+			<string>ExposureBiasValue</string>
+			<string>ExposureProgram</string>
+			<string>MeteringMode</string>
+			<string>FocalLength</string>
+			<string>FocalLenIn35mmFilm</string>
+			<string>WhiteBalance</string>
+			<string>Flash</string>
+		</array>
+	</dict>
+	<dict>
+		<key>Title</key>
+		<string>FILE INFO</string>
+		<key>Props</key>
+		<array>
+			<string>PixelWidth</string>
+			<string>PixelHeight</string>
+			<string>ProfileName</string>
+		</array>
+	</dict>
+	<dict>
+		<key>Title</key>
+		<string>COPYRIGHT</string>
+		<key>Props</key>
+		<array>
+			<string>Artist</string>
+			<string>Copyright</string>
+		</array>
+	</dict>
+</array>
 </plist>

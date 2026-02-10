@@ -10,14 +10,20 @@ import UIKit
 import Foundation
 import CoreLocation
 
+public enum MetadataKeys {
+    static let location = "Location"
+    static let dateTimeOriginal = "DateTimeOriginal"
+    static let basicInfoGroup = "BASIC INFO"
+}
+
 public struct Metadata {
     
     public let sourceProperties: [String: Any]
     
+    /// Categorized metadata properties: [GroupName: [Key: Value]]
     public let metaProps: [[String: [[String: Any]]]]
 
-    public let timeStampProp: String?
-    public let GPSProp: CLLocation?
+    public let rawGPS: CLLocation?
 
     public init?(contentsOf url: URL) {
         guard let ciimage = CIImage(contentsOf: url) else {
@@ -25,82 +31,67 @@ public struct Metadata {
         }
         self.init(ciimage: ciimage)
     }
-    
+
     public init?(ciimage: CIImage) {
         self.init(props: ciimage.properties)
     }
     
     public init?(props: [String: Any]) {
-
         sourceProperties = props
 
-        var tmpMetaProps: [[String: [[String: Any]]]] = []
-
-        var tmpTimeProp: String?
-        var tmpGPSProp: CLLocation?
-
         guard let path = Bundle.main.path(forResource: "MetadataPlus", ofType: "plist"),
-              let dic = NSDictionary(contentsOfFile: path) else {
+              let groups = NSArray(contentsOfFile: path) as? [[String: Any]] else {
             return nil
         }
 
-        let timeStampKey = dic.object(forKey: "TimeProp") as? String
-
-        let groupPlistKeys = ["DeviceProps", "ShootingProps",
-                              "ImageProps", "RightsProps"]
-        let metaPropKeys = ["Device", "Shooting", "Image", "Rights"]
+        var tmpMetaProps: [[String: [[String: Any]]]] = []
+        var tmpGPSProp: CLLocation?
 
         let exifInfo = props["{Exif}"] as? [String: Any] ?? [:]
         let tiffInfo = props["{TIFF}"] as? [String: Any] ?? [:]
+        
+        // Extract GPS first for internal use
+        if let gpsInfo = props["{GPS}"] as? [String: Any],
+           let latitudeRef = gpsInfo["LatitudeRef"] as? String,
+           let latitude = gpsInfo["Latitude"] as? Double,
+           let longitudeRef = gpsInfo["LongitudeRef"] as? String,
+           let longitude = gpsInfo["Longitude"] as? Double {
+            tmpGPSProp = CLLocation(latitude: latitudeRef == "N" ? latitude : -latitude,
+                                 longitude: longitudeRef == "E" ? longitude : -longitude)
+        }
+        self.rawGPS = tmpGPSProp
 
-        for (idx, groupKey) in groupPlistKeys.enumerated() {
-            let keys = dic.object(forKey: groupKey) as? [String] ?? []
+        for group in groups {
+            guard let title = group["Title"] as? String,
+                  let keys = group["Props"] as? [String] else { continue }
+            
             var groupProps: [[String: Any]] = []
+            
             for key in keys {
-                if let val = props[key] { groupProps.append([key: val]) }
-                else if let val = exifInfo[key] { groupProps.append([key: val]) }
-                else if let val = tiffInfo[key] { groupProps.append([key: val]) }
+                if key == MetadataKeys.location {
+                    if let gps = tmpGPSProp {
+                        groupProps.append([key: gps])
+                    }
+                } else if let val = props[key] {
+                    groupProps.append([key: val])
+                } else if let val = exifInfo[key] {
+                    groupProps.append([key: val])
+                } else if let val = tiffInfo[key] {
+                    groupProps.append([key: val])
+                }
             }
+            
             if !groupProps.isEmpty {
-                tmpMetaProps.append([metaPropKeys[idx]: groupProps])
+                tmpMetaProps.append([title: groupProps])
             }
         }
 
-        // timestamp
-        if let timeStampKey = timeStampKey, let val = exifInfo[timeStampKey] as? String {
-            tmpTimeProp = val
-        }
-
-        if let gpsInfo = props["{GPS}"] as? [String: Any] {
-            // gps info
-            if let latitudeRef = gpsInfo["LatitudeRef"] as? String,
-                let latitude = gpsInfo["Latitude"] as? Double,
-                let longitudeRef = gpsInfo["LongitudeRef"] as? String,
-                let longitude = gpsInfo["Longitude"] as? Double {
-
-                tmpGPSProp = CLLocation(latitude: latitudeRef == "N" ? latitude : -latitude,
-                                     longitude: longitudeRef == "E" ? longitude : -longitude)
-            }
-        }
-
-        if let timeProp = tmpTimeProp, let date = DateFormatter(with: .yMdHms).getDate(from: timeProp) {
-            let dateFormatter = DateFormatter(with: .yMd)
-            timeStampProp = dateFormatter.getStr(from: date)
-        } else {
-            timeStampProp = tmpTimeProp
-        }
-
-        GPSProp = tmpGPSProp
         metaProps = tmpMetaProps
     }
     
     var timeStampKey: String? {
         get {
-            guard let path = Bundle.main.path(forResource: "MetadataPlus", ofType: "plist"),
-                let dic = NSDictionary(contentsOfFile: path) else {
-                return nil
-            }
-            return dic.object(forKey: "TimeProp") as? String
+            return MetadataKeys.dateTimeOriginal
         }
     }
 }
@@ -163,7 +154,33 @@ extension Metadata {
         return self.updateTiff(with: editableProps)
     }
     
-    // udpate software infomation
+    func write(batch: [String: Any]) -> [String: Any] {
+        var editableProps = sourceProperties
+        
+        let tiffKeys = ["Make", "Model", "Artist", "Copyright", "Software", "DateTime"]
+        
+        var tiffInfo = editableProps["{TIFF}"] as? [String: Any] ?? [:]
+        var exifInfo = editableProps["{Exif}"] as? [String: Any] ?? [:]
+        
+        for (key, value) in batch {
+            if tiffKeys.contains(key) {
+                tiffInfo[key] = value
+            } else if key == MetadataKeys.dateTimeOriginal {
+                exifInfo[key] = DateFormatter(with: .yMdHms).getStr(from: value as? Date ?? Date())
+            } else if key == MetadataKeys.location, let loc = value as? CLLocation {
+                editableProps["{GPS}"] = loc.mapToDictionary()
+            } else {
+                exifInfo[key] = value
+            }
+        }
+        
+        editableProps["{TIFF}"] = tiffInfo
+        editableProps["{Exif}"] = exifInfo
+        
+        return updateTiff(with: editableProps)
+    }
+    
+    // update software infomation
     func updateTiff(with source: [String: Any]) -> [String: Any]  {
         var editableProps = source
         if let tiffInfo = editableProps["{TIFF}"] as? [String: Any] {

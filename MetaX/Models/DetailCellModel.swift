@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import CoreLocation
 
 protocol DetailCellModelRepresentable {
     var prop: String { get }
@@ -51,6 +52,8 @@ struct DetailCellModel: DetailCellModelRepresentable {
         
         let localizedProp: String
         switch rawProp {
+        case "DateTimeOriginal": localizedProp = String(localized: .viewAddDate)
+        case "Location": localizedProp = String(localized: .viewAddLocation)
         case "ExposureTime": localizedProp = String(localized: .exposureTime)
         case "FNumber": localizedProp = String(localized: .fnumber)
         case "ISOSpeedRatings": localizedProp = String(localized: .isospeedRatings)
@@ -80,6 +83,11 @@ struct DetailCellModel: DetailCellModelRepresentable {
     }
     
     private static func formatValue(rawValue: Any, forProp prop: String) -> String {
+        // Handle CLLocation
+        if let location = rawValue as? CLLocation {
+            return String(format: "%.4f, %.4f", location.coordinate.latitude, location.coordinate.longitude)
+        }
+
         // Try EXIF enum lookup first
         if let enumFormatted = formatEnumValue(rawValue, forProp: prop) {
             return enumFormatted

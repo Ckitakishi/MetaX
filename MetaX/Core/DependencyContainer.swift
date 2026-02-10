@@ -17,6 +17,8 @@ final class DependencyContainer {
     let photoLibraryService: PhotoLibraryServiceProtocol
     let metadataService: MetadataServiceProtocol
     let imageSaveService: ImageSaveServiceProtocol
+    let locationHistoryService: LocationHistoryServiceProtocol
+    let locationSearchService: LocationSearchServiceProtocol
 
     // MARK: - Initialization
 
@@ -25,5 +27,7 @@ final class DependencyContainer {
         self.photoLibraryService = photoLibrary
         self.metadataService = MetadataService()
         self.imageSaveService = ImageSaveService(photoLibraryService: photoLibrary)
+        self.locationHistoryService = LocationHistoryService()
+        self.locationSearchService = LocationSearchService()
     }
 }

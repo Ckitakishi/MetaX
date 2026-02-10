@@ -51,6 +51,7 @@ final class PhotoGridViewModel: NSObject {
 
         let options = PHFetchOptions()
         options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        options.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
         fetchResult = PHAsset.fetchAssets(with: options)
     }
 

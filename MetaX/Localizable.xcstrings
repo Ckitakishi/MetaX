@@ -898,6 +898,29 @@
         }
       }
     },
+    "Search.EmptyHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start typing to search, or select from recent history"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索するか、最近の履歴から選択してください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入关键词搜索，或从最近历史记录中选择"
+          }
+        }
+      }
+    },
     "Shooting": {
       "extractionState": "manual",
       "localizations": {
@@ -927,19 +950,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add Date"
+            "value": "Date"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "日付を追加"
+            "value": "日付"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "添加日期"
+            "value": "日期"
           }
         }
       }
@@ -950,19 +973,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add Location"
+            "value": "Location"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "位置情報を追加"
+            "value": "位置"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "添加位置"
+            "value": "位置"
           }
         }
       }
@@ -986,6 +1009,52 @@
           "stringUnit": {
             "state": "translated",
             "value": "所有照片"
+          }
+        }
+      }
+    },
+    "View.ClearAllMetadata": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear All Metadata"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべてのメタデータを消去"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除所有元数据"
+          }
+        }
+      }
+    },
+    "View.EditMetadata": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit Metadata"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メタデータの編集"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑元数据"
           }
         }
       }
@@ -1032,6 +1101,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "我的相簿"
+          }
+        }
+      }
+    },
+    "View.RecentHistory": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RECENT HISTORY"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近の履歴"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近搜索"
           }
         }
       }

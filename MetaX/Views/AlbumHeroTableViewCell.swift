@@ -32,7 +32,7 @@ class AlbumHeroTableViewCell: UITableViewCell {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 20, weight: .bold)
+        label.font = .systemFont(ofSize: 14, weight: .semibold)
         label.textColor = Theme.Colors.text
         label.textAlignment = .left
         label.numberOfLines = 0
@@ -65,22 +65,24 @@ class AlbumHeroTableViewCell: UITableViewCell {
         return label
     }()
 
+    var representedIdentifier: String?
+
     var title: String? {
         didSet {
             guard let title = title else { return }
-            let text = title.uppercased()
+            let text = title
             let attributedString = NSMutableAttributedString(string: text)
             attributedString.addAttribute(.kern, value: 2.0, range: NSRange(location: 0, length: text.count))
             titleLabel.attributedText = attributedString
         }
     }
 
-    var count: Int = 0 {
-        didSet { countLabel.text = "\(count)" }
+    var count: Int? {
+        didSet { countLabel.text = count.map { "\($0)" } ?? "—" }
     }
 
-    var thumnail: UIImage? {
-        didSet { thumbnailImageView.image = thumnail }
+    var thumbnail: UIImage? {
+        didSet { thumbnailImageView.image = thumbnail }
     }
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -124,10 +126,10 @@ class AlbumHeroTableViewCell: UITableViewCell {
             thumbnailImageView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
             thumbnailImageView.heightAnchor.constraint(equalTo: thumbnailImageView.widthAnchor, multiplier: 0.5625),
             
-            titleLabel.topAnchor.constraint(equalTo: thumbnailImageView.bottomAnchor, constant: 24),
+            titleLabel.topAnchor.constraint(equalTo: thumbnailImageView.bottomAnchor, constant: 16),
             titleLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 20),
             titleLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -20),
-            titleLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -24),
+            titleLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -16),
             
             countTagView.topAnchor.constraint(equalTo: thumbnailImageView.topAnchor, constant: 12),
             countTagView.trailingAnchor.constraint(equalTo: thumbnailImageView.trailingAnchor, constant: -12),
@@ -144,6 +146,13 @@ class AlbumHeroTableViewCell: UITableViewCell {
         ])
     }
     
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        representedIdentifier = nil
+        thumbnailImageView.image = nil
+        countLabel.text = "—"
+    }
+
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         super.setHighlighted(highlighted, animated: animated)
         UIView.animate(withDuration: 0.1) {
