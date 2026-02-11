@@ -11,6 +11,7 @@ enum Theme {
     // MARK: - Colors
     enum Colors {
         static let accent = UIColor(named: "greenSea") ?? .systemTeal
+        static let launchBackground = UIColor(named: "LaunchBackground") ?? .systemBackground
         static let cardBackground = UIColor.secondarySystemGroupedBackground
         static let mainBackground = UIColor.systemGroupedBackground
         static let border = UIColor.label
@@ -24,8 +25,23 @@ enum Theme {
         static let imageCornerRadius: CGFloat = 0
         static let cardPadding: CGFloat = 16
         static let cellSpacing: CGFloat = 10
+        static let stackSpacing: CGFloat = 24
         static let sectionHeaderHeight: CGFloat = 60
         static let horizontalMargin: CGFloat = 20
+        /// Standard album thumbnail size in points (displayed as a square)
+        static let thumbnailSize: CGFloat = 96
+        /// 16:9 aspect ratio multiplier used for hero image views
+        static let heroAspectRatio: CGFloat = 0.5625
+        /// Initial height for the detail view image header (updated dynamically per asset)
+        static let heroHeaderHeight: CGFloat = 320
+    }
+
+    // MARK: - Animation
+    enum Animation {
+        /// Duration for card press/highlight feedback
+        static let pressEffect: TimeInterval = 0.1
+        /// Duration for splash screen fade-out
+        static let splashFade: TimeInterval = 0.35
     }
     
     // MARK: - Shadows
@@ -69,10 +85,16 @@ enum Theme {
     
     // MARK: - Typography
     enum Typography {
+        /// For display-level titles (e.g. empty state, lock views)
+        static let title = UIFont.systemFont(ofSize: 24, weight: .bold)
+        /// Compact monospaced brand logotype for navigation bars
+        static let navBrand = UIFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold)
         /// For the most prominent titles (originally cardTitle)
         static let headline = UIFont.systemFont(ofSize: 14, weight: .semibold)
         /// For secondary titles or Section Headers
         static let subheadline = UIFont.systemFont(ofSize: 18, weight: .bold)
+        /// For callout-sized body text (16pt)
+        static let callout = UIFont.systemFont(ofSize: 16)
         /// Standard body text - medium weight (originally bodyMedium)
         static let bodyMedium = UIFont.systemFont(ofSize: 15, weight: .medium)
         /// Standard body text - regular weight (originally bodyRegular)

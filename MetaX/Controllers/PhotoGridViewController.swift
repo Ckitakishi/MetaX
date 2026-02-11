@@ -22,7 +22,7 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     // MARK: - ViewModel
 
-    private let viewModel = PhotoGridViewModel()
+    private let viewModel: PhotoGridViewModel
 
     // MARK: - Properties
 
@@ -32,6 +32,7 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     init(container: DependencyContainer) {
         self.container = container
+        self.viewModel = PhotoGridViewModel(photoLibraryService: container.photoLibraryService)
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -79,7 +80,6 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
     private func setupUI() {
         view.backgroundColor = Theme.Colors.mainBackground
         
-        // 1. Create Layout
         let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1/3),
                                              heightDimension: .fractionalWidth(1/3))
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
@@ -94,15 +94,12 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
         section.contentInsets = NSDirectionalEdgeInsets(top: half, leading: half, bottom: half, trailing: half)
         let layout = UICollectionViewCompositionalLayout(section: section)
         
-        // 2. Create CollectionView
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         collectionView.backgroundColor = .clear
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         
-        // 3. Register Cell
         collectionView.register(PhotoCollectionViewCell.self, forCellWithReuseIdentifier: String(describing: PhotoCollectionViewCell.self))
         
         view.addSubview(collectionView)
@@ -117,8 +114,8 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     private func updateThumbnailSize() {
         let width = view.bounds.width / 3
-        let scale = UIScreen.main.scale
-        thumbnailSize = CGSize(width: width * scale, height: width * scale)
+        let scale = traitCollection.displayScale
+        thumbnailSize = CGSize(width: ceil(width * scale), height: ceil(width * scale))
         viewModel.setThumbnailSize(thumbnailSize)
     }
 
@@ -198,7 +195,7 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
         }
 
         cell.representedAssetIdentifier = asset.localIdentifier
-        viewModel.requestImage(for: asset, targetSize: thumbnailSize) { [weak cell] image in
+        viewModel.requestImage(for: asset, targetSize: thumbnailSize) { [weak cell] image, isDegraded in
             guard cell?.representedAssetIdentifier == asset.localIdentifier else { return }
             Task { @MainActor in
                 cell?.thumbnailImage = image
@@ -209,7 +206,6 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        // Create destination
         let destination = DetailInfoViewController(container: container)
         destination.configure(with: viewModel.asset(at: indexPath.item), collection: viewModel.assetCollection)
         

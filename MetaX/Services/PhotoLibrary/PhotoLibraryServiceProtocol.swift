@@ -43,7 +43,8 @@ protocol PhotoLibraryServiceProtocol {
 
     // MARK: - Image Operations
 
-    /// Request image for asset with specified size
+    /// Request image for asset asynchronously. The continuation resumes once only,
+    /// with the final non-degraded result (or an error).
     func requestImage(
         for asset: PHAsset,
         targetSize: CGSize,
@@ -51,8 +52,43 @@ protocol PhotoLibraryServiceProtocol {
         options: PHImageRequestOptions?
     ) async -> Result<UIImage, MetaXError>
 
-    /// Request thumbnail for asset (synchronous, for table/collection views)
-    func requestThumbnail(for asset: PHAsset, targetSize: CGSize) -> UIImage?
+    /// Callback-based image request. With `.standard` options the completion fires
+    /// twice: once with a fast degraded frame, then with the full-quality result.
+    /// Returns a request ID that can be passed to `cancelImageRequest(_:)`.
+    @discardableResult
+    func requestImage(
+        for asset: PHAsset,
+        targetSize: CGSize,
+        contentMode: PHImageContentMode,
+        completion: @escaping (UIImage?, Bool) -> Void
+    ) -> PHImageRequestID
+
+    /// Cancels a pending image request.
+    func cancelImageRequest(_ requestID: PHImageRequestID)
+
+    /// Request a thumbnail asynchronously. The completion may fire twice when using
+    /// opportunistic delivery: once with a fast degraded image, then again with the
+    /// full-quality result. Callers should guard against cell reuse.
+    /// Returns a request ID that can be used to cancel the request.
+    @discardableResult
+    func requestThumbnail(
+        for asset: PHAsset,
+        targetSize: CGSize,
+        completion: @escaping (UIImage?, Bool) -> Void
+    ) -> PHImageRequestID
+
+    // MARK: - Thumbnail Caching
+
+    /// Pre-warms the image cache for the given assets at the specified thumbnail size.
+    /// Call this when assets are about to become visible (e.g. during prefetch).
+    func startCachingThumbnails(for assets: [PHAsset], targetSize: CGSize)
+
+    /// Releases cached thumbnails for assets that are no longer needed.
+    /// Options must match those passed to startCachingThumbnails.
+    func stopCachingThumbnails(for assets: [PHAsset], targetSize: CGSize)
+
+    /// Releases all cached thumbnails managed by this service.
+    func stopCachingAllThumbnails()
 
     // MARK: - Asset Operations
 

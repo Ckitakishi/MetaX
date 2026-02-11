@@ -20,13 +20,17 @@ final class PhotoGridViewModel: NSObject {
     private(set) var changeDetails: PHFetchResultChangeDetails<PHAsset>?
 
     private(set) var assetCollection: PHAssetCollection?
-    private let imageManager = PHCachingImageManager()
     private var previousPreheatRect = CGRect.zero
     private var thumbnailSize: CGSize = .zero
 
+    // MARK: - Dependencies
+
+    private let photoLibraryService: PhotoLibraryServiceProtocol
+
     // MARK: - Initialization
 
-    override init() {
+    init(photoLibraryService: PhotoLibraryServiceProtocol) {
+        self.photoLibraryService = photoLibraryService
         super.init()
     }
 
@@ -48,19 +52,15 @@ final class PhotoGridViewModel: NSObject {
             resetCachedAssets()
             return
         }
-
-        let options = PHFetchOptions()
-        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-        options.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
-        fetchResult = PHAsset.fetchAssets(with: options)
+        fetchResult = photoLibraryService.fetchAllPhotos()
     }
 
     func registerPhotoLibraryObserver() {
-        PHPhotoLibrary.shared().register(self)
+        photoLibraryService.registerChangeObserver(self)
     }
 
     func unregisterPhotoLibraryObserver() {
-        PHPhotoLibrary.shared().unregisterChangeObserver(self)
+        photoLibraryService.unregisterChangeObserver(self)
     }
 
     // MARK: - Data Access
@@ -76,21 +76,14 @@ final class PhotoGridViewModel: NSObject {
 
     // MARK: - Image Loading
 
-    func requestImage(for asset: PHAsset, targetSize: CGSize, completion: @escaping (UIImage?) -> Void) {
-        imageManager.requestImage(
-            for: asset,
-            targetSize: targetSize,
-            contentMode: .aspectFill,
-            options: nil
-        ) { image, _ in
-            completion(image)
-        }
+    func requestImage(for asset: PHAsset, targetSize: CGSize, completion: @escaping (UIImage?, Bool) -> Void) {
+        photoLibraryService.requestThumbnail(for: asset, targetSize: targetSize, completion: completion)
     }
 
     // MARK: - Caching
 
     func resetCachedAssets() {
-        imageManager.stopCachingImagesForAllAssets()
+        photoLibraryService.stopCachingAllThumbnails()
         previousPreheatRect = .zero
     }
 
@@ -115,19 +108,8 @@ final class PhotoGridViewModel: NSObject {
             .flatMap { indexPathsProvider($0) }
             .compactMap { asset(at: $0.item) }
 
-        // Update the assets the PHCachingImageManager is caching
-        imageManager.startCachingImages(
-            for: addedAssets,
-            targetSize: thumbnailSize,
-            contentMode: .aspectFill,
-            options: nil
-        )
-        imageManager.stopCachingImages(
-            for: removedAssets,
-            targetSize: thumbnailSize,
-            contentMode: .aspectFill,
-            options: nil
-        )
+        photoLibraryService.startCachingThumbnails(for: addedAssets, targetSize: thumbnailSize)
+        photoLibraryService.stopCachingThumbnails(for: removedAssets, targetSize: thumbnailSize)
 
         // Store the preheat rect to compare against in the future
         previousPreheatRect = preheatRect

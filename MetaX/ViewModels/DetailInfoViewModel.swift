@@ -87,20 +87,13 @@ final class DetailInfoViewModel {
     func loadPhoto(targetSize: CGSize) {
         guard let asset = asset else { return }
 
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .opportunistic
-        options.isNetworkAccessAllowed = true
-
-        imageRequestId = PHImageManager.default().requestImage(
+        imageRequestId = photoLibraryService.requestImage(
             for: asset,
             targetSize: targetSize,
-            contentMode: .aspectFit,
-            options: options
-        ) { [weak self] image, _ in
-            guard let self = self, let image = image else { return }
-            // Ensure UI updates happen on the MainActor
+            contentMode: .aspectFit
+        ) { [weak self] image, isDegraded in
             Task { @MainActor in
-                self.image = image
+                self?.image = image
             }
         }
     }
@@ -201,7 +194,7 @@ final class DetailInfoViewModel {
 
     func cancelRequests() {
         if let imageRequestId = imageRequestId {
-            PHImageManager.default().cancelImageRequest(imageRequestId)
+            photoLibraryService.cancelImageRequest(imageRequestId)
         }
     }
 

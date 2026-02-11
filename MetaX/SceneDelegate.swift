@@ -11,6 +11,7 @@ import UIKit
 class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDelegate {
 
     var window: UIWindow?
+    private var splashWindow: UIWindow?
     private var container: DependencyContainer?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
@@ -20,26 +21,47 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
         let container = DependencyContainer()
         self.container = container
 
-        // 1. Master: Album list
         let albumVC = AlbumViewController(container: container)
         let masterNav = UINavigationController(rootViewController: albumVC)
 
-        // 2. Detail: Photo grid
         let photoGridVC = PhotoGridViewController(container: container)
         photoGridVC.title = String(localized: .viewAllPhotos)
-
         let detailNav = UINavigationController(rootViewController: photoGridVC)
 
-        // 3. Split View Controller
         let splitVC = UISplitViewController()
         splitVC.viewControllers = [masterNav, detailNav]
         splitVC.delegate = self
-        splitVC.preferredDisplayMode = .allVisible
+        splitVC.preferredDisplayMode = .oneBesideSecondary
 
         window.rootViewController = splitVC
-        window.tintColor = UIColor(named: "greenSea") ?? .systemTeal
+        window.tintColor = Theme.Colors.accent
         window.makeKeyAndVisible()
         self.window = window
+
+        setupSplashWindow(in: windowScene, dismissalTrigger: albumVC)
+    }
+
+    private func setupSplashWindow(in scene: UIWindowScene, dismissalTrigger: AlbumViewController) {
+        let splashWindow = UIWindow(windowScene: scene)
+        splashWindow.windowLevel = .normal + 1
+        splashWindow.rootViewController = UIViewController()
+        splashWindow.rootViewController?.view.backgroundColor = .clear
+        
+        let splashView = SplashView(frame: splashWindow.bounds)
+        splashView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        splashWindow.rootViewController?.view.addSubview(splashView)
+        
+        splashWindow.makeKeyAndVisible()
+        self.splashWindow = splashWindow
+        
+        dismissalTrigger.splashDismissHandler = { [weak self] in
+            guard let self = self else { return }
+            UIView.animate(withDuration: Theme.Animation.splashFade, delay: 0, options: .curveEaseOut) {
+                self.splashWindow?.alpha = 0
+            } completion: { _ in
+                self.splashWindow = nil
+            }
+        }
     }
 
     // MARK: - UISplitViewControllerDelegate

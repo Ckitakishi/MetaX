@@ -35,6 +35,7 @@
 		11E84E61208CD635003A8F88 /* DetailDataPickerPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E84E3D208CD635003A8F88 /* DetailDataPickerPopover.swift */; };
 		11E84E62208CD635003A8F88 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11E84E3E208CD635003A8F88 /* Assets.xcassets */; };
 		5635357F2F39E79200CEE027 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 5635357E2F39E79200CEE027 /* AppIcon.icon */; };
+		563535E92F3B855100CEE027 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 563535E82F3B855100CEE027 /* LaunchScreen.storyboard */; };
 		56D07E202F31000000000001 /* MetaXError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E212F31000000000001 /* MetaXError.swift */; };
 		56D07E222F31000000000002 /* PhotoLibraryServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E232F31000000000002 /* PhotoLibraryServiceProtocol.swift */; };
 		56D07E242F31000000000003 /* PhotoLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E252F31000000000003 /* PhotoLibraryService.swift */; };
@@ -45,12 +46,14 @@
 		56D07E352F31000000000023 /* AlbumViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E342F31000000000022 /* AlbumViewModel.swift */; };
 		56D07E372F31000000000025 /* PhotoGridViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E362F31000000000024 /* PhotoGridViewModel.swift */; };
 		56D07E392F31000000000027 /* LocationSearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E382F31000000000026 /* LocationSearchViewModel.swift */; };
+		56D07E3A2F3100000000002A /* PHImageRequestOptionsExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E3A2F31000000000029 /* PHImageRequestOptionsExtension.swift */; };
 		56D07E3B2F31000000000029 /* ViewModelObserving.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E3A2F31000000000028 /* ViewModelObserving.swift */; };
 		56D07E3D2F31000000000030 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E3C2F31000000000030 /* SceneDelegate.swift */; };
 		56D07EA02F37000000000001 /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07EA12F37000000000001 /* DependencyContainer.swift */; };
 		56D07EA22F37000000000002 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07EA32F37000000000002 /* Theme.swift */; };
 		56D07EA42F37000000000003 /* AlbumHeroTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07EA52F37000000000003 /* AlbumHeroTableViewCell.swift */; };
 		56D07EA62F37000000000004 /* AlbumStandardTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07EA72F37000000000004 /* AlbumStandardTableViewCell.swift */; };
+		56D07EA82F37000000000005 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07EA92F37000000000005 /* SplashView.swift */; };
 		56D07EB02F31000000000001 /* HUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07EAF2F31000000000001 /* HUD.swift */; };
 		56D07EB22F31000000000001 /* MetadataEditViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07EB12F31000000000001 /* MetadataEditViewController.swift */; };
 		56D07EB42F31000000000001 /* KeyboardObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07EB32F31000000000001 /* KeyboardObserver.swift */; };
@@ -104,9 +107,9 @@
 		11E84E3B208CD635003A8F88 /* AlbumViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AlbumViewController.swift; sourceTree = "<group>"; };
 		11E84E3C208CD635003A8F88 /* PhotoGridViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PhotoGridViewController.swift; sourceTree = "<group>"; };
 		11E84E3D208CD635003A8F88 /* DetailDataPickerPopover.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DetailDataPickerPopover.swift; sourceTree = "<group>"; };
-		56D07EB12F31000000000001 /* MetadataEditViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataEditViewController.swift; sourceTree = "<group>"; };
 		11E84E3E208CD635003A8F88 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		5635357E2F39E79200CEE027 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		563535E82F3B855100CEE027 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = MetaX/LaunchScreen.storyboard; sourceTree = SOURCE_ROOT; };
 		56D07E212F31000000000001 /* MetaXError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetaXError.swift; sourceTree = "<group>"; };
 		56D07E232F31000000000002 /* PhotoLibraryServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibraryServiceProtocol.swift; sourceTree = "<group>"; };
 		56D07E252F31000000000003 /* PhotoLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibraryService.swift; sourceTree = "<group>"; };
@@ -118,17 +121,20 @@
 		56D07E362F31000000000024 /* PhotoGridViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoGridViewModel.swift; sourceTree = "<group>"; };
 		56D07E382F31000000000026 /* LocationSearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchViewModel.swift; sourceTree = "<group>"; };
 		56D07E3A2F31000000000028 /* ViewModelObserving.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ViewModelObserving.swift; sourceTree = "<group>"; };
+		56D07E3A2F31000000000029 /* PHImageRequestOptionsExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PHImageRequestOptionsExtension.swift; sourceTree = "<group>"; };
 		56D07E3C2F31000000000030 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		56D07EA12F37000000000001 /* DependencyContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DependencyContainer.swift; sourceTree = "<group>"; };
 		56D07EA32F37000000000002 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		56D07EA52F37000000000003 /* AlbumHeroTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumHeroTableViewCell.swift; sourceTree = "<group>"; };
 		56D07EA72F37000000000004 /* AlbumStandardTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumStandardTableViewCell.swift; sourceTree = "<group>"; };
+		56D07EA92F37000000000005 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		56D07EAF2F31000000000001 /* HUD.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HUD.swift; sourceTree = "<group>"; };
+		56D07EB12F31000000000001 /* MetadataEditViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataEditViewController.swift; sourceTree = "<group>"; };
+		56D07EB32F31000000000001 /* KeyboardObserver.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KeyboardObserver.swift; sourceTree = "<group>"; };
 		56D07EB52F31000000000001 /* LocationHistoryService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LocationHistoryService.swift; sourceTree = "<group>"; };
 		56D07EB72F31000000000001 /* LocationHistoryServiceProtocol.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LocationHistoryServiceProtocol.swift; sourceTree = "<group>"; };
 		56D07EB92F31000000000001 /* LocationSearchService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LocationSearchService.swift; sourceTree = "<group>"; };
 		56D07EBB2F31000000000001 /* LocationSearchServiceProtocol.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LocationSearchServiceProtocol.swift; sourceTree = "<group>"; };
-		56D07EB32F31000000000001 /* KeyboardObserver.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KeyboardObserver.swift; sourceTree = "<group>"; };
 		56EBC81C2F36FD07009AF511 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		56EBC8202F36FD0D009AF511 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		646A635100A346878D8DF79D /* ExifEnumMappings.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ExifEnumMappings.json; sourceTree = "<group>"; };
@@ -191,6 +197,7 @@
 				5635357E2F39E79200CEE027 /* AppIcon.icon */,
 				11E84E00208CD56C003A8F88 /* Info.plist */,
 				56EBC8202F36FD0D009AF511 /* InfoPlist.xcstrings */,
+				563535E82F3B855100CEE027 /* LaunchScreen.storyboard */,
 				646A635100A346878D8DF79D /* ExifEnumMappings.json */,
 			);
 			path = MetaX;
@@ -227,6 +234,7 @@
 			children = (
 				11E84E1D208CD634003A8F88 /* CLLocationExtension.swift */,
 				11E84E1F208CD634003A8F88 /* PHPhotoLibraryExtension.swift */,
+				56D07E3A2F31000000000029 /* PHImageRequestOptionsExtension.swift */,
 				11E84E20208CD634003A8F88 /* UIViewExtension.swift */,
 				11E84E21208CD634003A8F88 /* StringExtension.swift */,
 				11E84E22208CD634003A8F88 /* PHAssetCollectionExtension.swift */,
@@ -252,6 +260,7 @@
 				11E84E2A208CD634003A8F88 /* DetailTableViewCell.swift */,
 				56D07EA52F37000000000003 /* AlbumHeroTableViewCell.swift */,
 				56D07EA72F37000000000004 /* AlbumStandardTableViewCell.swift */,
+				56D07EA92F37000000000005 /* SplashView.swift */,
 				11E84E2D208CD634003A8F88 /* LocationTableViewCell.swift */,
 				11E84E30208CD634003A8F88 /* PhotoCollectionViewCell.swift */,
 				11E84E2F208CD634003A8F88 /* AuthLockView.swift */,
@@ -319,17 +328,6 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
-		56D07EC02F31000000000001 /* Location */ = {
-			isa = PBXGroup;
-			children = (
-				56D07EBB2F31000000000001 /* LocationSearchServiceProtocol.swift */,
-				56D07EB92F31000000000001 /* LocationSearchService.swift */,
-				56D07EB72F31000000000001 /* LocationHistoryServiceProtocol.swift */,
-				56D07EB52F31000000000001 /* LocationHistoryService.swift */,
-			);
-			path = Location;
-			sourceTree = "<group>";
-		};
 		56D07E292F31000000000007 /* PhotoLibrary */ = {
 			isa = PBXGroup;
 			children = (
@@ -358,6 +356,17 @@
 				56D07E362F31000000000024 /* PhotoGridViewModel.swift */,
 			);
 			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		56D07EC02F31000000000001 /* Location */ = {
+			isa = PBXGroup;
+			children = (
+				56D07EBB2F31000000000001 /* LocationSearchServiceProtocol.swift */,
+				56D07EB92F31000000000001 /* LocationSearchService.swift */,
+				56D07EB72F31000000000001 /* LocationHistoryServiceProtocol.swift */,
+				56D07EB52F31000000000001 /* LocationHistoryService.swift */,
+			);
+			path = Location;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -450,6 +459,7 @@
 				56EBC8212F36FD0D009AF511 /* InfoPlist.xcstrings in Resources */,
 				56EBC81D2F36FD08009AF511 /* Localizable.xcstrings in Resources */,
 				B1A53635B2CA4D0AAB1A8083 /* ExifEnumMappings.json in Resources */,
+				563535E92F3B855100CEE027 /* LaunchScreen.storyboard in Resources */,
 				11E84E4D208CD635003A8F88 /* MetadataPlus.plist in Resources */,
 				11E84E62208CD635003A8F88 /* Assets.xcassets in Resources */,
 			);
@@ -489,9 +499,11 @@
 				11E84E50208CD635003A8F88 /* DetailTableViewCell.swift in Sources */,
 				11E84E56208CD635003A8F88 /* PhotoCollectionViewCell.swift in Sources */,
 				11E84E45208CD635003A8F88 /* CLLocationExtension.swift in Sources */,
+				56D07E3A2F3100000000002A /* PHImageRequestOptionsExtension.swift in Sources */,
 				11E84E4B208CD635003A8F88 /* DateFormatterExtension.swift in Sources */,
 				11E84E5D208CD635003A8F88 /* DetailInfoViewController.swift in Sources */,
 				56D07EA42F37000000000003 /* AlbumHeroTableViewCell.swift in Sources */,
+				56D07EA82F37000000000005 /* SplashView.swift in Sources */,
 				56D07EA62F37000000000004 /* AlbumStandardTableViewCell.swift in Sources */,
 				11E84E47208CD635003A8F88 /* PHPhotoLibraryExtension.swift in Sources */,
 				11E84E42208CD635003A8F88 /* CellConfig.swift in Sources */,
@@ -669,6 +681,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 285BYEPY9U;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -676,12 +689,14 @@
 					"$(PROJECT_DIR)",
 				);
 				INFOPLIST_FILE = MetaX/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MetaX;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.photography";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ckitakishi.com.MetaX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
@@ -704,18 +719,21 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 285BYEPY9U;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
 				INFOPLIST_FILE = MetaX/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MetaX;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.photography";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ckitakishi.com.MetaX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
@@ -803,12 +821,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 11E84DE9208CD56A003A8F88 /* Project object */;
 }

@@ -7,7 +7,6 @@
 //
 
 import UIKit
-import Photos
 
 class AlbumViewController: UITableViewController, ViewModelObserving {
 
@@ -20,6 +19,18 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     private let viewModel: AlbumViewModel
 
     // MARK: - Properties
+
+    var splashDismissHandler: (() -> Void)?
+    private var isHeroImageLoaded = false
+    private var currentSectionIndex = 0
+
+    private var visibleSectionIndices: [Int] {
+        return (0..<AlbumSection.count).filter {
+            if $0 == 0 { return true }
+            guard let section = AlbumSection(rawValue: $0) else { return false }
+            return viewModel.numberOfRows(in: section) > 0
+        }
+    }
 
     private let sectionTitles = [
         "",
@@ -65,7 +76,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         let attributedString = NSMutableAttributedString(string: "METAX")
         attributedString.addAttribute(.kern, value: 1.5, range: NSRange(location: 0, length: 5))
         titleLabel.attributedText = attributedString
-        titleLabel.font = .monospacedDigitSystemFont(ofSize: 10, weight: .bold)
+        titleLabel.font = Theme.Typography.navBrand
         titleLabel.textColor = .secondaryLabel
         navigationItem.titleView = titleLabel
 
@@ -101,6 +112,22 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         tableView.prefetchDataSource = self
         tableView.register(AlbumHeroTableViewCell.self, forCellReuseIdentifier: String(describing: AlbumHeroTableViewCell.self))
         tableView.register(AlbumStandardTableViewCell.self, forCellReuseIdentifier: String(describing: AlbumStandardTableViewCell.self))
+
+        tableView.sectionIndexColor = Theme.Colors.text
+        tableView.sectionIndexBackgroundColor = .clear
+        tableView.sectionIndexTrackingBackgroundColor = .clear
+    }
+
+    private var standardThumbnailSize: CGSize {
+        let scale = traitCollection.displayScale
+        let side = ceil(Theme.Layout.thumbnailSize * scale)
+        return CGSize(width: side, height: side)
+    }
+
+    private var heroThumbnailSize: CGSize {
+        let scale = traitCollection.displayScale
+        let width = view.bounds.width - 2 * Theme.Layout.cardPadding
+        return CGSize(width: ceil(width * scale), height: ceil(width * Theme.Layout.heroAspectRatio * scale))
     }
 
     private func makeSortMenu() -> UIMenu {
@@ -119,31 +146,45 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     // MARK: - Bindings
 
     private func setupBindings() {
-        observe(viewModel: viewModel, property: { $0.isAuthorized }) { [weak self] isAuthorized in
-            if isAuthorized {
-                self?.removeLockView()
-            } else {
-                self?.showLockView()
-            }
+        observe(viewModel: viewModel, property: { $0.isAuthorized }) { [weak self] in
+            $0 ? self?.removeLockView() : self?.showLockView()
         }
 
         observe(viewModel: viewModel, property: { $0.reloadToken }) { [weak self] _ in
-            self?.tableView.reloadData()
+            guard let self, self.viewModel.allPhotos != nil else { return }
+            self.tableView.reloadData()
+        }
+
+        observe(viewModel: viewModel, property: { $0.pendingLoadsCount }) { [weak self] count in
+            guard count == 0 else { return }
+            self?.checkSplashDismissal()
         }
     }
 
+    private func handleInitialLoad() {
+        tableView.reloadData()
+        tableView.layoutIfNeeded()
+        checkSplashDismissal()
+    }
+
+    // MARK: - Splash
+
+    private func checkSplashDismissal() {
+        guard splashDismissHandler != nil,
+              isHeroImageLoaded,
+              viewModel.pendingLoadsCount == 0 else { return }
+        splashDismissHandler?()
+        splashDismissHandler = nil
+    }
+
     private func checkAuthorizationAndLoad() {
-        PHPhotoLibrary.checkAuthorizationStatus { [weak self] status in
-            guard let self = self else { return }
-            if status {
-                Task { @MainActor in
-                    self.viewModel.loadAlbums()
-                    self.viewModel.registerPhotoLibraryObserver()
-                }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            if await viewModel.authorizeAndLoad() {
+                handleInitialLoad()
             } else {
-                Task { @MainActor in
-                    self.showLockView()
-                }
+                splashDismissHandler?()
+                splashDismissHandler = nil
             }
         }
     }
@@ -197,12 +238,22 @@ extension AlbumViewController {
             cell.count = count
             cell.thumbnail = nil
             if let asset {
-                viewModel.getThumbnail(for: asset, targetSize: CGSize(width: 600, height: 600)) { [weak cell] image in
+                let requestID = viewModel.getThumbnail(for: asset, targetSize: heroThumbnailSize) { [weak cell, weak self] image, isDegraded in
                     Task { @MainActor in
+                        if !isDegraded {
+                            self?.isHeroImageLoaded = true
+                            self?.checkSplashDismissal()
+                        }
                         guard cell?.representedIdentifier == "allPhotos" else { return }
                         cell?.thumbnail = image
                     }
                 }
+                cell.cancelThumbnailRequest = { [weak self] in
+                    self?.viewModel.cancelThumbnailRequest(requestID)
+                }
+            } else if viewModel.allPhotos != nil {
+                isHeroImageLoaded = true
+                checkSplashDismissal()
             }
             return cell
         } else {
@@ -219,7 +270,7 @@ extension AlbumViewController {
 
             // Show cached cover immediately if available
             if let asset {
-                viewModel.getThumbnail(for: asset, targetSize: CGSize(width: 200, height: 200)) { [weak cell] image in
+                let requestID = viewModel.getThumbnail(for: asset, targetSize: standardThumbnailSize) { [weak cell] image, isDegraded in
                     // Guard inside Task to avoid TOCTOU: cell may be reused between
                     // the callback firing and the Task body executing on the main actor.
                     Task { @MainActor in
@@ -227,20 +278,17 @@ extension AlbumViewController {
                         cell.thumbnail = image
                     }
                 }
+                cell.cancelThumbnailRequest = { [weak self] in
+                    self?.viewModel.cancelThumbnailRequest(requestID)
+                }
             }
 
-            // Async-load count + cover if not yet cached (no-op when already cached)
-            viewModel.loadCellDataIfNeeded(at: indexPath) { [weak self, weak cell] count, cover in
-                guard let self, let cell, cell.representedIdentifier == collectionId else { return }
+            // Async-load count + thumbnail if not yet cached (no-op when already cached).
+            // Completion fires only when both count and first thumbnail image are ready.
+            viewModel.loadCellDataIfNeeded(at: indexPath, thumbnailSize: standardThumbnailSize) { [weak cell] count, image in
+                guard let cell, cell.representedIdentifier == collectionId else { return }
                 cell.count = count
-                if let cover {
-                    self.viewModel.getThumbnail(for: cover, targetSize: CGSize(width: 200, height: 200)) { [weak cell] image in
-                        Task { @MainActor in
-                            guard let cell, cell.representedIdentifier == collectionId else { return }
-                            cell.thumbnail = image
-                        }
-                    }
-                }
+                if let image { cell.thumbnail = image }
             }
 
             return cell
@@ -258,6 +306,9 @@ extension AlbumViewController {
 
     override func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         if section == 0 { return CGFloat.leastNonzeroMagnitude }
+        if self.tableView(tableView, numberOfRowsInSection: section) == 0 {
+            return CGFloat.leastNonzeroMagnitude
+        }
         return Theme.Layout.sectionHeaderHeight
     }
 
@@ -266,7 +317,43 @@ extension AlbumViewController {
     }
 
     override func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
-        return section == 0 ? 24 : 0.1
+        return section == 0 ? Theme.Layout.stackSpacing : 0.1
+    }
+
+    override func sectionIndexTitles(for tableView: UITableView) -> [String]? {
+        let indices = visibleSectionIndices
+        return indices.map { $0 == currentSectionIndex ? "●" : "○" }
+    }
+
+    override func tableView(_ tableView: UITableView, sectionForSectionIndexTitle title: String, at index: Int) -> Int {
+        let indices = visibleSectionIndices
+        return index < indices.count ? indices[index] : 0
+    }
+
+    override func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let currentOffset = scrollView.contentOffset.y
+        let maximumOffset = scrollView.contentSize.height - scrollView.frame.size.height
+        let visualTop = currentOffset + scrollView.adjustedContentInset.top
+        
+        var activeSection = 0
+        let indices = visibleSectionIndices
+        
+        if maximumOffset > 0 && currentOffset > 0 && maximumOffset - currentOffset <= 20 {
+            activeSection = indices.last ?? 0
+        } else {
+            for section in indices {
+                let rect = tableView.rect(forSection: section)
+                if rect.minY <= visualTop + 1 && rect.maxY > visualTop + 1 {
+                    activeSection = section
+                    break
+                }
+            }
+        }
+        
+        if currentSectionIndex != activeSection {
+            currentSectionIndex = activeSection
+            tableView.reloadSectionIndexTitles()
+        }
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -289,7 +376,7 @@ extension AlbumViewController {
 extension AlbumViewController: AuthLockViewDelegate {
 
     func toSetting() {
-        PHPhotoLibrary.guideToSetting()
+        viewModel.guideToSettings()
     }
 }
 
@@ -299,13 +386,12 @@ extension AlbumViewController: UITableViewDataSourcePrefetching {
 
     func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
         for indexPath in indexPaths where indexPath.section != 0 {
-            viewModel.loadCellDataIfNeeded(at: indexPath) { _, _ in }
+            viewModel.loadCellDataIfNeeded(at: indexPath, thumbnailSize: standardThumbnailSize) { _, _ in }
         }
     }
 
     func tableView(_ tableView: UITableView, cancelPrefetchingForRowsAt indexPaths: [IndexPath]) {
-        // loadCellDataIfNeeded results are cached, so cancelled prefetches are harmless;
-        // the cache will simply be used when the cell eventually appears.
+        viewModel.stopCachingThumbnails(for: indexPaths, targetSize: standardThumbnailSize)
     }
 }
 

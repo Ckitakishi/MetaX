@@ -104,6 +104,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         super.viewDidLoad()
         setupUI()
         setupBindings()
+        PHPhotoLibrary.shared().register(self)
 
         if let asset = asset {
             viewModel.configure(with: asset, collection: assetCollection)
@@ -117,7 +118,6 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         Task {
             await viewModel.loadMetadata()
         }
-        PHPhotoLibrary.shared().register(self)
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -148,7 +148,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         tableView.register(DetailTableViewCell.self, forCellReuseIdentifier: String(describing: DetailTableViewCell.self))
 
         // Header Setup
-        let headerContainer = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 320))
+        let headerContainer = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: Theme.Layout.heroHeaderHeight))
         headerContainer.addSubview(heroCardView)
         heroCardView.addSubview(heroImageView)
 
@@ -235,9 +235,9 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     }
 
     private var targetSize: CGSize {
-        let scale = UIScreen.main.scale
-        let headerHeight = tableView.tableHeaderView?.frame.height ?? 300
-        return CGSize(width: view.bounds.width * scale, height: headerHeight * scale)
+        let scale = traitCollection.displayScale
+        let headerHeight = tableView.tableHeaderView?.frame.height ?? Theme.Layout.heroHeaderHeight
+        return CGSize(width: ceil(view.bounds.width * scale), height: ceil(headerHeight * scale))
     }
 
     // MARK: - Bindings

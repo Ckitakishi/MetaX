@@ -32,7 +32,7 @@ class AlbumHeroTableViewCell: UITableViewCell {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 14, weight: .semibold)
+        label.font = Theme.Typography.headline
         label.textColor = Theme.Colors.text
         label.textAlignment = .left
         label.numberOfLines = 0
@@ -66,6 +66,7 @@ class AlbumHeroTableViewCell: UITableViewCell {
     }()
 
     var representedIdentifier: String?
+    var cancelThumbnailRequest: (() -> Void)?
 
     var title: String? {
         didSet {
@@ -124,12 +125,12 @@ class AlbumHeroTableViewCell: UITableViewCell {
             thumbnailImageView.topAnchor.constraint(equalTo: cardView.topAnchor),
             thumbnailImageView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
             thumbnailImageView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-            thumbnailImageView.heightAnchor.constraint(equalTo: thumbnailImageView.widthAnchor, multiplier: 0.5625),
-            
-            titleLabel.topAnchor.constraint(equalTo: thumbnailImageView.bottomAnchor, constant: 16),
-            titleLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 20),
-            titleLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -20),
-            titleLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -16),
+            thumbnailImageView.heightAnchor.constraint(equalTo: thumbnailImageView.widthAnchor, multiplier: Theme.Layout.heroAspectRatio),
+
+            titleLabel.topAnchor.constraint(equalTo: thumbnailImageView.bottomAnchor, constant: Theme.Layout.cardPadding),
+            titleLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: Theme.Layout.horizontalMargin),
+            titleLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -Theme.Layout.horizontalMargin),
+            titleLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -Theme.Layout.cardPadding),
             
             countTagView.topAnchor.constraint(equalTo: thumbnailImageView.topAnchor, constant: 12),
             countTagView.trailingAnchor.constraint(equalTo: thumbnailImageView.trailingAnchor, constant: -12),
@@ -148,6 +149,8 @@ class AlbumHeroTableViewCell: UITableViewCell {
     
     override func prepareForReuse() {
         super.prepareForReuse()
+        cancelThumbnailRequest?()
+        cancelThumbnailRequest = nil
         representedIdentifier = nil
         thumbnailImageView.image = nil
         countLabel.text = "—"
@@ -155,7 +158,7 @@ class AlbumHeroTableViewCell: UITableViewCell {
 
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         super.setHighlighted(highlighted, animated: animated)
-        UIView.animate(withDuration: 0.1) {
+        UIView.animate(withDuration: Theme.Animation.pressEffect) {
             Theme.Shadows.applyPressEffect(to: self.cardView, isPressed: highlighted)
         }
     }

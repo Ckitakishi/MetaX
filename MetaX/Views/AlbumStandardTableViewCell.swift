@@ -72,6 +72,7 @@ class AlbumStandardTableViewCell: UITableViewCell {
     }()
 
     var representedIdentifier: String?
+    var cancelThumbnailRequest: (() -> Void)?
 
     var title: String? {
         didSet { titleLabel.text = title }
@@ -131,8 +132,8 @@ class AlbumStandardTableViewCell: UITableViewCell {
             thumbnailImageView.topAnchor.constraint(equalTo: cardView.topAnchor),
             thumbnailImageView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
             thumbnailImageView.bottomAnchor.constraint(equalTo: cardView.bottomAnchor),
-            thumbnailImageView.widthAnchor.constraint(equalToConstant: 96),
-            thumbnailImageView.heightAnchor.constraint(equalToConstant: 96),
+            thumbnailImageView.widthAnchor.constraint(equalToConstant: Theme.Layout.thumbnailSize),
+            thumbnailImageView.heightAnchor.constraint(equalToConstant: Theme.Layout.thumbnailSize),
             
             // Image Right Border
             imageRightBorder.topAnchor.constraint(equalTo: cardView.topAnchor),
@@ -141,7 +142,7 @@ class AlbumStandardTableViewCell: UITableViewCell {
             imageRightBorder.widthAnchor.constraint(equalToConstant: 1.0), // Reduced to 1.0
             
             // Vertically Centered Info Stack
-            infoStack.leadingAnchor.constraint(equalTo: imageRightBorder.trailingAnchor, constant: 16),
+            infoStack.leadingAnchor.constraint(equalTo: imageRightBorder.trailingAnchor, constant: Theme.Layout.cardPadding),
             infoStack.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -12),
             infoStack.centerYAnchor.constraint(equalTo: cardView.centerYAnchor),
             
@@ -159,6 +160,8 @@ class AlbumStandardTableViewCell: UITableViewCell {
     
     override func prepareForReuse() {
         super.prepareForReuse()
+        cancelThumbnailRequest?()
+        cancelThumbnailRequest = nil
         representedIdentifier = nil
         thumbnailImageView.image = nil
         countLabel.text = "—"
@@ -166,7 +169,7 @@ class AlbumStandardTableViewCell: UITableViewCell {
 
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         super.setHighlighted(highlighted, animated: animated)
-        UIView.animate(withDuration: 0.1) {
+        UIView.animate(withDuration: Theme.Animation.pressEffect) {
             Theme.Shadows.applyPressEffect(to: self.cardView, isPressed: highlighted)
         }
     }

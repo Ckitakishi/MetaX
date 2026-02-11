@@ -55,7 +55,7 @@ final class AlbumViewModel: NSObject {
     private var coverCache: [String: PHAsset?] = [:]
     private var countCache: [String: Int] = [:]
     private var pendingLoads: Set<String> = []
-    private var loadCompletions: [String: [(Int, PHAsset?) -> Void]] = [:]
+    private var loadCompletions: [String: [(Int, UIImage?) -> Void]] = [:]
     // Incremented in invalidateCaches() so in-flight Task.detached blocks can
     // detect that their results are stale and discard them.
     private var cacheGeneration: Int = 0
@@ -65,6 +65,9 @@ final class AlbumViewModel: NSObject {
 
     private(set) var isAuthorized: Bool = true
     private(set) var reloadToken: Int = 0
+    /// Number of in-flight loadCellDataIfNeeded DB queries.
+    /// Observed by AlbumViewController to know when all initial data is loaded.
+    private(set) var pendingLoadsCount: Int = 0
 
     // MARK: - Dependencies
 
@@ -79,14 +82,24 @@ final class AlbumViewModel: NSObject {
 
     // MARK: - Public Methods
 
-    func checkAuthorization() async {
+    /// Checks authorization, loads albums if granted.
+    /// Returns true if authorized, false if denied.
+    func authorizeAndLoad() async -> Bool {
         let result = await photoLibraryService.checkAuthorization()
         switch result {
         case .success:
-            self.isAuthorized = true
+            isAuthorized = true
+            loadAlbums()
+            registerPhotoLibraryObserver()
+            return true
         case .failure:
-            self.isAuthorized = false
+            isAuthorized = false
+            return false
         }
+    }
+
+    func guideToSettings() {
+        photoLibraryService.guideToSettings()
     }
 
     func loadAlbums() {
@@ -162,10 +175,11 @@ final class AlbumViewModel: NSObject {
         }
     }
 
-    /// Loads count + cover asset for the cell at `indexPath` if not already cached.
-    /// The completion fires on the main actor once the data is ready.
+    /// Loads count + thumbnail for the cell at `indexPath` if not already cached.
+    /// The completion fires on the main actor with `(count, image)` once both are
+    /// ready — image is nil only when the collection has no cover asset.
     /// No-op for the allPhotos section (always available synchronously).
-    func loadCellDataIfNeeded(at indexPath: IndexPath, completion: @escaping (Int, PHAsset?) -> Void) {
+    func loadCellDataIfNeeded(at indexPath: IndexPath, thumbnailSize: CGSize, completion: @escaping (Int, UIImage?) -> Void) {
         guard let section = AlbumSection(rawValue: indexPath.section), section != .allPhotos else { return }
 
         let collection: PHAssetCollection
@@ -188,6 +202,7 @@ final class AlbumViewModel: NSObject {
         loadCompletions[id, default: []].append(completion)
         guard !pendingLoads.contains(id) else { return }
         pendingLoads.insert(id)
+        pendingLoadsCount += 1
 
         // Capture the current generation so the task can discard stale results
         // if invalidateCaches() fires while the fetch is in flight.
@@ -199,9 +214,32 @@ final class AlbumViewModel: NSObject {
                 guard let self, self.cacheGeneration == generation else { return }
                 self.coverCache[id] = cover
                 self.countCache[id] = count
-                self.pendingLoads.remove(id)
-                for cb in self.loadCompletions.removeValue(forKey: id) ?? [] {
-                    cb(count, cover)
+
+                guard let cover else {
+                    // No cover — fire completions immediately with nil image.
+                    self.pendingLoads.remove(id)
+                    self.pendingLoadsCount -= 1
+                    for cb in self.loadCompletions.removeValue(forKey: id) ?? [] {
+                        cb(count, nil)
+                    }
+                    return
+                }
+
+                // Thumbnail request keeps pendingLoadsCount elevated until HQ arrives.
+                // Degraded delivery updates cells immediately; final delivery unblocks splash.
+                let pendingCallbacks = self.loadCompletions.removeValue(forKey: id) ?? []
+                self.photoLibraryService.requestThumbnail(for: cover, targetSize: thumbnailSize) { [weak self] image, isDegraded in
+                    Task { @MainActor in
+                        guard let self, self.cacheGeneration == generation else { return }
+                        if isDegraded && image != nil {
+                            for cb in pendingCallbacks { cb(count, image) }
+                            return
+                        }
+                        guard self.pendingLoads.contains(id) else { return }
+                        self.pendingLoads.remove(id)
+                        self.pendingLoadsCount -= 1
+                        for cb in pendingCallbacks { cb(count, image) }
+                    }
                 }
             }
         }
@@ -232,13 +270,16 @@ final class AlbumViewModel: NSObject {
 
     // MARK: - Thumbnail
 
-    func getThumbnail(for asset: PHAsset, targetSize: CGSize? = nil, completion: @escaping (UIImage?) -> Void) {
+    @discardableResult
+    func getThumbnail(for asset: PHAsset, targetSize: CGSize? = nil, completion: @escaping (UIImage?, Bool) -> Void) -> PHImageRequestID {
         let size = targetSize ?? CGSize(width: 100.0, height: 100.0)
-        let service = photoLibraryService
-        Task.detached {
-            let image = service.requestThumbnail(for: asset, targetSize: size)
-            await MainActor.run { completion(image) }
+        return photoLibraryService.requestThumbnail(for: asset, targetSize: size) { image, isDegraded in
+            Task { @MainActor in completion(image, isDegraded) }
         }
+    }
+
+    func cancelThumbnailRequest(_ requestID: PHImageRequestID) {
+        photoLibraryService.cancelImageRequest(requestID)
     }
 
     // MARK: - Private Methods
@@ -265,11 +306,34 @@ final class AlbumViewModel: NSObject {
         reloadToken += 1
     }
 
+    func stopCachingThumbnails(for indexPaths: [IndexPath], targetSize: CGSize) {
+        let assets: [PHAsset] = indexPaths.compactMap { indexPath in
+            guard let section = AlbumSection(rawValue: indexPath.section), section != .allPhotos else { return nil }
+            let id: String
+            switch section {
+            case .allPhotos: return nil
+            case .userCollections:
+                guard indexPath.row < displayedUserCollections.count else { return nil }
+                id = displayedUserCollections[indexPath.row].localIdentifier
+            case .smartAlbums:
+                guard indexPath.row < displayedSmartAlbums.count else { return nil }
+                id = displayedSmartAlbums[indexPath.row].localIdentifier
+            }
+            // Only stop caching assets whose cover we've already resolved.
+            return coverCache[id] ?? nil
+        }
+        guard !assets.isEmpty else { return }
+        photoLibraryService.stopCachingThumbnails(for: assets, targetSize: targetSize)
+    }
+
     private func invalidateCaches() {
+        // Release PHCachingImageManager entries before clearing the cover references.
+        photoLibraryService.stopCachingAllThumbnails()
         cacheGeneration += 1
         coverCache.removeAll()
         countCache.removeAll()
         pendingLoads.removeAll()
+        pendingLoadsCount = 0
         loadCompletions.removeAll()
     }
 
@@ -291,9 +355,12 @@ final class AlbumViewModel: NSObject {
         var result: [PHAssetCollection] = []
         userCollections.enumerateObjects { collection, _, _ in
             if let assetCollection = collection as? PHAssetCollection {
-                result.append(assetCollection)
+                if assetCollection.hasImages {
+                    result.append(assetCollection)
+                }
             } else if let collectionList = collection as? PHCollectionList {
-                result.append(contentsOf: self.flattenCollectionList(collectionList))
+                let flattened = self.flattenCollectionList(collectionList)
+                result.append(contentsOf: flattened.filter { $0.hasImages })
             }
         }
         return result

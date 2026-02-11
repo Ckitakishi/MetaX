@@ -45,38 +45,37 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
     }
 
     func guideToSettings() {
-        DispatchQueue.main.async {
-            guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-            UIApplication.shared.open(url, options: [:], completionHandler: nil)
-        }
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     // MARK: - Fetch Operations
 
     func fetchAllPhotos(sortedBy sortDescriptor: NSSortDescriptor?) -> PHFetchResult<PHAsset> {
-        let options = PHFetchOptions()
+        let options = imageFetchOptions()
         if let sortDescriptor = sortDescriptor {
             options.sortDescriptors = [sortDescriptor]
-        } else {
-            options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         }
         return PHAsset.fetchAssets(with: options)
     }
 
     func fetchAssets(in collection: PHAssetCollection, sortedBy sortDescriptor: NSSortDescriptor?) -> PHFetchResult<PHAsset> {
-        let options: PHFetchOptions?
+        let options = imageFetchOptions()
         if let sortDescriptor = sortDescriptor {
-            let fetchOptions = PHFetchOptions()
-            fetchOptions.sortDescriptors = [sortDescriptor]
-            options = fetchOptions
-        } else {
-            options = nil
+            options.sortDescriptors = [sortDescriptor]
         }
         return PHAsset.fetchAssets(in: collection, options: options)
     }
 
     func fetchSmartAlbums() -> PHFetchResult<PHAssetCollection> {
-        PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .albumRegular, options: nil)
+        PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .any, options: nil)
+    }
+
+    private func imageFetchOptions() -> PHFetchOptions {
+        let options = PHFetchOptions()
+        options.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
+        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        return options
     }
 
     func fetchUserCollections() -> PHFetchResult<PHCollection> {
@@ -133,18 +132,11 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
         options: PHImageRequestOptions?
     ) async -> Result<UIImage, MetaXError> {
         await withCheckedContinuation { continuation in
-            let requestOptions = options ?? {
-                let opts = PHImageRequestOptions()
-                opts.deliveryMode = .opportunistic
-                opts.isNetworkAccessAllowed = true
-                return opts
-            }()
-
             imageManager.requestImage(
                 for: asset,
                 targetSize: targetSize,
                 contentMode: contentMode,
-                options: requestOptions
+                options: options ?? PHImageRequestOptions.standard
             ) { image, info in
                 // Check if this is the final result (not a degraded thumbnail)
                 let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
@@ -161,24 +153,65 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
         }
     }
 
-    func requestThumbnail(for asset: PHAsset, targetSize: CGSize) -> UIImage? {
-        var resultImage: UIImage?
-
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .fastFormat
-        options.isSynchronous = true
-        options.isNetworkAccessAllowed = false
-
-        imageManager.requestImage(
+    @discardableResult
+    func requestThumbnail(
+        for asset: PHAsset,
+        targetSize: CGSize,
+        completion: @escaping (UIImage?, Bool) -> Void
+    ) -> PHImageRequestID {
+        return imageManager.requestImage(
             for: asset,
             targetSize: targetSize,
             contentMode: .aspectFill,
-            options: options
-        ) { image, _ in
-            resultImage = image
+            options: .standard
+        ) { image, info in
+            let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+            completion(image, isDegraded)
         }
+    }
 
-        return resultImage
+    func startCachingThumbnails(for assets: [PHAsset], targetSize: CGSize) {
+        imageManager.startCachingImages(
+            for: assets,
+            targetSize: targetSize,
+            contentMode: .aspectFill,
+            options: .standard
+        )
+    }
+
+    func stopCachingThumbnails(for assets: [PHAsset], targetSize: CGSize) {
+        imageManager.stopCachingImages(
+            for: assets,
+            targetSize: targetSize,
+            contentMode: .aspectFill,
+            options: .standard
+        )
+    }
+
+    func stopCachingAllThumbnails() {
+        imageManager.stopCachingImagesForAllAssets()
+    }
+
+    @discardableResult
+    func requestImage(
+        for asset: PHAsset,
+        targetSize: CGSize,
+        contentMode: PHImageContentMode,
+        completion: @escaping (UIImage?, Bool) -> Void
+    ) -> PHImageRequestID {
+        return imageManager.requestImage(
+            for: asset,
+            targetSize: targetSize,
+            contentMode: contentMode,
+            options: .standard
+        ) { image, info in
+            let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+            completion(image, isDegraded)
+        }
+    }
+
+    func cancelImageRequest(_ requestID: PHImageRequestID) {
+        imageManager.cancelImageRequest(requestID)
     }
 
     // MARK: - Asset Operations
