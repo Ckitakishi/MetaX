@@ -1,2329 +1,2547 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "Albums": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Albums"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Albums" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Albums"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アルバム"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アルバム"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "相簿"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相簿"
           }
         }
       }
     },
-    "Alert.Add": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "NO, remain it."
+    "Alert.Add" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NO, remain it."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "旧画像を残す"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "旧画像を残す"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保留原始图像"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留原始图像"
           }
         }
       }
     },
-    "Alert.AddAndDel": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yes, delete it."
+    "Alert.AddAndDel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes, delete it."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "旧画像を削除"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "旧画像を削除"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除原始图像"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除原始图像"
           }
         }
       }
     },
-    "Alert.Cancel": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancel"
+    "Alert.Cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キャンセル"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
           }
         }
       }
     },
-    "Alert.Confirm": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Comfirm"
+    "Alert.Confirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comfirm"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "変更確認"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更確認"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "修改确认"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修改确认"
           }
         }
       }
     },
-    "Alert.ConfirmDesc": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "New photo with new metadata will be saved to library, would you like to delete the old one?"
+    "Alert.ConfirmDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New photo with new metadata will be saved to library, would you like to delete the old one?"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "編集されました新画像をライブラリに保存する同時に、旧画像を削除しますか？"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編集されました新画像をライブラリに保存する同時に、旧画像を削除しますか？"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "修改后的新图像将会被存储到图库，是否同时删除原始图像？"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修改后的新图像将会被存储到图库，是否同时删除原始图像？"
           }
         }
       }
     },
-    "Alert.LiveAlertDesc": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "New photo with new metadata will be saved to library, and live photo will be saved to be normal type, would you still like to delete the old one?"
+    "Alert.LiveAlertDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New photo with new metadata will be saved to library, and live photo will be saved to be normal type, would you still like to delete the old one?"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "編集されました新画像をライブラリに保存し、編集されました画像は　Live 画像のままではなくて、通常タイプになり、それでも同時に旧画像を削除しますか？"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編集されました新画像をライブラリに保存し、編集されました画像は　Live 画像のままではなくて、通常タイプになり、それでも同時に旧画像を削除しますか？"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "修改后的新图像将会被存储到图库，以及该 live 图像将会被存储为普通格式，是否仍然要同时删除原始图像？"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修改后的新图像将会被存储到图库，以及该 live 图像将会被存储为普通格式，是否仍然要同时删除原始图像？"
           }
         }
       }
     },
-    "Alert.PhotoAccess": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please allow to access your Photos"
+    "Alert.PhotoAccess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please allow to access your Photos"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写真へのアクセスを許可してください"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真へのアクセスを許可してください"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "照片访问请求"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片访问请求"
           }
         }
       }
     },
-    "Alert.PhotoAccessDesc": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Without this, MetaX can't read your photos and save edited photos to camera roll."
+    "Alert.PhotoAccessDesc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without this, MetaX can't read your photos and save edited photos to camera roll."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写真の読み出しと書き込みをできるように、権限が必要です。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真の読み出しと書き込みをできるように、権限が必要です。"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "MetaX 需要您的允许，以读取及保存照片。"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MetaX 需要您的允许，以读取及保存照片。"
           }
         }
       }
     },
-    "Alert.PhotoAuth": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enable Photos Access"
+    "Alert.PhotoAuth" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Photos Access"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ライブラリへのアクセスを許可"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブラリへのアクセスを許可"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开启访问权限"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启访问权限"
           }
         }
       }
     },
-    "Artist": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Artist"
+    "Artist" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artist"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "撮影者"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮影者"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "作者"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作者"
           }
         }
       }
     },
-    "Copyright": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copyright"
+    "Copyright" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copyright"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "著作権"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "著作権"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "版权"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版权"
           }
         }
       }
     },
-    "Error.CoordinateFetch": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Coordinate can't be fetched."
+    "Device" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Device"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "地理情報を取得できません。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デバイス"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "获取地理信息失败。"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设备"
           }
         }
       }
     },
-    "Error.iCloud": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Can't download photo from iCloud."
+    "Edit.Group.BasicInfo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basic Info"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud から写真をダウンロードできません。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "基本情報"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法从 iCloud 下载图片。"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "基本信息"
           }
         }
       }
     },
-    "Error.ImageSaveCreation": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Creation Failed"
+    "Edit.Group.Copyright" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copyright"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保存エラー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "著作権"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "创建失败"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版权"
           }
         }
       }
     },
-    "Error.ImageSaveEdition": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Edition Failed"
+    "Edit.Group.Exposure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exposure"
           }
+        }
+      }
+    },
+    "Edit.Group.FileInfo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Info"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイル情報"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件信息"
+          }
+        }
+      }
+    },
+    "Edit.Group.Gear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gear"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "機材"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设备"
+          }
+        }
+      }
+    },
+    "Edit.Hint.Exposure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded by the camera at capture time. Avoid editing unless necessary to preserve the original shooting record."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮影時にカメラが自動で記録した値です。元の撮影記録を保持するため、特別な理由がない限り変更しないことをおすすめします。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由相机在拍摄时自动记录，如无特殊需求请勿修改，以免破坏原始拍摄记录。"
+          }
+        }
+      }
+    },
+    "Edit.Hint.FileInfo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These values are determined by the image file and cannot be changed."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらの値は画像ファイルによって決まるため、変更できません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些数值由图像文件决定，无法更改。"
+          }
+        }
+      }
+    },
+    "Edit.Hint.Gear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded by the camera. Avoid editing unless necessary, as photo editing software relies on this to correctly identify your camera and lens."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラが記録した情報です。写真編集ソフトウェアがカメラとレンズを正しく識別するために使用されるため、特別な理由がない限り変更しないことをおすすめします。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些信息由相机记录，如无特殊需求请勿修改，以确保后期软件能正确识别相机与镜头。"
+          }
+        }
+      }
+    },
+    "Error.CoordinateFetch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coordinate can't be fetched."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地理情報を取得できません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "获取地理信息失败。"
+          }
+        }
+      }
+    },
+    "Error.iCloud" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't download photo from iCloud."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud から写真をダウンロードできません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法从 iCloud 下载图片。"
+          }
+        }
+      }
+    },
+    "Error.ImageSaveCreation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creation Failed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存エラー"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建失败"
+          }
+        }
+      }
+    },
+    "Error.ImageSaveEdition" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edition Failed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編集エラー"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑失败"
+          }
+        }
+      }
+    },
+    "Error.ImageSaveUnknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown Error"
+          }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "編集エラー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知エラー"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "编辑失败"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知错误"
           }
         }
       }
     },
-    "Error.ImageSaveUnknown": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unknown Error"
+    "ExposureBiasValue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exposure Compensation"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未知エラー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "露出補正"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未知错误"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "曝光补偿"
           }
         }
       }
     },
-    "Device": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Device"
+    "ExposureProgram" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exposure Program"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "デバイス"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "露出プログラム"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "设备"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "曝光程序"
           }
         }
       }
     },
-    "ExposureBiasValue": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Exposure Compensation"
+    "ExposureProgram.Action" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Action"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "露出補正"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクション"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "曝光补偿"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "动作"
           }
         }
       }
     },
-    "ExposureProgram": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Exposure Program"
+    "ExposureProgram.Aperture-priority AE" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aperture Priority (A/Av)"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "露出プログラム"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "絞り優先AE (A)"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "曝光程序"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "光圈优先 (A/Av)"
           }
         }
       }
     },
-    "ExposureTime": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shutter Speed"
+    "ExposureProgram.Bulb" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulb (B)"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "シャッタースピード"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バルブ (B)"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "快门速度"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "B门 (B)"
           }
         }
       }
     },
-    "Flash": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flash"
+    "ExposureProgram.Creative" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creative"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フラッシュ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クリエイティブ"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "闪光灯"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创意"
           }
         }
       }
     },
-    "FNumber": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aperture"
+    "ExposureProgram.Landscape" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Landscape"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "絞り値"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ランドスケープ"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "光圈"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "风景"
           }
         }
       }
     },
-    "FocalLength": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Focal Length"
+    "ExposureProgram.Manual" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual (M)"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "焦点距離"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マニュアル (M)"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "焦距"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手动 (M)"
           }
         }
       }
     },
-    "FocalLenIn35mmFilm": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "35mm Equivalent"
+    "ExposureProgram.Not Defined" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Defined"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "35mm換算"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未定義"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "35mm 等效焦距"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未定义"
           }
         }
       }
     },
-    "Image": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Image"
+    "ExposureProgram.Portrait" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portrait"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "画像"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポートレート"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "图像"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "人像"
           }
         }
       }
     },
-    "Info.notSupport": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sorry, this media type is not supported now."
+    "ExposureProgram.Program AE" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Program AE (P)"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すみませんが、現在このメディアタイプはサポートしておりません。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プログラムAE (P)"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "抱歉，该版本暂时不支持此媒体类型。"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "程序自动 (P)"
           }
         }
       }
     },
-    "ISOSpeedRatings": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ISO"
+    "ExposureProgram.Shutter speed priority AE" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shutter Priority (S/Tv)"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ISO"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シャッター優先AE (S)"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ISO"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快门优先 (S/Tv)"
           }
         }
       }
     },
-    "LensMake": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lens Make"
+    "ExposureTime" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shutter Speed"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "レンズメーカー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シャッタースピード"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "镜头制造商"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快门速度"
           }
         }
       }
     },
-    "LensModel": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lens Model"
+    "Flash" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flash"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "レンズモデル"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フラッシュ"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "镜头型号"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "闪光灯"
           }
         }
       }
     },
-    "Make": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Make"
+    "Flash.Auto, Did not fire" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto, Did not fire"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "メーカー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オート、非発光"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "制造商"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动、未闪光"
           }
         }
       }
     },
-    "MeteringMode": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Metering Mode"
+    "Flash.Auto, Did not fire, Red-eye reduction" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto, Did not fire, Red-eye reduction"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "測光モード"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オート、非発光、赤目軽減"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "测光模式"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动、未闪光、防红眼"
           }
         }
       }
     },
-    "Model": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Model"
+    "Flash.Auto, Fired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto, Fired"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデル"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オート、発光"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "型号"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动、已闪光"
           }
         }
       }
     },
-    "PixelHeight": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Height"
+    "Flash.Auto, Fired, Red-eye reduction" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto, Fired, Red-eye reduction"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "高さ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オート、発光、赤目軽減"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "高度"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动、已闪光、防红眼"
           }
         }
       }
     },
-    "PixelWidth": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Width"
+    "Flash.Auto, Fired, Red-eye reduction, Return detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto, Fired, Red-eye reduction, Return detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "幅"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オート、発光、赤目軽減、反射光検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "宽度"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动、已闪光、防红眼、检测到反射光"
           }
         }
       }
     },
-    "ProfileName": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Color Profile"
+    "Flash.Auto, Fired, Red-eye reduction, Return not detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto, Fired, Red-eye reduction, Return not detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "カラープロファイル"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オート、発光、赤目軽減、反射光未検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "色彩配置"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动、已闪光、防红眼、未检测到反射光"
           }
         }
       }
     },
-    "Rights": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rights"
+    "Flash.Auto, Fired, Return detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto, Fired, Return detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "著作権"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オート、発光、反射光検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "版权"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动、已闪光、检测到反射光"
           }
         }
       }
     },
-    "Search address": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search address"
+    "Flash.Auto, Fired, Return not detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto, Fired, Return not detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "住所を検索"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オート、発光、反射光未検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "搜索地址"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动、已闪光、未检测到反射光"
           }
         }
       }
     },
-    "Search Location": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search Location"
+    "Flash.Fired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fired"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "場所を検索"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発光"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "搜索位置"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已闪光"
           }
         }
       }
     },
-    "Search.EmptyHint": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start typing to search, or select from recent history"
+    "Flash.Fired, Red-eye reduction" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fired, Red-eye reduction"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "検索するか、最近の履歴から選択してください"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発光、赤目軽減"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "输入关键词搜索，或从最近历史记录中选择"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已闪光、防红眼"
           }
         }
       }
     },
-    "Shooting": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shooting"
+    "Flash.Fired, Red-eye reduction, Return detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fired, Red-eye reduction, Return detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "撮影設定"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発光、赤目軽減、反射光検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "拍摄参数"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已闪光、防红眼、检测到反射光"
           }
         }
       }
     },
-    "View.AddDate": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Date"
+    "Flash.Fired, Red-eye reduction, Return not detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fired, Red-eye reduction, Return not detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "日付"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発光、赤目軽減、反射光未検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "日期"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已闪光、防红眼、未检测到反射光"
           }
         }
       }
     },
-    "View.AddLocation": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Location"
+    "Flash.Fired, Return detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fired, Return detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "位置"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発光、反射光検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "位置"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已闪光、检测到反射光"
           }
         }
       }
     },
-    "View.AllPhotos": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All Photos"
+    "Flash.Fired, Return not detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fired, Return not detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すべての写真"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発光、反射光未検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "所有照片"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已闪光、未检测到反射光"
           }
         }
       }
     },
-    "View.ClearAllMetadata": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear All Metadata"
+    "Flash.No Flash" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Flash"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すべてのメタデータを消去"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フラッシュなし"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "清除所有元数据"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无闪光"
           }
         }
       }
     },
-    "View.EditMetadata": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Edit Metadata"
+    "Flash.No flash function" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No flash function"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "メタデータの編集"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フラッシュ機能なし"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "编辑元数据"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无闪光灯功能"
           }
         }
       }
     },
-    "View.Loading": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Loading..."
+    "Flash.Off, Did not fire" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off, Did not fire"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ローディング..."
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ、非発光"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "载入中..."
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭、未闪光"
           }
         }
       }
     },
-    "View.MyAlbums": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My Albums"
+    "Flash.Off, Did not fire, Return not detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off, Did not fire, Return not detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マイアルバム"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ、非発光、反射光未検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我的相簿"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭、未闪光、未检测到反射光"
           }
         }
       }
     },
-    "View.RecentHistory": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "RECENT HISTORY"
+    "Flash.Off, No flash function" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off, No flash function"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近の履歴"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ、フラッシュ機能なし"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近搜索"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭、无闪光灯功能"
           }
         }
       }
     },
-    "View.Processing": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Processing..."
+    "Flash.Off, Red-eye reduction" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off, Red-eye reduction"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "処理中..."
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ、赤目軽減"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "处理中..."
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭、防红眼"
           }
         }
       }
     },
-    "View.SmartAlbums": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Categories"
+    "Flash.On, Did not fire" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On, Did not fire"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "カテゴリ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン、非発光"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "分类"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启、未闪光"
           }
         }
       }
     },
-    "Sort.Default": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Default"
+    "Flash.On, Fired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On, Fired"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "デフォルト"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン、発光"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "默认"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启、已闪光"
           }
         }
       }
     },
-    "Sort.Name": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Name"
+    "Flash.On, Red-eye reduction" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On, Red-eye reduction"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "名前"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン、赤目軽減"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "名称"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启、防红眼"
           }
         }
       }
     },
-    "WhiteBalance": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "White Balance"
+    "Flash.On, Red-eye reduction, Return detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On, Red-eye reduction, Return detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ホワイトバランス"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン、赤目軽減、反射光検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "白平衡"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启、防红眼、检测到反射光"
           }
         }
       }
     },
-    "ExposureProgram.Not Defined": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not Defined"
+    "Flash.On, Red-eye reduction, Return not detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On, Red-eye reduction, Return not detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未定義"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン、赤目軽減、反射光未検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未定义"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启、防红眼、未检测到反射光"
           }
         }
       }
     },
-    "ExposureProgram.Manual": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Manual (M)"
+    "Flash.On, Return detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On, Return detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マニュアル (M)"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン、反射光検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "手动 (M)"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启、检测到反射光"
           }
         }
       }
     },
-    "ExposureProgram.Program AE": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Program AE (P)"
+    "Flash.On, Return not detected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On, Return not detected"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "プログラムAE (P)"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン、反射光未検出"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "程序自动 (P)"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启、未检测到反射光"
           }
         }
       }
     },
-    "ExposureProgram.Aperture-priority AE": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aperture Priority (A/Av)"
+    "FNumber" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aperture"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "絞り優先AE (A)"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "絞り値"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "光圈优先 (A/Av)"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "光圈"
           }
         }
       }
     },
-    "ExposureProgram.Shutter speed priority AE": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shutter Priority (S/Tv)"
+    "FocalLength" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focal Length"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "シャッター優先AE (S)"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "焦点距離"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "快门优先 (S/Tv)"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "焦距"
           }
         }
       }
     },
-    "ExposureProgram.Creative": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Creative"
+    "FocalLenIn35mmFilm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "35mm Equivalent"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリエイティブ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "35mm換算"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "创意"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "35mm 等效焦距"
           }
         }
       }
     },
-    "ExposureProgram.Action": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Action"
+    "Image" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アクション"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "动作"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图像"
           }
         }
       }
     },
-    "ExposureProgram.Portrait": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Portrait"
+    "Info.notSupport" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sorry, this media type is not supported now."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ポートレート"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すみませんが、現在このメディアタイプはサポートしておりません。"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "人像"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抱歉，该版本暂时不支持此媒体类型。"
           }
         }
       }
     },
-    "ExposureProgram.Landscape": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Landscape"
+    "ISOSpeedRatings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ISO"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ランドスケープ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ISO"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "风景"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ISO"
           }
         }
       }
     },
-    "ExposureProgram.Bulb": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bulb (B)"
+    "LensMake" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lens Make"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "バルブ (B)"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レンズメーカー"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "B门 (B)"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "镜头制造商"
           }
         }
       }
     },
-    "MeteringMode.Unknown": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unknown"
+    "LensModel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lens Model"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不明"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レンズモデル"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未知"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "镜头型号"
           }
         }
       }
     },
-    "MeteringMode.Average": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Average"
+    "Make" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "平均"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メーカー"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "平均"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "制造商"
           }
         }
       }
     },
-    "MeteringMode.Center-weighted Average": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Center-weighted"
+    "MeteringMode" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metering Mode"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "中央重点"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "測光モード"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "中央重点测光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测光模式"
           }
         }
       }
     },
-    "MeteringMode.Spot": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Spot"
+    "MeteringMode.Average" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "スポット"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "点测光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均"
           }
         }
       }
     },
-    "MeteringMode.Multi-spot": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Multi-spot"
+    "MeteringMode.Center-weighted Average" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Center-weighted"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マルチスポット"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中央重点"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "多点测光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中央重点测光"
           }
         }
       }
     },
-    "MeteringMode.Multi-segment": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Multi"
+    "MeteringMode.Multi-segment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multi"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マルチパターン"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マルチパターン"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "多重测光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多重测光"
           }
         }
       }
     },
-    "MeteringMode.Partial": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Partial"
+    "MeteringMode.Multi-spot" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multi-spot"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "部分"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マルチスポット"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "局部"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多点测光"
           }
         }
       }
     },
-    "MeteringMode.Other": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Other"
+    "MeteringMode.Other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "その他"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その他"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "其他"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他"
           }
         }
       }
     },
-    "WhiteBalance.Auto": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto"
+    "MeteringMode.Partial" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partial"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オート"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自动"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "局部"
           }
         }
       }
     },
-    "WhiteBalance.Manual": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Manual"
+    "MeteringMode.Spot" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spot"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マニュアル"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スポット"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "手动"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点测光"
           }
         }
       }
     },
-    "Flash.No Flash": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Flash"
+    "MeteringMode.Unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フラッシュなし"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不明"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无闪光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知"
           }
         }
       }
     },
-    "Flash.Fired": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fired"
+    "Model" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "発光"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已闪光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "型号"
           }
         }
       }
     },
-    "Flash.Fired, Return not detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fired, Return not detected"
+    "PixelHeight" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Height"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "発光、反射光未検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高さ"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已闪光、未检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高度"
           }
         }
       }
     },
-    "Flash.Fired, Return detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fired, Return detected"
+    "PixelWidth" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Width"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "発光、反射光検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "幅"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已闪光、检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "宽度"
           }
         }
       }
     },
-    "Flash.On, Did not fire": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On, Did not fire"
+    "ProfileName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Color Profile"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オン、非発光"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カラープロファイル"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开启、未闪光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "色彩配置"
           }
         }
       }
     },
-    "Flash.On, Fired": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On, Fired"
+    "Rights" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rights"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オン、発光"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "著作権"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开启、已闪光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版权"
           }
         }
       }
     },
-    "Flash.On, Return not detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On, Return not detected"
+    "Search address" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search address"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オン、反射光未検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "住所を検索"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开启、未检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索地址"
           }
         }
       }
     },
-    "Flash.On, Return detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On, Return detected"
+    "Search Location" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search Location"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オン、反射光検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場所を検索"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开启、检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索位置"
           }
         }
       }
     },
-    "Flash.Off, Did not fire": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Off, Did not fire"
+    "Search.EmptyHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start typing to search, or select from recent history"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オフ、非発光"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索するか、最近の履歴から選択してください"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "关闭、未闪光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入关键词搜索，或从最近历史记录中选择"
           }
         }
       }
     },
-    "Flash.Off, Did not fire, Return not detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Off, Did not fire, Return not detected"
+    "Shooting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shooting"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オフ、非発光、反射光未検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮影設定"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "关闭、未闪光、未检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拍摄参数"
           }
         }
       }
     },
-    "Flash.Auto, Did not fire": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto, Did not fire"
+    "Sort.Default" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オート、非発光"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デフォルト"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自动、未闪光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认"
           }
         }
       }
     },
-    "Flash.Auto, Fired": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto, Fired"
+    "Sort.Name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オート、発光"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自动、已闪光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名称"
           }
         }
       }
     },
-    "Flash.Auto, Fired, Return not detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto, Fired, Return not detected"
+    "View.AddDate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オート、発光、反射光未検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日付"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自动、已闪光、未检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期"
           }
         }
       }
     },
-    "Flash.Auto, Fired, Return detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto, Fired, Return detected"
+    "View.AddLocation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オート、発光、反射光検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自动、已闪光、检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置"
           }
         }
       }
     },
-    "Flash.No flash function": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No flash function"
+    "View.AllPhotos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Photos"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フラッシュ機能なし"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての写真"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无闪光灯功能"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有照片"
           }
         }
       }
     },
-    "Flash.Off, No flash function": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Off, No flash function"
+    "View.ClearAllMetadata" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear All Metadata"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オフ、フラッシュ機能なし"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのメタデータを消去"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "关闭、无闪光灯功能"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除所有元数据"
           }
         }
       }
     },
-    "Flash.Fired, Red-eye reduction": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fired, Red-eye reduction"
+    "View.EditMetadata" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Metadata"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "発光、赤目軽減"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メタデータの編集"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已闪光、防红眼"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑元数据"
           }
         }
       }
     },
-    "Flash.Fired, Red-eye reduction, Return not detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fired, Red-eye reduction, Return not detected"
+    "View.ExposureEditWarning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⚠ These values were recorded by the camera. Editing them will alter the original capture data."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "発光、赤目軽減、反射光未検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⚠ これらの値はカメラが記録したものです。編集すると元の撮影データが変更されます。"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已闪光、防红眼、未检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⚠ 这些数值由相机记录，修改将改变原始拍摄数据。"
           }
         }
       }
     },
-    "Flash.Fired, Red-eye reduction, Return detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fired, Red-eye reduction, Return detected"
+    "View.Loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading..."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "発光、赤目軽減、反射光検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローディング..."
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已闪光、防红眼、检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "载入中..."
           }
         }
       }
     },
-    "Flash.On, Red-eye reduction": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On, Red-eye reduction"
+    "View.LocationSearchPlaceholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search location..."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オン、赤目軽減"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場所を検索..."
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开启、防红眼"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索位置..."
           }
         }
       }
     },
-    "Flash.On, Red-eye reduction, Return not detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On, Red-eye reduction, Return not detected"
+    "View.MyAlbums" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My Albums"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オン、赤目軽減、反射光未検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイアルバム"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开启、防红眼、未检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我的相簿"
           }
         }
       }
     },
-    "Flash.On, Red-eye reduction, Return detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On, Red-eye reduction, Return detected"
+    "View.Processing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing..."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オン、赤目軽減、反射光検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理中..."
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开启、防红眼、检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "处理中..."
           }
         }
       }
     },
-    "Flash.Off, Red-eye reduction": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Off, Red-eye reduction"
+    "View.RecentHistory" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RECENT HISTORY"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オフ、赤目軽減"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近の履歴"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "关闭、防红眼"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近搜索"
           }
         }
       }
     },
-    "Flash.Auto, Did not fire, Red-eye reduction": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto, Did not fire, Red-eye reduction"
+    "View.SmartAlbums" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categories"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オート、非発光、赤目軽減"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カテゴリ"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自动、未闪光、防红眼"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分类"
           }
         }
       }
     },
-    "Flash.Auto, Fired, Red-eye reduction": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto, Fired, Red-eye reduction"
+    "WhiteBalance" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "White Balance"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オート、発光、赤目軽減"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホワイトバランス"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自动、已闪光、防红眼"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "白平衡"
           }
         }
       }
     },
-    "Flash.Auto, Fired, Red-eye reduction, Return not detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto, Fired, Red-eye reduction, Return not detected"
+    "WhiteBalance.Auto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オート、発光、赤目軽減、反射光未検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オート"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自动、已闪光、防红眼、未检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动"
           }
         }
       }
     },
-    "Flash.Auto, Fired, Red-eye reduction, Return detected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auto, Fired, Red-eye reduction, Return detected"
+    "WhiteBalance.Manual" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オート、発光、赤目軽減、反射光検出"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マニュアル"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自动、已闪光、防红眼、检测到反射光"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手动"
           }
         }
       }
     }
   },
-  "version": "1.1"
+  "version" : "1.1"
 }

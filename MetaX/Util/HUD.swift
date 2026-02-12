@@ -26,19 +26,19 @@ final class HUD {
     }
 
     static func showProcessing(with message: String) {
-        Task { @MainActor in shared.show(.processing(message)) }
+        shared.show(.processing(message))
     }
 
     static func showInfo(with message: String) {
-        Task { @MainActor in shared.show(.info(message)) }
+        shared.show(.info(message))
     }
 
     static func showError(with message: String) {
-        Task { @MainActor in shared.show(.error(message)) }
+        shared.show(.error(message))
     }
 
     static func dismiss() {
-        Task { @MainActor in shared.hide() }
+        shared.hide()
     }
 
     private func show(_ type: HUDType) {
@@ -58,6 +58,9 @@ final class HUD {
         hud.layer.borderWidth = 2
         hud.layer.borderColor = Theme.Colors.border.cgColor
         hud.translatesAutoresizingMaskIntoConstraints = false
+        hud.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: UIView, _: UITraitCollection) in
+            view.layer.borderColor = Theme.Colors.border.cgColor
+        }
         self.hudView = hud
 
         container.addSubview(hud)

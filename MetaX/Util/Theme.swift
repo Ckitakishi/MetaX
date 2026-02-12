@@ -105,5 +105,7 @@ enum Theme {
         static let captionMono = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         /// Monospaced font for Header indices
         static let indexMono = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .bold)
+        /// Small font for hint/caption text
+        static let hint = UIFont.systemFont(ofSize: 12, weight: .regular)
     }
 }

@@ -18,6 +18,7 @@ struct DetailCellModel: DetailCellModelRepresentable {
 
     let prop: String
     let value: String
+    let rawKey: String
 
     // MARK: - EXIF Enum Mappings
 
@@ -36,19 +37,22 @@ struct DetailCellModel: DetailCellModelRepresentable {
         return result
     }()
     
-    init(prop: String, value: String) {
+    init(prop: String, value: String, rawKey: String = "") {
         self.prop = prop
         self.value = value
+        self.rawKey = rawKey
     }
 
     init(propValue: [String: Any]) {
         guard let firstProp = propValue.first else {
             self.prop = "-"
             self.value = "-"
+            self.rawKey = ""
             return
         }
-        
+
         let rawProp = firstProp.key
+        self.rawKey = rawProp
         
         let localizedProp: String
         switch rawProp {

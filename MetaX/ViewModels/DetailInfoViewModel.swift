@@ -21,7 +21,7 @@ final class DetailInfoViewModel {
     private(set) var metadata: Metadata?
     private(set) var fileName: String = ""
     private(set) var currentLocation: CLLocation?
-    private(set) var tableViewDataSource: [[String: [DetailCellModel]]] = []
+    private(set) var tableViewDataSource: [(section: MetadataSection, rows: [DetailCellModel])] = []
     private(set) var isLoading: Bool = false
     private(set) var isSaving: Bool = false
     private(set) var error: MetaXError?
@@ -58,6 +58,7 @@ final class DetailInfoViewModel {
     private(set) var assetCollection: PHAssetCollection?
     private var imageRequestId: PHImageRequestID?
     private let geocoder = CLGeocoder()
+    private var geocodingTask: Task<Void, Never>?
 
     // MARK: - Initialization
 
@@ -171,7 +172,7 @@ final class DetailInfoViewModel {
             // Clear PHAsset location
             try? await PHPhotoLibrary.shared().performChanges {
                 let request = PHAssetChangeRequest(for: asset)
-                request.location = CLLocation(latitude: 0, longitude: 0)
+                request.location = nil
             }
         }
     }
@@ -196,6 +197,7 @@ final class DetailInfoViewModel {
         if let imageRequestId = imageRequestId {
             photoLibraryService.cancelImageRequest(imageRequestId)
         }
+        geocodingTask?.cancel()
     }
 
     func clearError() {
@@ -237,14 +239,9 @@ final class DetailInfoViewModel {
         self.currentLocation = metadata.rawGPS
 
         // Build table view data source
-        var dataSource: [[String: [DetailCellModel]]] = []
-        for doc in metadata.metaProps {
-            for (key, value) in doc {
-                let sectionTitle = key // e.g., "BASIC INFO"
-                dataSource.append([sectionTitle: value.map { DetailCellModel(propValue: $0) }])
-            }
+        self.tableViewDataSource = metadata.metaProps.map { (section, props) in
+            (section: section, rows: props.map { DetailCellModel(propValue: $0) })
         }
-        self.tableViewDataSource = dataSource
 
         // Reverse geocode location if present
         if let location = currentLocation {
@@ -253,29 +250,29 @@ final class DetailInfoViewModel {
     }
 
     private func reverseGeocodeLocation(_ location: CLLocation) {
-        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, _ in
-            guard let self = self, let placemark = placemarks?.first else { return }
+        geocodingTask?.cancel()
+        geocodingTask = Task {
+            guard let placemarks = try? await geocoder.reverseGeocodeLocation(location),
+                  !Task.isCancelled,
+                  let placemark = placemarks.first else { return }
 
             let infos = [placemark.thoroughfare, placemark.locality, placemark.administrativeArea, placemark.country]
             let displayText = infos.compactMap { $0 }.joined(separator: ", ")
             if displayText.isEmpty { return }
 
-            Task { @MainActor in
-                self.updateLocationTextInDataSource(displayText)
-            }
+            updateLocationTextInDataSource(displayText)
         }
     }
     
     private func updateLocationTextInDataSource(_ text: String) {
-        for (sIdx, section) in tableViewDataSource.enumerated() {
-            guard let title = section.keys.first, title == MetadataKeys.basicInfoGroup,
-                  let models = section.values.first else { continue }
-            
-            for (rIdx, model) in models.enumerated() {
-                if model.prop == String(localized: .viewAddLocation) {
-                    var newModels = models
-                    newModels[rIdx] = DetailCellModel(prop: model.prop, value: text)
-                    tableViewDataSource[sIdx][title] = newModels
+        for (sIdx, entry) in tableViewDataSource.enumerated() {
+            guard entry.section == .basicInfo else { continue }
+
+            for (rIdx, model) in entry.rows.enumerated() {
+                if model.rawKey == MetadataKeys.location {
+                    var newRows = entry.rows
+                    newRows[rIdx] = DetailCellModel(prop: model.prop, value: text, rawKey: model.rawKey)
+                    tableViewDataSource[sIdx] = (section: entry.section, rows: newRows)
                     return
                 }
             }

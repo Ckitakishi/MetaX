@@ -8,6 +8,7 @@
 
 import UIKit
 import Photos
+import MapKit
 import PhotosUI
 import CoreLocation
 
@@ -30,10 +31,6 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     private let viewModel: DetailInfoViewModel
     private let container: DependencyContainer
     
-    // MARK: - Properties
-    private var asset: PHAsset?
-    private var assetCollection: PHAssetCollection?
-
     // MARK: - UI Components
     private let tableView: UITableView = {
         let table = UITableView(frame: .zero, style: .grouped)
@@ -95,8 +92,9 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     }
     
     func configure(with asset: PHAsset?, collection: PHAssetCollection?) {
-        self.asset = asset
-        self.assetCollection = collection
+        if let asset = asset {
+            viewModel.configure(with: asset, collection: collection)
+        }
     }
 
     // MARK: - Life Cycle
@@ -106,9 +104,6 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         setupBindings()
         PHPhotoLibrary.shared().register(self)
 
-        if let asset = asset {
-            viewModel.configure(with: asset, collection: assetCollection)
-        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -146,6 +141,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(DetailTableViewCell.self, forCellReuseIdentifier: String(describing: DetailTableViewCell.self))
+        tableView.register(DetailLocationCell.self, forCellReuseIdentifier: String(describing: DetailLocationCell.self))
 
         // Header Setup
         let headerContainer = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: Theme.Layout.heroHeaderHeight))
@@ -308,24 +304,38 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.tableViewDataSource[section].values.first?.count ?? 0
+        return viewModel.tableViewDataSource[section].rows.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let sectionData = viewModel.tableViewDataSource[indexPath.section]
+        let rowData = sectionData.rows[indexPath.row]
+        let isFirst = indexPath.row == 0
+        let isLast = indexPath.row == sectionData.rows.count - 1
+        
+        // Use DetailLocationCell if it's the location row and we have coordinate data
+        if rowData.prop == String(localized: .viewAddLocation),
+           let location = viewModel.currentLocation {
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: DetailLocationCell.self), for: indexPath) as? DetailLocationCell else {
+                return UITableViewCell()
+            }
+            cell.configure(model: rowData, location: location, isFirst: isFirst, isLast: isLast)
+            return cell
+        }
+        
         guard let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: DetailTableViewCell.self), for: indexPath) as? DetailTableViewCell else {
             return UITableViewCell()
         }
-        
-        if let sectionData = viewModel.tableViewDataSource[indexPath.section].values.first {
-            cell.cellDataSource = sectionData[indexPath.row]
-        }
-        
+
+        cell.cellDataSource = rowData
+        // Apply borders immediately for standard cells
+        cell.applyCardBorders(isFirst: isFirst, isLast: isLast)
         return cell
     }
 
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let headerView = DetailSectionHeaderView()
-        headerView.headerTitle = viewModel.tableViewDataSource[section].keys.first ?? ""
+        headerView.headerTitle = viewModel.tableViewDataSource[section].section.localizedTitle
         return headerView
     }
 
@@ -333,22 +343,44 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
         return Theme.Layout.sectionHeaderHeight
     }
 
-    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
-        guard let detailCell = cell as? DetailTableViewCell else { return }
-        let isFirst = indexPath.row == 0
-        let isLast = indexPath.row == tableView.numberOfRows(inSection: indexPath.section) - 1
-        detailCell.applyCardBorders(isFirst: isFirst, isLast: isLast)
-    }
-
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
-        // Actions for individual rows removed in preparation for unified editing mode
+        if let cell = tableView.cellForRow(at: indexPath) as? DetailLocationCell, let location = cell.currentLocation {
+            openFullMap(for: location)
+        }
     }
 }
 
-// MARK: - Logic & Alerts
 fileprivate extension DetailInfoViewController {
+    func openFullMap(for location: CLLocation) {
+        let mapVC = UIViewController()
+        mapVC.title = String(localized: .viewAddLocation)
+        let fullMapView = MKMapView()
+        fullMapView.translatesAutoresizingMaskIntoConstraints = false
+        fullMapView.setRegion(MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 1000, longitudinalMeters: 1000), animated: false)
+
+        let annotation = MKPointAnnotation()
+        annotation.coordinate = location.coordinate
+        fullMapView.addAnnotation(annotation)
+
+        mapVC.view.addSubview(fullMapView)
+        NSLayoutConstraint.activate([
+            fullMapView.topAnchor.constraint(equalTo: mapVC.view.topAnchor),
+            fullMapView.leadingAnchor.constraint(equalTo: mapVC.view.leadingAnchor),
+            fullMapView.trailingAnchor.constraint(equalTo: mapVC.view.trailingAnchor),
+            fullMapView.bottomAnchor.constraint(equalTo: mapVC.view.bottomAnchor)
+        ])
+
+        let nav = UINavigationController(rootViewController: mapVC)
+        mapVC.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(dismissMap))
+        present(nav, animated: true)
+    }
+    
+    @objc func dismissMap() {
+        dismiss(animated: true)
+    }
+    
     func deleteAlert(completionHandler: @escaping (EditAlertAction) -> Void) {
         let message = viewModel.isLivePhoto ? String(localized: .alertLiveAlertDesc) : String(localized: .alertConfirmDesc)
         let alert = UIAlertController(title: String(localized: .alertConfirm), message: message, preferredStyle: .alert)
@@ -389,9 +421,13 @@ extension DetailInfoViewController: UIPopoverPresentationControllerDelegate, Loc
 
 // MARK: - MetadataEditDelegate
 extension DetailInfoViewController: MetadataEditDelegate {
-    func metadataEditDidSave(fields: [String: Any]) {
+    func metadataEditDidSave(fields: [String: Any], completion: @escaping (Bool) -> Void) {
         deleteAlert { [weak self] action in
-            guard let self = self, action != .cancel else { return }
+            guard let self = self, action != .cancel else {
+                completion(false)
+                return
+            }
+            completion(true)
             Task {
                 await self.viewModel.applyMetadataTemplate(fields: fields, deleteOriginal: action == .addAndDel)
             }

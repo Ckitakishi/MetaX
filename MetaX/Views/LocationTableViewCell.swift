@@ -72,12 +72,16 @@ class LocationTableViewCell: UITableViewCell {
             cardView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             cardView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             cardView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -6),
-            
+
             stack.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 12),
             stack.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -12),
             stack.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 12),
             stack.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -12)
         ])
+
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: LocationTableViewCell, _: UITraitCollection) in
+            self.cardView.layer.borderColor = Theme.Colors.border.cgColor
+        }
     }
     
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {

@@ -142,6 +142,10 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
         
         // Auto-focus search bar
         searchTextField.becomeFirstResponder()
+
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: LocationSearchViewController, _: UITraitCollection) in
+            self.searchTextField.layer.borderColor = Theme.Colors.border.cgColor
+        }
     }
 
     // MARK: - Bindings

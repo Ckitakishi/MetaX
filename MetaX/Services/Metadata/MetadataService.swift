@@ -70,7 +70,7 @@ final class MetadataService: MetadataServiceProtocol {
     }
 
     func removeTimestamp(from metadata: Metadata) -> [String: Any] {
-        metadata.deleteTimeOriginal() ?? metadata.sourceProperties
+        metadata.deleteTimeOriginal()
     }
 
     func updateLocation(_ location: CLLocation, in metadata: Metadata) -> [String: Any] {

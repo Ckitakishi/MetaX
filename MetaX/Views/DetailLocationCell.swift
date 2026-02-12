@@ -1,27 +1,23 @@
 //
-//  DetailTableViewCell.swift
+//  DetailLocationCell.swift
 //  MetaX
 //
-//  Created by Ckitakishi on 2018/4/2.
-//  Copyright © 2018 Yuhan Chen. All rights reserved.
+//  Created by Yuhan Chen on 2026/02/12.
+//  Copyright © 2026 Yuhan Chen. All rights reserved.
 //
 
 import UIKit
+import MapKit
 
-class DetailTableViewCell: UITableViewCell {
+final class DetailLocationCell: UITableViewCell {
 
-    // Card borders — shown/hidden based on row position within section
-    private let topBorder = DetailTableViewCell.makeBorderView()
-    private let bottomBorder = DetailTableViewCell.makeBorderView()
-    private let leftBorder = DetailTableViewCell.makeBorderView()
-    private let rightBorder = DetailTableViewCell.makeBorderView()
+    private(set) var currentLocation: CLLocation?
 
-    private let rowSeparator: UIView = {
-        let v = UIView()
-        v.backgroundColor = Theme.Colors.border.withAlphaComponent(0.4)
-        v.translatesAutoresizingMaskIntoConstraints = false
-        return v
-    }()
+    // Card borders
+    private let topBorder = UIView()
+    private let bottomBorder = UIView()
+    private let leftBorder = UIView()
+    private let rightBorder = UIView()
 
     private let container: UIView = {
         let v = UIView()
@@ -46,39 +42,42 @@ class DetailTableViewCell: UITableViewCell {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-
-    var cellDataSource: DetailCellModel? {
-        didSet {
-            guard let dataSource = cellDataSource else { return }
-            let text = dataSource.prop
-            let attributed = NSMutableAttributedString(string: text)
-            attributed.addAttribute(.kern, value: 1.0, range: NSRange(location: 0, length: text.count))
-            propLabel.attributedText = attributed
-            valueLabel.text = dataSource.value
-        }
-    }
-
-    /// Call from `willDisplay` to stitch borders across section rows.
-    func applyCardBorders(isFirst: Bool, isLast: Bool) {
-        topBorder.isHidden = !isFirst
-        bottomBorder.isHidden = !isLast
-        rowSeparator.isHidden = isLast
-    }
+    
+    private let mapView: MKMapView = {
+        let map = MKMapView()
+        map.isUserInteractionEnabled = false
+        map.layer.cornerRadius = 0
+        map.translatesAutoresizingMaskIntoConstraints = false
+        return map
+    }()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupUI()
     }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    private static func makeBorderView() -> UIView {
-        let v = UIView()
-        v.backgroundColor = Theme.Colors.border
-        v.translatesAutoresizingMaskIntoConstraints = false
-        return v
+    
+    required init?(coder: NSCoder) { fatalError() }
+    
+    func configure(model: DetailCellModel, location: CLLocation, isFirst: Bool, isLast: Bool) {
+        // Text
+        let text = model.prop
+        let attributed = NSMutableAttributedString(string: text)
+        attributed.addAttribute(.kern, value: 1.0, range: NSRange(location: 0, length: text.count))
+        propLabel.attributedText = attributed
+        valueLabel.text = model.value
+        
+        // Map
+        self.currentLocation = location
+        let region = MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 500, longitudinalMeters: 500)
+        mapView.setRegion(region, animated: false)
+        mapView.removeAnnotations(mapView.annotations)
+        let annotation = MKPointAnnotation()
+        annotation.coordinate = location.coordinate
+        mapView.addAnnotation(annotation)
+        
+        // Borders
+        topBorder.isHidden = !isFirst
+        bottomBorder.isHidden = !isLast
     }
 
     private func setupUI() {
@@ -86,13 +85,15 @@ class DetailTableViewCell: UITableViewCell {
         backgroundColor = .clear
 
         contentView.addSubview(container)
-        container.addSubview(leftBorder)
-        container.addSubview(rightBorder)
-        container.addSubview(topBorder)
-        container.addSubview(bottomBorder)
-        container.addSubview(rowSeparator)
+        [leftBorder, rightBorder, topBorder, bottomBorder].forEach {
+            $0.backgroundColor = Theme.Colors.border
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview($0)
+        }
+        
         container.addSubview(propLabel)
         container.addSubview(valueLabel)
+        container.addSubview(mapView)
 
         let borderWidth: CGFloat = 1
         let padding: CGFloat = 12
@@ -104,6 +105,7 @@ class DetailTableViewCell: UITableViewCell {
             container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Theme.Layout.cardPadding),
             container.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
+            // Borders
             leftBorder.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             leftBorder.topAnchor.constraint(equalTo: container.topAnchor),
             leftBorder.bottomAnchor.constraint(equalTo: container.bottomAnchor),
@@ -124,11 +126,7 @@ class DetailTableViewCell: UITableViewCell {
             bottomBorder.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             bottomBorder.heightAnchor.constraint(equalToConstant: borderWidth),
 
-            rowSeparator.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            rowSeparator.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: contentInset),
-            rowSeparator.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -contentInset),
-            rowSeparator.heightAnchor.constraint(equalToConstant: 0.5),
-
+            // Text Content
             propLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: padding),
             propLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: contentInset),
             propLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -contentInset),
@@ -136,7 +134,13 @@ class DetailTableViewCell: UITableViewCell {
             valueLabel.topAnchor.constraint(equalTo: propLabel.bottomAnchor, constant: 4),
             valueLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: contentInset),
             valueLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -contentInset),
-            valueLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -padding)
+            
+            // Map - Flush with bottom and sides
+            mapView.topAnchor.constraint(equalTo: valueLabel.bottomAnchor, constant: 12),
+            mapView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 1),
+            mapView.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -1),
+            mapView.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -1),
+            mapView.heightAnchor.constraint(equalToConstant: 160)
         ])
     }
 }

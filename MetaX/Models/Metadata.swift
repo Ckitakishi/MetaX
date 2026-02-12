@@ -13,15 +13,32 @@ import CoreLocation
 public enum MetadataKeys {
     static let location = "Location"
     static let dateTimeOriginal = "DateTimeOriginal"
-    static let basicInfoGroup = "BASIC INFO"
+}
+
+public enum MetadataSection: String {
+    case basicInfo  = "BASIC INFO"
+    case gear       = "GEAR"
+    case exposure   = "EXPOSURE"
+    case fileInfo   = "FILE INFO"
+    case copyright  = "COPYRIGHT"
+
+    var localizedTitle: String {
+        switch self {
+        case .basicInfo:  return String(localized: .editGroupBasicInfo)
+        case .gear:       return String(localized: .editGroupGear)
+        case .exposure:   return String(localized: .shooting)
+        case .fileInfo:   return String(localized: .editGroupFileInfo)
+        case .copyright:  return String(localized: .editGroupCopyright)
+        }
+    }
 }
 
 public struct Metadata {
-    
+
     public let sourceProperties: [String: Any]
-    
-    /// Categorized metadata properties: [GroupName: [Key: Value]]
-    public let metaProps: [[String: [[String: Any]]]]
+
+    /// Categorized metadata properties grouped by section.
+    public let metaProps: [(section: MetadataSection, props: [[String: Any]])]
 
     public let rawGPS: CLLocation?
 
@@ -44,7 +61,7 @@ public struct Metadata {
             return nil
         }
 
-        var tmpMetaProps: [[String: [[String: Any]]]] = []
+        var tmpMetaProps: [(section: MetadataSection, props: [[String: Any]])] = []
         var tmpGPSProp: CLLocation?
 
         let exifInfo = props["{Exif}"] as? [String: Any] ?? [:]
@@ -63,36 +80,35 @@ public struct Metadata {
 
         for group in groups {
             guard let title = group["Title"] as? String,
+                  let section = MetadataSection(rawValue: title),
                   let keys = group["Props"] as? [String] else { continue }
-            
+
             var groupProps: [[String: Any]] = []
-            
+
             for key in keys {
                 if key == MetadataKeys.location {
                     if let gps = tmpGPSProp {
                         groupProps.append([key: gps])
                     }
-                } else if let val = props[key] {
-                    groupProps.append([key: val])
                 } else if let val = exifInfo[key] {
                     groupProps.append([key: val])
                 } else if let val = tiffInfo[key] {
                     groupProps.append([key: val])
+                } else if let val = props[key] {
+                    groupProps.append([key: val])
                 }
             }
-            
+
             if !groupProps.isEmpty {
-                tmpMetaProps.append([title: groupProps])
+                tmpMetaProps.append((section: section, props: groupProps))
             }
         }
 
         metaProps = tmpMetaProps
     }
     
-    var timeStampKey: String? {
-        get {
-            return MetadataKeys.dateTimeOriginal
-        }
+    var timeStampKey: String {
+        MetadataKeys.dateTimeOriginal
     }
 }
 
@@ -101,35 +117,18 @@ extension Metadata {
     // {Exif}.DateTimeOriginal
     func writeTimeOriginal(_ date: Date) -> [String: Any] {
         var editableProps = sourceProperties
-        if let exifInfo = editableProps["{Exif}"] as? [String: Any] {
-            if let timeStampKey = timeStampKey {
-                
-                var editableExifInfo = exifInfo
-                editableExifInfo[timeStampKey] = DateFormatter(with: .yMdHms).getStr(from: date)
-                editableProps["{Exif}"] = editableExifInfo
-            }
-        } else {
-            if let timeStampKey = timeStampKey {
-                editableProps["{Exif}"] = [timeStampKey: DateFormatter(with: .yMdHms).getStr(from: date)]
-            }
-        }
+        var exifInfo = editableProps["{Exif}"] as? [String: Any] ?? [:]
+        exifInfo[timeStampKey] = DateFormatter(with: .yMdHms).getStr(from: date)
+        editableProps["{Exif}"] = exifInfo
         return updateTiff(with: editableProps)
     }
-    
-    func deleteTimeOriginal() -> [String: Any]? {
+
+    func deleteTimeOriginal() -> [String: Any] {
         var editableProps = self.sourceProperties
-        if let exifInfo = editableProps["{Exif}"] as? [String: Any] {
-            if let timeStampKey = timeStampKey {
-                
-                var editableExifInfo = exifInfo
-                editableExifInfo.removeValue(forKey: timeStampKey)
-                editableProps["{Exif}"] = editableExifInfo
-                
-                return updateTiff(with: editableProps)
-            }
-        }
-        
-        return sourceProperties
+        var exifInfo = editableProps["{Exif}"] as? [String: Any] ?? [:]
+        exifInfo.removeValue(forKey: timeStampKey)
+        editableProps["{Exif}"] = exifInfo
+        return updateTiff(with: editableProps)
     }
     
     func writeLocation(_ location: CLLocation) ->  [String: Any] {
@@ -183,15 +182,17 @@ extension Metadata {
     // update software infomation
     func updateTiff(with source: [String: Any]) -> [String: Any]  {
         var editableProps = source
-        if let tiffInfo = editableProps["{TIFF}"] as? [String: Any] {
-            
-            var editableTIFFInfo = tiffInfo
-            editableTIFFInfo["Software"] = "MetaX"
-            editableTIFFInfo["DateTime"] = Date()
-            editableProps["{TIFF}"] = editableTIFFInfo
-        } else {
-            editableProps["{TIFF}"] = ["Software": "MetaX", "DateTime": Date()]
+        var tiffInfo = editableProps["{TIFF}"] as? [String: Any] ?? [:]
+        
+        // Only set default if Software is not already provided by user or original data
+        if tiffInfo["Software"] == nil {
+            tiffInfo["Software"] = "MetaX"
         }
+        
+        // Metadata DateTime should be a formatted string, matching the behavior of DateTimeOriginal
+        tiffInfo["DateTime"] = DateFormatter(with: .yMdHms).getStr(from: Date())
+        
+        editableProps["{TIFF}"] = tiffInfo
         return editableProps
     }
 }
