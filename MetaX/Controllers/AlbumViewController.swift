@@ -87,8 +87,8 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "gearshape"),
             style: .plain,
-            target: nil,
-            action: nil
+            target: self,
+            action: #selector(didTapSettings)
         )
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "arrow.up.arrow.down"),
@@ -117,6 +117,11 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         tableView.sectionIndexColor = Theme.Colors.text
         tableView.sectionIndexBackgroundColor = .clear
         tableView.sectionIndexTrackingBackgroundColor = .clear
+    }
+
+    @objc private func didTapSettings() {
+        guard let nav = navigationController else { return }
+        router?.viewSettings(from: nav)
     }
 
     private var standardThumbnailSize: CGSize {

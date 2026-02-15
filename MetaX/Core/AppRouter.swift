@@ -21,6 +21,9 @@ protocol AppRouter {
 
     /// Navigates to the asset detail view, pushing onto the given navigation controller.
     func viewAssetDetail(for asset: PHAsset, in collection: PHAssetCollection?, from sourceNav: UINavigationController?)
+
+    /// Navigates to the settings view.
+    func viewSettings(from sourceNav: UINavigationController)
 }
 
 /// The concrete implementation of navigation logic.
@@ -35,6 +38,13 @@ final class AppCoordinator: AppRouter {
     }
 
     // MARK: - AppRouter Implementation
+
+    func viewSettings(from sourceNav: UINavigationController) {
+        let settingsVC = SettingsViewController(container: container)
+        settingsVC.router = self
+        let wrapper = UINavigationController(rootViewController: settingsVC)
+        sourceNav.present(wrapper, animated: true)
+    }
 
     func pickSaveWorkflow(on presenter: UIViewController? = nil) async -> SaveWorkflowMode? {
         await withCheckedContinuation { continuation in

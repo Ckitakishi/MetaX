@@ -272,9 +272,9 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate, U
         config.title = title
         config.baseForegroundColor = Theme.Colors.text
         config.background.backgroundColor = Theme.Colors.cardBackground
-        config.background.cornerRadius = 6
         config.background.strokeColor = Theme.Colors.border
         config.background.strokeWidth = 1.0
+        config.cornerStyle = .fixed
         
         let btn = UIButton(configuration: config)
         btn.addTarget(self, action: action, for: .touchUpInside)

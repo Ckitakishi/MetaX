@@ -34,6 +34,12 @@ class DetailSectionHeaderView: UIView {
             titleLabel.attributedText = attributedString
         }
     }
+    
+    var indicatorColor: UIColor = Theme.Colors.accent {
+        didSet {
+            indicatorBlock.backgroundColor = indicatorColor
+        }
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)

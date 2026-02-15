@@ -88,7 +88,7 @@ final class FormPickerField: UIView {
         config.background.backgroundColor = Theme.Colors.tagBackground
         config.background.strokeColor = Theme.Colors.border
         config.background.strokeWidth = 1.0
-        config.background.cornerRadius = 0
+        config.cornerStyle = .fixed
         config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
         let btn = UIButton(configuration: config)
         btn.clipsToBounds = true

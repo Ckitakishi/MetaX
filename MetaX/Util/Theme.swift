@@ -13,6 +13,12 @@ enum Theme {
         static let accent = UIColor(named: "greenSea") ?? .systemTeal
         static let launchBackground = UIColor(named: "LaunchBackground") ?? .systemBackground
         
+        // Settings Colors (Matched with Rolog)
+        static let settingsAppearance = UIColor(named: "SettingsAppearance") ?? .systemPurple
+        static let settingsGeneral = UIColor(named: "SettingsGeneral") ?? .systemBlue
+        static let settingsSupport = UIColor(named: "SettingsSupport") ?? .systemGreen
+        static let settingsAbout = UIColor(named: "SettingsAbout") ?? .systemGray
+        
         static let mainBackground = UIColor { trait in
             trait.userInterfaceStyle == .dark ? UIColor(white: 0.11, alpha: 1.0) : UIColor.systemGray6
         }

@@ -40,6 +40,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
 
         window.rootViewController = splitVC
         window.tintColor = Theme.Colors.accent
+        
+        // Apply saved appearance
+        window.overrideUserInterfaceStyle = container.settingsService.userInterfaceStyle
+        
         window.makeKeyAndVisible()
         self.window = window
 

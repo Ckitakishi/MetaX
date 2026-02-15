@@ -44,13 +44,14 @@ class AuthLockView: UIView {
         var config = UIButton.Configuration.plain()
         config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 24, bottom: 10, trailing: 24)
         config.baseForegroundColor = .label
+        config.background.backgroundColor = Theme.Colors.tagBackground
+        config.cornerStyle = .fixed
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
             var a = attrs
             a.font = Theme.Typography.indexMono
             return a
         }
         let button = UIButton(configuration: config)
-        button.backgroundColor = Theme.Colors.tagBackground
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
