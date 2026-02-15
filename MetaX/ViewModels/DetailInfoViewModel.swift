@@ -23,7 +23,7 @@ struct SaveWarning {
 
 /// ViewModel for DetailInfoViewController
 @Observable @MainActor
-final class DetailInfoViewModel {
+final class DetailInfoViewModel: NSObject {
 
     enum ViewState: Equatable {
         case loading
@@ -55,6 +55,7 @@ final class DetailInfoViewModel {
     private(set) var isSaving: Bool = false
     private(set) var hasMetaXEdit: Bool = false
     private(set) var metadata: Metadata?
+    private(set) var isDeleted: Bool = false
 
     /// Separate error for transient actions (save/revert) to avoid wiping content state
     private(set) var actionError: MetaXError?
@@ -156,14 +157,9 @@ final class DetailInfoViewModel {
 
     func loadLivePhoto(targetSize: CGSize) {
         guard let asset = asset else { return }
-        let options = PHLivePhotoRequestOptions()
-        options.deliveryMode = .highQualityFormat
-        options.isNetworkAccessAllowed = true
-        livePhotoRequestId = PHImageManager.default().requestLivePhoto(
+        livePhotoRequestId = photoLibraryService.requestLivePhoto(
             for: asset,
-            targetSize: targetSize,
-            contentMode: .aspectFit,
-            options: options
+            targetSize: targetSize
         ) { [weak self] livePhoto, _ in
             Task { @MainActor in
                 if let livePhoto { self?.ui.heroContent = .livePhoto(livePhoto) }
@@ -203,25 +199,15 @@ final class DetailInfoViewModel {
         isSaving = true
         defer { isSaving = false }
 
-        do {
-            try await performLibraryRevert()
+        let result = await photoLibraryService.revertAsset(asset)
+        switch result {
+        case .success:
             await loadMetadata()
-
-            // revertAssetContentToOriginal() restores image content but does NOT undo
-            // PHAsset property changes (creationDate, location) made separately.
-            // Re-sync from the now-restored metadata so the asset sorts correctly.
             if let metadata {
                 await syncAssetProperties(from: metadata.sourceProperties, for: asset)
             }
-        } catch {
-            actionError = .imageSave(.editionFailed)
-        }
-    }
-
-    private func performLibraryRevert() async throws {
-        guard let asset = asset else { return }
-        try await PHPhotoLibrary.shared().performChanges {
-            PHAssetChangeRequest(for: asset).revertAssetContentToOriginal()
+        case let .failure(error):
+            actionError = error
         }
     }
 
@@ -256,11 +242,10 @@ final class DetailInfoViewModel {
         // through CGImageDestinationAddImageFromSource's merge behaviour.
         if hasMetaXEdit, case .updateOriginal = saveMode, asset != nil {
             isSaving = true
-            do {
-                try await performLibraryRevert()
-            } catch {
+            let revertResult = await photoLibraryService.revertAsset(asset!)
+            if case let .failure(error) = revertResult {
                 isSaving = false
-                actionError = .imageSave(.editionFailed)
+                actionError = error
                 return false
             }
             // Leave isSaving = true; performSaveOperation sets it again immediately after.
@@ -403,15 +388,11 @@ final class DetailInfoViewModel {
 
         guard dateChanged || locationChanged else { return }
 
-        do {
-            try await PHPhotoLibrary.shared().performChanges {
-                let request = PHAssetChangeRequest(for: asset)
-                if dateChanged { request.creationDate = newDate }
-                if locationChanged { request.location = newLocation }
-            }
-        } catch {
-            print("[MetaX] syncAssetProperties: \(error)")
-        }
+        _ = await photoLibraryService.updateAssetProperties(
+            asset,
+            date: dateChanged ? newDate : nil,
+            location: locationChanged ? newLocation : asset.location
+        )
     }
 
     private func updateDisplayData(from metadata: Metadata) {
@@ -456,5 +437,40 @@ final class DetailInfoViewModel {
 
     func setFileName(_ name: String) {
         ui.fileName = name
+    }
+
+    // MARK: - Photo Library Observer
+
+    func registerPhotoLibraryObserver() {
+        photoLibraryService.registerChangeObserver(self)
+    }
+
+    func unregisterPhotoLibraryObserver() {
+        photoLibraryService.unregisterChangeObserver(self)
+    }
+}
+
+// MARK: - PHPhotoLibraryChangeObserver
+
+extension DetailInfoViewModel: PHPhotoLibraryChangeObserver {
+    nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
+        Task { @MainActor in
+            guard let curAsset = self.asset,
+                  let details = changeInstance.changeDetails(for: curAsset) else { return }
+
+            let newAsset = details.objectAfterChanges
+            self.updateAsset(newAsset)
+
+            if details.objectWasDeleted || self.asset == nil {
+                self.isDeleted = true
+                return
+            }
+
+            if details.assetContentChanged {
+                await self.loadMetadata()
+                // The VC will need to reload the hero image.
+                // We'll expose a 'needsHeroReload' property or just let it observe the asset.
+            }
+        }
     }
 }

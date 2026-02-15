@@ -43,8 +43,7 @@ extension ViewModelObserving where Self: UIViewController {
         } onChange: { [weak self, weak viewModel] in
             guard let viewModel = viewModel else { return }
             Task { @MainActor in
-                guard let self = self else { return }
-                self.observe(viewModel: viewModel, property: property, update: update)
+                self?.observe(viewModel: viewModel, property: property, update: update)
             }
         }
         update(value)

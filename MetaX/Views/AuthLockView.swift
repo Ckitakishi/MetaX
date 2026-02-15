@@ -116,12 +116,9 @@ class AuthLockView: UIView {
         ])
 
         actionButton.addTarget(self, action: #selector(goToAction), for: .touchUpInside)
-    }
 
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
-            updateBorderColors()
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: AuthLockView, _) in
+            self.updateBorderColors()
         }
     }
 

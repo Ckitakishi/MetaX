@@ -169,7 +169,7 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
             self?.updateUI()
         }
 
-        observe(viewModel: viewModel, property: { $0.error }) { [weak self] error in
+        observe(viewModel: viewModel, property: { $0.error }) { error in
             if let error = error {
                 HUD.showError(with: error.localizedDescription)
             }
@@ -267,8 +267,8 @@ extension LocationSearchViewController: UITableViewDelegate {
             // first caused the ViewModel to be deallocated before MKLocalSearch
             // could complete, so the callback (and history save) never fired.
             view.isUserInteractionEnabled = false
-            viewModel.selectLocation(at: indexPath.row) { [weak self] locationModel in
-                guard let self else { return }
+            Task {
+                let locationModel = await viewModel.selectLocation(at: indexPath.row)
                 view.isUserInteractionEnabled = true
                 guard let model = locationModel else { return }
                 dismiss(animated: true) {

@@ -174,6 +174,16 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
         }
     }
 
+    func requestThumbnail(for asset: PHAsset, targetSize: CGSize) async -> UIImage? {
+        await withCheckedContinuation { continuation in
+            requestThumbnail(for: asset, targetSize: targetSize) { image, isDegraded in
+                if !isDegraded {
+                    continuation.resume(returning: image)
+                }
+            }
+        }
+    }
+
     func startCachingThumbnails(for assets: [PHAsset], targetSize: CGSize) {
         imageManager.startCachingImages(
             for: assets,
@@ -214,6 +224,26 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
         }
     }
 
+    @discardableResult
+    func requestLivePhoto(
+        for asset: PHAsset,
+        targetSize: CGSize,
+        completion: @escaping (PHLivePhoto?, Bool) -> Void
+    ) -> PHImageRequestID {
+        let options = PHLivePhotoRequestOptions()
+        options.deliveryMode = .highQualityFormat
+        options.isNetworkAccessAllowed = true
+        return imageManager.requestLivePhoto(
+            for: asset,
+            targetSize: targetSize,
+            contentMode: .aspectFit,
+            options: options
+        ) { livePhoto, info in
+            let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+            completion(livePhoto, isDegraded)
+        }
+    }
+
     func cancelImageRequest(_ requestID: PHImageRequestID) {
         imageManager.cancelImageRequest(requestID)
     }
@@ -228,6 +258,30 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
             return .success(())
         } catch {
             return .failure(.photoLibrary(.assetFetchFailed(underlying: error)))
+        }
+    }
+
+    func revertAsset(_ asset: PHAsset) async -> Result<Void, MetaXError> {
+        do {
+            try await PHPhotoLibrary.shared().performChanges {
+                PHAssetChangeRequest(for: asset).revertAssetContentToOriginal()
+            }
+            return .success(())
+        } catch {
+            return .failure(.imageSave(.editionFailed))
+        }
+    }
+
+    func updateAssetProperties(_ asset: PHAsset, date: Date?, location: CLLocation?) async -> Result<Void, MetaXError> {
+        do {
+            try await PHPhotoLibrary.shared().performChanges {
+                let request = PHAssetChangeRequest(for: asset)
+                if let date = date { request.creationDate = date }
+                request.location = location
+            }
+            return .success(())
+        } catch {
+            return .failure(.imageSave(.editionFailed))
         }
     }
 

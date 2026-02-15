@@ -45,7 +45,7 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
         fatalError("init(coder:) has not been implemented")
     }
 
-    // MARK: - Configuration (called from AlbumViewController)
+    // MARK: - Configuration
 
     func configureWithViewModel(fetchResult: PHFetchResult<PHAsset>?, collection: PHAssetCollection?) {
         viewModel.configure(with: fetchResult, collection: collection)
@@ -134,18 +134,13 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
     // MARK: - Bindings
 
     private func setupBindings() {
-        observe(viewModel: viewModel, property: { $0.changeDetails }) { [weak self] changes in
-            if let changes = changes {
-                self?.handlePhotoLibraryChanges(changes)
-            }
+        // Observe fetchResult changes and reload immediately (synchronously)
+        // to take advantage of PHFetchResult's lazy loading.
+        observe(viewModel: viewModel, property: { $0.fetchResult }) { [weak self] _ in
+            self?.collectionView.reloadData()
+            self?.viewModel.resetCachedAssets()
+            self?.updateCachedAssets()
         }
-    }
-
-    private func handlePhotoLibraryChanges(_ changes: PHFetchResultChangeDetails<PHAsset>) {
-        viewModel.commitFetchResult(changes.fetchResultAfterChanges)
-        collectionView.reloadData()
-        viewModel.finishChange()
-        viewModel.resetCachedAssets()
     }
 
     // MARK: - Asset Caching
@@ -192,11 +187,15 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
         }
 
         cell.representedAssetIdentifier = asset.localIdentifier
+
+        // Request image. Note: We use completion here because PHImageManager
+        // handles the threading and caching efficiently.
+        // We avoid wrapping this in an extra Task/await here to keep cell scrolling smooth.
         viewModel.requestImage(for: asset, targetSize: thumbnailSize) { [weak cell] image, _ in
-            guard cell?.representedAssetIdentifier == asset.localIdentifier else { return }
-            Task { @MainActor in
-                cell?.thumbnailImage = image
-            }
+            guard let cell, cell.representedAssetIdentifier == asset.localIdentifier else { return }
+            // PHImageManager callbacks are on main thread by default unless specified,
+            // but we ensure main actor isolation.
+            cell.thumbnailImage = image
         }
 
         return cell

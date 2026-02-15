@@ -5,7 +5,7 @@
 //  Created by Yuhan Chen on 2026/02/09.
 //
 
-import MapKit
+@preconcurrency import MapKit
 
 protocol LocationSearchServiceDelegate: AnyObject {
     func didUpdate(results: [MKLocalSearchCompletion])
@@ -16,5 +16,5 @@ protocol LocationSearchServiceProtocol: AnyObject {
     var delegate: LocationSearchServiceDelegate? { get set }
 
     func search(query: String)
-    func resolve(completion: MKLocalSearchCompletion, resultHandler: @escaping (Result<LocationModel, Error>) -> Void)
+    func resolve(completion: MKLocalSearchCompletion) async throws -> LocationModel
 }

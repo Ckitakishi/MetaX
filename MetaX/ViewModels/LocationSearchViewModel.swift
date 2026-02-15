@@ -68,44 +68,35 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
         searchResults = []
     }
 
-    func selectLocation(at index: Int, completion: @escaping (LocationModel?) -> Void) {
-        guard index < searchResults.count else {
-            completion(nil)
-            return
-        }
+    func selectLocation(at index: Int) async -> LocationModel? {
+        guard index < searchResults.count else { return nil }
 
         let selected = searchResults[index]
 
-        searchService.resolve(completion: selected) { [weak self] result in
-            guard let self = self else { return }
+        do {
+            let locationModel = try await searchService.resolve(completion: selected)
+            selectedLocation = locationModel
 
-            Task { @MainActor in
-                switch result {
-                case let .success(locationModel):
-                    self.selectedLocation = locationModel
-                    if let coord = locationModel.coordinate {
-                        let historyItem = HistoryLocation(
-                            title: locationModel.name,
-                            subtitle: locationModel.shortPlacemark,
-                            latitude: coord.latitude,
-                            longitude: coord.longitude,
-                            country: locationModel.country,
-                            countryCode: locationModel.countryCode,
-                            state: locationModel.state,
-                            city: locationModel.city,
-                            street: locationModel.street,
-                            houseNumber: locationModel.houseNumber
-                        )
-                        self.historyService.save(historyItem)
-                        self.refreshHistory()
-                    }
-                    completion(locationModel)
-
-                case let .failure(error):
-                    self.error = error
-                    completion(nil)
-                }
+            if let coord = locationModel.coordinate {
+                let historyItem = HistoryLocation(
+                    title: locationModel.name,
+                    subtitle: locationModel.shortPlacemark,
+                    latitude: coord.latitude,
+                    longitude: coord.longitude,
+                    country: locationModel.country,
+                    countryCode: locationModel.countryCode,
+                    state: locationModel.state,
+                    city: locationModel.city,
+                    street: locationModel.street,
+                    houseNumber: locationModel.houseNumber
+                )
+                historyService.save(historyItem)
+                refreshHistory()
             }
+            return locationModel
+        } catch {
+            self.error = error
+            return nil
         }
     }
 

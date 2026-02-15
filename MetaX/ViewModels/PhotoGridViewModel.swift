@@ -15,14 +15,7 @@ final class PhotoGridViewModel: NSObject {
 
     // MARK: - Properties
 
-    /// Committed state: matches what the collection view has rendered.
-    /// Updated inside performBatchUpdates so numberOfItemsInSection stays consistent.
     private(set) var fetchResult: PHFetchResult<PHAsset>?
-    /// Lookahead basis: updated eagerly per notification so each delta is computed from the correct base.
-    private var basisFetchResult: PHFetchResult<PHAsset>?
-
-    private(set) var changeDetails: PHFetchResultChangeDetails<PHAsset>?
-    private var pendingChanges: [PHFetchResultChangeDetails<PHAsset>] = []
 
     private(set) var assetCollection: PHAssetCollection?
     private var previousPreheatRect = CGRect.zero
@@ -43,7 +36,6 @@ final class PhotoGridViewModel: NSObject {
 
     func configure(with fetchResult: PHFetchResult<PHAsset>?, collection: PHAssetCollection?) {
         self.fetchResult = fetchResult
-        basisFetchResult = fetchResult
         assetCollection = collection
     }
 
@@ -59,7 +51,6 @@ final class PhotoGridViewModel: NSObject {
             return
         }
         fetchResult = photoLibraryService.fetchAllPhotos()
-        basisFetchResult = fetchResult
     }
 
     func registerPhotoLibraryObserver() {
@@ -148,38 +139,15 @@ final class PhotoGridViewModel: NSObject {
     }
 }
 
-// MARK: - Change Queue
-
-extension PhotoGridViewModel {
-
-    func commitFetchResult(_ result: PHFetchResult<PHAsset>) {
-        fetchResult = result
-    }
-
-    func finishChange() {
-        changeDetails = nil
-        dispatchNextChangeIfNeeded()
-    }
-
-    private func dispatchNextChangeIfNeeded() {
-        guard changeDetails == nil, let next = pendingChanges.first else { return }
-        pendingChanges.removeFirst()
-        changeDetails = next
-    }
-}
-
 // MARK: - PHPhotoLibraryChangeObserver
 
 extension PhotoGridViewModel: PHPhotoLibraryChangeObserver {
 
     nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
         Task { @MainActor in
-            let basis = self.basisFetchResult ?? self.fetchResult
-            guard let basis,
-                  let changes = changeInstance.changeDetails(for: basis) else { return }
-            self.basisFetchResult = changes.fetchResultAfterChanges
-            self.pendingChanges.append(changes)
-            self.dispatchNextChangeIfNeeded()
+            guard let fetchResult = self.fetchResult,
+                  let changes = changeInstance.changeDetails(for: fetchResult) else { return }
+            self.fetchResult = changes.fetchResultAfterChanges
         }
     }
 }

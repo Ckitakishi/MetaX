@@ -146,8 +146,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         super.viewDidLoad()
         setupUI()
         setupBindings()
-        PHPhotoLibrary.shared().register(self)
-
+        viewModel.registerPhotoLibraryObserver()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -176,7 +175,10 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     }
 
     deinit {
-        PHPhotoLibrary.shared().unregisterChangeObserver(self)
+        let vm = viewModel
+        Task { @MainActor in
+            vm.unregisterPhotoLibraryObserver()
+        }
     }
 
     // MARK: - UI Setup
@@ -411,6 +413,22 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
             guard let self else { return }
             moreMenuButton.menu = buildMoreMenu()
         }
+
+        observe(viewModel: viewModel, property: { $0.isDeleted }) { [weak self] isDeleted in
+            if isDeleted {
+                self?.navigationController?.popViewController(animated: true)
+            }
+        }
+
+        observe(viewModel: viewModel, property: { $0.asset }) { [weak self] _ in
+            guard let self = self, self.isViewLoaded, self.view.window != nil else { return }
+            // Re-load hero image if asset changes (e.g. content edit)
+            if self.viewModel.isLivePhoto {
+                self.viewModel.loadLivePhoto(targetSize: self.targetSize)
+            } else {
+                self.viewModel.loadPhoto(targetSize: self.targetSize)
+            }
+        }
     }
 
     // MARK: - Actions
@@ -488,30 +506,6 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
 
         if let cell = tableView.cellForRow(at: indexPath) as? DetailLocationCell, let location = cell.currentLocation {
             onRequestLocationMap?(location)
-        }
-    }
-}
-
-// MARK: - PHPhotoLibraryChangeObserver
-
-extension DetailInfoViewController: PHPhotoLibraryChangeObserver {
-    func photoLibraryDidChange(_ changeInstance: PHChange) {
-        Task { @MainActor in
-            guard let curAsset = viewModel.asset,
-                  let details = changeInstance.changeDetails(for: curAsset) else { return }
-            viewModel.updateAsset(details.objectAfterChanges)
-            guard viewModel.asset != nil else {
-                navigationController?.popViewController(animated: true)
-                return
-            }
-            if details.assetContentChanged {
-                if viewModel.isLivePhoto {
-                    viewModel.loadLivePhoto(targetSize: targetSize)
-                } else {
-                    viewModel.loadPhoto(targetSize: targetSize)
-                }
-                await viewModel.loadMetadata()
-            }
         }
     }
 }

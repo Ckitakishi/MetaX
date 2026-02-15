@@ -5,7 +5,7 @@
 //  Created by Yuhan Chen on 2026/02/09.
 //
 
-import MapKit
+@preconcurrency import MapKit
 
 final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
 
@@ -25,22 +25,24 @@ final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
         }
     }
 
-    func resolve(completion: MKLocalSearchCompletion, resultHandler: @escaping (Result<LocationModel, Error>) -> Void) {
+    func resolve(completion: MKLocalSearchCompletion) async throws -> LocationModel {
         let searchRequest = MKLocalSearch.Request(completion: completion)
         let search = MKLocalSearch(request: searchRequest)
 
-        search.start { response, error in
-            if let error = error {
-                resultHandler(.failure(error))
-                return
-            }
+        return try await withCheckedThrowingContinuation { continuation in
+            search.start { response, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
 
-            if let mapItem = response?.mapItems.first {
-                let locationModel = LocationModel(with: mapItem)
-                resultHandler(.success(locationModel))
-            } else {
-                // Fallback to basic model if no map item found
-                resultHandler(.success(LocationModel(with: completion)))
+                if let mapItem = response?.mapItems.first {
+                    let locationModel = LocationModel(with: mapItem)
+                    continuation.resume(returning: locationModel)
+                } else {
+                    // Fallback to basic model if no map item found
+                    continuation.resume(returning: LocationModel(with: completion))
+                }
             }
         }
     }

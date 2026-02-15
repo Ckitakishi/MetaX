@@ -78,6 +78,17 @@ protocol PhotoLibraryServiceProtocol {
         completion: @escaping (UIImage?, Bool) -> Void
     ) -> PHImageRequestID
 
+    /// Request a thumbnail asynchronously.
+    func requestThumbnail(for asset: PHAsset, targetSize: CGSize) async -> UIImage?
+
+    /// Request a live photo for the given asset.
+    @discardableResult
+    func requestLivePhoto(
+        for asset: PHAsset,
+        targetSize: CGSize,
+        completion: @escaping (PHLivePhoto?, Bool) -> Void
+    ) -> PHImageRequestID
+
     // MARK: - Thumbnail Caching
 
     /// Pre-warms the image cache for the given assets at the specified thumbnail size.
@@ -95,6 +106,12 @@ protocol PhotoLibraryServiceProtocol {
 
     /// Delete an asset from the library
     func deleteAsset(_ asset: PHAsset) async -> Result<Void, MetaXError>
+
+    /// Revert an edited asset to its original state
+    func revertAsset(_ asset: PHAsset) async -> Result<Void, MetaXError>
+
+    /// Update an asset's creation date and location
+    func updateAssetProperties(_ asset: PHAsset, date: Date?, location: CLLocation?) async -> Result<Void, MetaXError>
 
     // MARK: - Change Observer
 
