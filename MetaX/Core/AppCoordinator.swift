@@ -144,7 +144,7 @@ extension AppCoordinator {
             self?.navigate(to: .locationMap(location: location))
         }
         detailVC.requestSaveMode = { [weak self] presenter in
-            await self?.pickSaveWorkflow(on: presenter)
+            await self?.pickSaveMode(on: presenter)
         }
 
         let nav = source.navigationController ?? masterNavigationController
@@ -218,14 +218,12 @@ extension AppCoordinator {
 
         while true {
             guard let fields = await awaitEditorResult(on: vc, source: source) else { return }
-            guard let mode = await pickSaveWorkflow(on: nav) else { continue }
+            guard let mode = await pickSaveMode(on: nav) else { continue }
 
-            if case .saveAsCopy = mode, source.viewModel.isLivePhoto {
-                let confirmed = await confirmLivePhotoCopy(on: nav)
-                guard confirmed else { continue }
+            let success = await source.viewModel.applyMetadataFields(fields, saveMode: mode) { warning in
+                await Alert.confirm(title: warning.title, message: warning.message, on: nav)
             }
 
-            let success = await source.viewModel.applyMetadataFields(fields, saveMode: mode)
             if success {
                 source.dismiss(animated: true)
                 return
@@ -237,8 +235,10 @@ extension AppCoordinator {
 // MARK: - Async Presentation Bridges
 
 extension AppCoordinator {
-    fileprivate func pickSaveWorkflow(on presenter: UIViewController? = nil) async -> SaveWorkflowMode? {
-        await withCheckedContinuation { continuation in
+    fileprivate func pickSaveMode(on presenter: UIViewController? = nil) async -> SaveWorkflowMode? {
+        let host = presenter ?? masterNavigationController
+
+        return await withCheckedContinuation { (continuation: CheckedContinuation<SaveWorkflowMode?, Never>) in
             let vc = SaveOptionsViewController()
             var isResumed = false
 
@@ -253,7 +253,6 @@ extension AppCoordinator {
                 continuation.resume(returning: nil)
             }
 
-            let host = presenter ?? masterNavigationController
             host.present(vc, animated: true)
         }
     }
@@ -275,23 +274,6 @@ extension AppCoordinator {
                 source?.dismiss(animated: true)
                 continuation.resume(returning: nil)
             }
-        }
-    }
-
-    fileprivate func confirmLivePhotoCopy(on presenter: UIViewController) async -> Bool {
-        await withCheckedContinuation { continuation in
-            let alert = UIAlertController(
-                title: "Live Photo",
-                message: String(localized: .alertLivePhotoCopyMessage),
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: String(localized: .alertContinue), style: .default) { _ in
-                continuation.resume(returning: true)
-            })
-            alert.addAction(UIAlertAction(title: String(localized: .alertCancel), style: .cancel) { _ in
-                continuation.resume(returning: false)
-            })
-            presenter.present(alert, animated: true)
         }
     }
 }

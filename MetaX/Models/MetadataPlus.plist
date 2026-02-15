@@ -50,15 +50,6 @@
 	</dict>
 	<dict>
 		<key>Title</key>
-		<string>COPYRIGHT</string>
-		<key>Props</key>
-		<array>
-			<string>Artist</string>
-			<string>Copyright</string>
-		</array>
-	</dict>
-	<dict>
-		<key>Title</key>
 		<string>FILE INFO</string>
 		<key>Props</key>
 		<array>

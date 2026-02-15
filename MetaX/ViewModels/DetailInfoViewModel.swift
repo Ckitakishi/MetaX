@@ -16,23 +16,61 @@ enum HeroContent {
     case livePhoto(PHLivePhoto)
 }
 
+struct SaveWarning {
+    let title: String
+    let message: String
+}
+
 /// ViewModel for DetailInfoViewController
 @Observable @MainActor
 final class DetailInfoViewModel {
 
-    // MARK: - Properties
+    enum ViewState: Equatable {
+        case loading
+        case success
+        case failure(MetaXError)
 
-    private(set) var heroContent: HeroContent?
-    private(set) var metadata: Metadata?
-    private(set) var fileName: String = ""
-    private(set) var currentLocation: CLLocation?
-    private(set) var tableViewDataSource: [(section: MetadataSection, rows: [DetailCellModel])] = []
-    private(set) var isLoading: Bool = false
+        static func == (lhs: ViewState, rhs: ViewState) -> Bool {
+            switch (lhs, rhs) {
+            case (.loading, .loading): return true
+            case (.success, .success): return true
+            case (.failure, .failure): return true
+            default: return false
+            }
+        }
+    }
+
+    struct UIModel {
+        var heroContent: HeroContent?
+        var fileName: String = ""
+        var currentLocation: CLLocation?
+        var tableViewDataSource: [(section: MetadataSection, rows: [DetailCellModel])] = []
+    }
+
+    // MARK: - Properties (Consolidated)
+
+    private(set) var state: ViewState = .loading
+    private(set) var ui = UIModel()
+
     private(set) var isSaving: Bool = false
-    private(set) var error: MetaXError?
     private(set) var hasMetaXEdit: Bool = false
+    private(set) var metadata: Metadata?
 
-    // MARK: - Computed Properties
+    /// Separate error for transient actions (save/revert) to avoid wiping content state
+    private(set) var actionError: MetaXError?
+
+    // MARK: - Computed Properties (Compatibility Layer)
+
+    var heroContent: HeroContent? { ui.heroContent }
+    var fileName: String { ui.fileName }
+    var currentLocation: CLLocation? { ui.currentLocation }
+    var tableViewDataSource: [(section: MetadataSection, rows: [DetailCellModel])] { ui.tableViewDataSource }
+
+    var isLoading: Bool { state == .loading }
+    var error: MetaXError? {
+        if case let .failure(e) = state { return e }
+        return actionError
+    }
 
     var hasLocation: Bool {
         currentLocation != nil
@@ -50,6 +88,16 @@ final class DetailInfoViewModel {
 
     var isLivePhoto: Bool {
         asset?.mediaSubtypes.contains(.photoLive) ?? false
+    }
+
+    func warning(for mode: SaveWorkflowMode) -> SaveWarning? {
+        if case .saveAsCopy = mode, isLivePhoto {
+            return SaveWarning(
+                title: "Live Photo",
+                message: String(localized: .alertLivePhotoCopyMessage)
+            )
+        }
+        return nil
     }
 
     // MARK: - Dependencies
@@ -101,7 +149,7 @@ final class DetailInfoViewModel {
             contentMode: .aspectFit
         ) { [weak self] image, _ in
             Task { @MainActor in
-                if let image { self?.heroContent = .photo(image) }
+                if let image { self?.ui.heroContent = .photo(image) }
             }
         }
     }
@@ -118,34 +166,33 @@ final class DetailInfoViewModel {
             options: options
         ) { [weak self] livePhoto, _ in
             Task { @MainActor in
-                if let livePhoto { self?.heroContent = .livePhoto(livePhoto) }
+                if let livePhoto { self?.ui.heroContent = .livePhoto(livePhoto) }
             }
         }
     }
 
     func loadMetadata() async {
-        guard let asset = asset, !isLoading else { return }
+        guard let asset = asset else { return }
 
         // Validate media type
         guard asset.mediaType == .image else {
-            error = .metadata(.unsupportedMediaType)
+            state = .failure(.metadata(.unsupportedMediaType))
             return
         }
 
-        isLoading = true
+        state = .loading
 
         // Force reload from Photo Library to get the latest edited metadata
         let result = await metadataService.loadMetadata(from: asset)
-
-        isLoading = false
 
         switch result {
         case let .success(metadata):
             self.metadata = metadata
             updateDisplayData(from: metadata)
+            state = .success
             await refreshMetaXEditStatus()
         case let .failure(error):
-            self.error = error
+            state = .failure(error)
         }
     }
 
@@ -154,21 +201,27 @@ final class DetailInfoViewModel {
     func revertToOriginal() async {
         guard let asset else { return }
         isSaving = true
+        defer { isSaving = false }
+
         do {
-            try await PHPhotoLibrary.shared().performChanges {
-                PHAssetChangeRequest(for: asset).revertAssetContentToOriginal()
+            try await performLibraryRevert()
+            await loadMetadata()
+
+            // revertAssetContentToOriginal() restores image content but does NOT undo
+            // PHAsset property changes (creationDate, location) made separately.
+            // Re-sync from the now-restored metadata so the asset sorts correctly.
+            if let metadata {
+                await syncAssetProperties(from: metadata.sourceProperties, for: asset)
             }
         } catch {
-            self.error = .imageSave(.editionFailed)
+            actionError = .imageSave(.editionFailed)
         }
-        isSaving = false
-        await loadMetadata()
+    }
 
-        // revertAssetContentToOriginal() restores image content but does NOT undo
-        // PHAsset property changes (creationDate, location) made separately.
-        // Re-sync from the now-restored metadata so the asset sorts correctly.
-        if let metadata {
-            await syncAssetProperties(from: metadata.sourceProperties, for: asset)
+    private func performLibraryRevert() async throws {
+        guard let asset = asset else { return }
+        try await PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest(for: asset).revertAssetContentToOriginal()
         }
     }
 
@@ -193,46 +246,41 @@ final class DetailInfoViewModel {
     // MARK: - Edit Methods
 
     @discardableResult
-    func addTimeStamp(_ date: Date, saveMode: SaveWorkflowMode) async -> Bool {
-        guard let metadata = metadata else { return false }
-        let newProps = metadataService.updateTimestamp(date, in: metadata)
-        return await performSaveOperation(properties: newProps, mode: saveMode)
-    }
+    func clearAllMetadata(
+        saveMode: SaveWorkflowMode,
+        confirm: ((SaveWarning) async -> Bool)? = nil
+    ) async -> Bool {
+        // When the asset has a previous MetaX edit and we're updating in place, revert to the
+        // original first. This ensures the clear-all operation writes to the unrendered original
+        // rather than the previously-rendered JPEG, which prevents stale metadata from bleeding
+        // through CGImageDestinationAddImageFromSource's merge behaviour.
+        if hasMetaXEdit, case .updateOriginal = saveMode, asset != nil {
+            isSaving = true
+            do {
+                try await performLibraryRevert()
+            } catch {
+                isSaving = false
+                actionError = .imageSave(.editionFailed)
+                return false
+            }
+            // Leave isSaving = true; performSaveOperation sets it again immediately after.
+        }
 
-    @discardableResult
-    func clearTimeStamp(saveMode: SaveWorkflowMode) async -> Bool {
-        guard let metadata = metadata else { return false }
-        let newProps = metadataService.removeTimestamp(from: metadata)
-        return await performSaveOperation(properties: newProps, mode: saveMode)
-    }
-
-    @discardableResult
-    func addLocation(_ location: CLLocation, saveMode: SaveWorkflowMode) async -> Bool {
-        guard let metadata = metadata else { return false }
-        let newProps = metadataService.updateLocation(location, in: metadata)
-        return await performSaveOperation(properties: newProps, mode: saveMode)
-    }
-
-    @discardableResult
-    func clearLocation(saveMode: SaveWorkflowMode) async -> Bool {
-        guard let metadata = metadata else { return false }
-        let newProps = metadataService.removeLocation(from: metadata)
-        return await performSaveOperation(properties: newProps, mode: saveMode)
-    }
-
-    @discardableResult
-    func clearAllMetadata(saveMode: SaveWorkflowMode) async -> Bool {
         guard let metadata = metadata else { return false }
         let newProps = metadataService.removeAllMetadata(from: metadata)
-        return await performSaveOperation(properties: newProps, mode: saveMode)
+        return await performSaveOperation(properties: newProps, mode: saveMode, confirm: confirm)
     }
 
     @discardableResult
-    func applyMetadataFields(_ fields: [MetadataField: Any], saveMode: SaveWorkflowMode) async -> Bool {
+    func applyMetadataFields(
+        _ fields: [MetadataField: Any],
+        saveMode: SaveWorkflowMode,
+        confirm: ((SaveWarning) async -> Bool)? = nil
+    ) async -> Bool {
         guard let metadata = metadata else { return false }
         let batch = Dictionary(uniqueKeysWithValues: fields.map { ($0.key, $1) })
         let newProps = metadataService.updateMetadata(with: batch, in: metadata)
-        return await performSaveOperation(properties: newProps, mode: saveMode)
+        return await performSaveOperation(properties: newProps, mode: saveMode, confirm: confirm)
     }
 
     // MARK: - Cancel Requests
@@ -248,16 +296,28 @@ final class DetailInfoViewModel {
     }
 
     func clearError() {
-        error = nil
+        if case .failure = state {
+            state = .success
+        }
+        actionError = nil
     }
 
     // MARK: - Private Methods
 
     @discardableResult
-    private func performSaveOperation(properties: [String: Any], mode: SaveWorkflowMode) async -> Bool {
+    private func performSaveOperation(
+        properties: [String: Any],
+        mode: SaveWorkflowMode,
+        confirm: ((SaveWarning) async -> Bool)? = nil
+    ) async -> Bool {
+        if let warning = warning(for: mode), let confirm = confirm {
+            guard await confirm(warning) else { return false }
+        }
+
         guard let asset = asset else { return false }
 
         isSaving = true
+        defer { isSaving = false }
 
         let result: Result<PHAsset, MetaXError>
         let originalToDelete: PHAsset?
@@ -270,8 +330,6 @@ final class DetailInfoViewModel {
             result = await imageSaveService.saveImageAsNewAsset(asset: asset, newProperties: properties)
             originalToDelete = deleteOriginal ? asset : nil
         }
-
-        isSaving = false
 
         switch result {
         case let .success(newAsset):
@@ -286,13 +344,14 @@ final class DetailInfoViewModel {
             }
 
         case let .failure(error):
-            self.error = error
+            actionError = error
         }
 
         if case .success = result {
             await loadMetadata()
             return true
         }
+
         return false
     }
 
@@ -302,12 +361,13 @@ final class DetailInfoViewModel {
         let exif = properties[MetadataKeys.exifDict] as? [String: Any]
         let gps = properties[MetadataKeys.gpsDict] as? [String: Any]
 
-        // Extract date from saved metadata (nil = was removed or never existed)
+        // Extract date from saved metadata.
+        // If missing (e.g. after 'clear all'), preserve current asset date to avoid sorting chaos.
         let newDate: Date?
         if let dateStr = exif?[MetadataKeys.dateTimeOriginal] as? String {
             newDate = DateFormatter(with: .yMdHms).getDate(from: dateStr)
         } else {
-            newDate = nil
+            newDate = asset.creationDate
         }
 
         // Extract location from saved metadata
@@ -355,11 +415,11 @@ final class DetailInfoViewModel {
     }
 
     private func updateDisplayData(from metadata: Metadata) {
-        currentLocation = metadata.rawGPS
-        tableViewDataSource = metadata.metaProps.map { section, props in
+        ui.currentLocation = metadata.rawGPS
+        ui.tableViewDataSource = metadata.metaProps.map { section, props in
             (section: section, rows: props.map { DetailCellModel(propValue: $0) })
         }
-        if let location = currentLocation {
+        if let location = ui.currentLocation {
             reverseGeocodeLocation(location)
         }
     }
@@ -380,14 +440,14 @@ final class DetailInfoViewModel {
     }
 
     private func updateLocationTextInDataSource(_ text: String) {
-        for (sIdx, entry) in tableViewDataSource.enumerated() {
+        for (sIdx, entry) in ui.tableViewDataSource.enumerated() {
             guard entry.section == .basicInfo else { continue }
 
             for (rIdx, model) in entry.rows.enumerated() {
                 if model.rawKey == MetadataKeys.location {
                     var newRows = entry.rows
                     newRows[rIdx] = DetailCellModel(prop: model.prop, value: text, rawKey: model.rawKey)
-                    tableViewDataSource[sIdx] = (section: entry.section, rows: newRows)
+                    ui.tableViewDataSource[sIdx] = (section: entry.section, rows: newRows)
                     return
                 }
             }
@@ -395,6 +455,6 @@ final class DetailInfoViewModel {
     }
 
     func setFileName(_ name: String) {
-        fileName = name
+        ui.fileName = name
     }
 }

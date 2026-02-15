@@ -160,7 +160,7 @@ private final class OptionCardView: UIView {
         let l = UILabel()
         l.font = Theme.Typography.hint
         l.textColor = .secondaryLabel
-        l.numberOfLines = 3
+        l.numberOfLines = 0
         return l
     }()
 

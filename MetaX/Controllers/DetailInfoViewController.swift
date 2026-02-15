@@ -418,7 +418,10 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     @objc private func clearAllMetadata() {
         Task {
             guard let mode = await requestSaveMode?(nil) else { return }
-            await viewModel.clearAllMetadata(saveMode: mode)
+            await viewModel.clearAllMetadata(saveMode: mode) { [weak self] warning in
+                guard let self else { return false }
+                return await Alert.confirm(title: warning.title, message: warning.message, on: self)
+            }
         }
     }
 
@@ -485,26 +488,6 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
 
         if let cell = tableView.cellForRow(at: indexPath) as? DetailLocationCell, let location = cell.currentLocation {
             onRequestLocationMap?(location)
-        }
-    }
-}
-
-// MARK: - Delegates
-
-extension DetailInfoViewController: UIPopoverPresentationControllerDelegate {
-
-    func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
-        return .none
-    }
-
-    func popoverPresentationControllerDidDismissPopover(
-        _ popoverPresentationController: UIPopoverPresentationController
-    ) {
-        if let datePicker = popoverPresentationController.presentedViewController as? DetailDatePickerPopover {
-            Task {
-                guard let mode = await requestSaveMode?(nil) else { return }
-                await viewModel.addTimeStamp(datePicker.curDate, saveMode: mode)
-            }
         }
     }
 }
