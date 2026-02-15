@@ -49,6 +49,7 @@ class DetailTableViewCell: UITableViewCell {
         setupUI()
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -59,7 +60,7 @@ class DetailTableViewCell: UITableViewCell {
 
         neoContainer.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(neoContainer)
-        
+
         let targetView = neoContainer.contentView
         targetView.addSubview(propLabel)
         targetView.addSubview(valueLabel)
@@ -70,8 +71,14 @@ class DetailTableViewCell: UITableViewCell {
 
         NSLayoutConstraint.activate([
             neoContainer.topAnchor.constraint(equalTo: contentView.topAnchor),
-            neoContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Theme.Layout.cardPadding),
-            neoContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Theme.Layout.cardPadding),
+            neoContainer.leadingAnchor.constraint(
+                equalTo: contentView.leadingAnchor,
+                constant: Theme.Layout.cardPadding
+            ),
+            neoContainer.trailingAnchor.constraint(
+                equalTo: contentView.trailingAnchor,
+                constant: -Theme.Layout.cardPadding
+            ),
             neoContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
             propLabel.topAnchor.constraint(equalTo: targetView.topAnchor, constant: padding),
@@ -81,7 +88,7 @@ class DetailTableViewCell: UITableViewCell {
             valueLabel.topAnchor.constraint(equalTo: propLabel.bottomAnchor, constant: 4),
             valueLabel.leadingAnchor.constraint(equalTo: targetView.leadingAnchor, constant: contentInset),
             valueLabel.trailingAnchor.constraint(equalTo: targetView.trailingAnchor, constant: -contentInset),
-            valueLabel.bottomAnchor.constraint(equalTo: targetView.bottomAnchor, constant: -padding)
+            valueLabel.bottomAnchor.constraint(equalTo: targetView.bottomAnchor, constant: -padding),
         ])
     }
 }

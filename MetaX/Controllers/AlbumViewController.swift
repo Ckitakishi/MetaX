@@ -36,7 +36,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     private let sectionTitles = [
         "",
         String(localized: .viewMyAlbums),
-        String(localized: .viewSmartAlbums)
+        String(localized: .viewSmartAlbums),
     ]
 
     private let searchController = UISearchController(searchResultsController: nil)
@@ -45,10 +45,11 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
 
     init(container: DependencyContainer) {
         self.container = container
-        self.viewModel = AlbumViewModel(photoLibraryService: container.photoLibraryService)
+        viewModel = AlbumViewModel(photoLibraryService: container.photoLibraryService)
         super.init(style: .grouped)
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -111,8 +112,14 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         tableView.estimatedRowHeight = 120
         tableView.sectionHeaderTopPadding = 0
         tableView.prefetchDataSource = self
-        tableView.register(AlbumHeroTableViewCell.self, forCellReuseIdentifier: String(describing: AlbumHeroTableViewCell.self))
-        tableView.register(AlbumStandardTableViewCell.self, forCellReuseIdentifier: String(describing: AlbumStandardTableViewCell.self))
+        tableView.register(
+            AlbumHeroTableViewCell.self,
+            forCellReuseIdentifier: String(describing: AlbumHeroTableViewCell.self)
+        )
+        tableView.register(
+            AlbumStandardTableViewCell.self,
+            forCellReuseIdentifier: String(describing: AlbumStandardTableViewCell.self)
+        )
 
         tableView.sectionIndexColor = Theme.Colors.text
         tableView.sectionIndexBackgroundColor = .clear
@@ -195,7 +202,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         }
     }
 
-    private static let lockViewTag = 9_001
+    private static let lockViewTag = 9001
 
     private func showLockView() {
         guard let topView = navigationController?.view,
@@ -244,7 +251,10 @@ extension AlbumViewController {
             cell.count = count
             cell.thumbnail = nil
             if let asset {
-                let requestID = viewModel.getThumbnail(for: asset, targetSize: heroThumbnailSize) { [weak cell, weak self] image, isDegraded in
+                let requestID = viewModel.getThumbnail(for: asset, targetSize: heroThumbnailSize) { [
+                    weak cell,
+                    weak self
+                ] image, isDegraded in
                     Task { @MainActor in
                         if !isDegraded {
                             self?.isHeroImageLoaded = true
@@ -276,14 +286,15 @@ extension AlbumViewController {
 
             // Show cached cover immediately if available
             if let asset {
-                let requestID = viewModel.getThumbnail(for: asset, targetSize: standardThumbnailSize) { [weak cell] image, isDegraded in
-                    // Guard inside Task to avoid TOCTOU: cell may be reused between
-                    // the callback firing and the Task body executing on the main actor.
-                    Task { @MainActor in
-                        guard let cell, cell.representedIdentifier == collectionId else { return }
-                        cell.thumbnail = image
+                let requestID = viewModel
+                    .getThumbnail(for: asset, targetSize: standardThumbnailSize) { [weak cell] image, _ in
+                        // Guard inside Task to avoid TOCTOU: cell may be reused between
+                        // the callback firing and the Task body executing on the main actor.
+                        Task { @MainActor in
+                            guard let cell, cell.representedIdentifier == collectionId else { return }
+                            cell.thumbnail = image
+                        }
                     }
-                }
                 cell.cancelThumbnailRequest = { [weak self] in
                     self?.viewModel.cancelThumbnailRequest(requestID)
                 }
@@ -291,11 +302,12 @@ extension AlbumViewController {
 
             // Async-load count + thumbnail if not yet cached (no-op when already cached).
             // Completion fires only when both count and first thumbnail image are ready.
-            viewModel.loadCellDataIfNeeded(at: indexPath, thumbnailSize: standardThumbnailSize) { [weak cell] count, image in
-                guard let cell, cell.representedIdentifier == collectionId else { return }
-                cell.count = count
-                if let image { cell.thumbnail = image }
-            }
+            viewModel
+                .loadCellDataIfNeeded(at: indexPath, thumbnailSize: standardThumbnailSize) { [weak cell] count, image in
+                    guard let cell, cell.representedIdentifier == collectionId else { return }
+                    cell.count = count
+                    if let image { cell.thumbnail = image }
+                }
 
             return cell
         }
@@ -340,22 +352,22 @@ extension AlbumViewController {
         let currentOffset = scrollView.contentOffset.y
         let maximumOffset = scrollView.contentSize.height - scrollView.frame.size.height
         let visualTop = currentOffset + scrollView.adjustedContentInset.top
-        
+
         var activeSection = 0
         let indices = visibleSectionIndices
-        
-        if maximumOffset > 0 && currentOffset > 0 && maximumOffset - currentOffset <= 20 {
+
+        if maximumOffset > 0, currentOffset > 0, maximumOffset - currentOffset <= 20 {
             activeSection = indices.last ?? 0
         } else {
             for section in indices {
                 let rect = tableView.rect(forSection: section)
-                if rect.minY <= visualTop + 1 && rect.maxY > visualTop + 1 {
+                if rect.minY <= visualTop + 1, rect.maxY > visualTop + 1 {
                     activeSection = section
                     break
                 }
             }
         }
-        
+
         if currentSectionIndex != activeSection {
             currentSectionIndex = activeSection
             tableView.reloadSectionIndexTitles()

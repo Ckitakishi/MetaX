@@ -5,10 +5,10 @@
 //  Created by Yuhan Chen on 2026/02/12.
 //
 
-import UIKit
-import Photos
-import MapKit
 import CoreLocation
+import MapKit
+import Photos
+import UIKit
 
 /// Intent-based routing for the entire application.
 @MainActor
@@ -50,7 +50,7 @@ final class AppCoordinator: AppRouter {
         await withCheckedContinuation { continuation in
             let vc = SaveOptionsViewController()
             var isResumed = false
-            
+
             vc.onSelect = { mode in
                 guard !isResumed else { return }
                 isResumed = true
@@ -61,7 +61,7 @@ final class AppCoordinator: AppRouter {
                 isResumed = true
                 continuation.resume(returning: nil)
             }
-            
+
             let host = presenter ?? navigationController
             host.present(vc, animated: true)
         }
@@ -72,7 +72,10 @@ final class AppCoordinator: AppRouter {
         mapVC.title = String(localized: .location)
         let fullMapView = MKMapView()
         fullMapView.translatesAutoresizingMaskIntoConstraints = false
-        fullMapView.setRegion(MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 1000, longitudinalMeters: 1000), animated: false)
+        fullMapView.setRegion(
+            MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 1000, longitudinalMeters: 1000),
+            animated: false
+        )
 
         let annotation = MKPointAnnotation()
         annotation.coordinate = location.coordinate
@@ -83,20 +86,28 @@ final class AppCoordinator: AppRouter {
             fullMapView.topAnchor.constraint(equalTo: mapVC.view.topAnchor),
             fullMapView.leadingAnchor.constraint(equalTo: mapVC.view.leadingAnchor),
             fullMapView.trailingAnchor.constraint(equalTo: mapVC.view.trailingAnchor),
-            fullMapView.bottomAnchor.constraint(equalTo: mapVC.view.bottomAnchor)
+            fullMapView.bottomAnchor.constraint(equalTo: mapVC.view.bottomAnchor),
         ])
 
         let nav = UINavigationController(rootViewController: mapVC)
-        mapVC.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(dismissMap))
-        
+        mapVC.navigationItem.rightBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .done,
+            target: self,
+            action: #selector(dismissMap)
+        )
+
         navigationController.present(nav, animated: true)
     }
-    
+
     @objc private func dismissMap() {
         navigationController.dismiss(animated: true)
     }
 
-    func viewAssetDetail(for asset: PHAsset, in collection: PHAssetCollection?, from sourceNav: UINavigationController?) {
+    func viewAssetDetail(
+        for asset: PHAsset,
+        in collection: PHAssetCollection?,
+        from sourceNav: UINavigationController?
+    ) {
         let detailVC = DetailInfoViewController(container: container)
         detailVC.configure(with: asset, collection: collection)
         detailVC.router = self

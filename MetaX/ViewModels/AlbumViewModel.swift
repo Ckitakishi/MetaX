@@ -6,9 +6,9 @@
 //  Copyright © 2026 Chen Yuhan. All rights reserved.
 //
 
-import UIKit
-import Photos
 import Observation
+import Photos
+import UIKit
 
 /// Section types for album list
 enum AlbumSection: Int, CaseIterable {
@@ -16,7 +16,9 @@ enum AlbumSection: Int, CaseIterable {
     case userCollections
     case smartAlbums
 
-    static var count: Int { allCases.count }
+    static var count: Int {
+        allCases.count
+    }
 }
 
 enum AlbumSortOption: CaseIterable {
@@ -56,12 +58,17 @@ final class AlbumViewModel: NSObject {
     private var countCache: [String: Int] = [:]
     private var pendingLoads: Set<String> = []
     private var loadCompletions: [String: [(Int, UIImage?) -> Void]] = [:]
-    // Incremented in invalidateCaches() so in-flight Task.detached blocks can
-    // detect that their results are stale and discard them.
+    /// Incremented in invalidateCaches() so in-flight Task.detached blocks can
+    /// detect that their results are stale and discard them.
     private var cacheGeneration: Int = 0
 
-    var searchText: String = "" { didSet { applySearchAndSort() } }
-    var sortOption: AlbumSortOption = .default { didSet { applySearchAndSort() } }
+    var searchText: String = "" {
+        didSet { applySearchAndSort() }
+    }
+
+    var sortOption: AlbumSortOption = .default {
+        didSet { applySearchAndSort() }
+    }
 
     private(set) var isAuthorized: Bool = true
     private(set) var reloadToken: Int = 0
@@ -179,7 +186,11 @@ final class AlbumViewModel: NSObject {
     /// The completion fires on the main actor with `(count, image)` once both are
     /// ready — image is nil only when the collection has no cover asset.
     /// No-op for the allPhotos section (always available synchronously).
-    func loadCellDataIfNeeded(at indexPath: IndexPath, thumbnailSize: CGSize, completion: @escaping (Int, UIImage?) -> Void) {
+    func loadCellDataIfNeeded(
+        at indexPath: IndexPath,
+        thumbnailSize: CGSize,
+        completion: @escaping (Int, UIImage?) -> Void
+    ) {
         guard let section = AlbumSection(rawValue: indexPath.section), section != .allPhotos else { return }
 
         let collection: PHAssetCollection
@@ -228,24 +239,30 @@ final class AlbumViewModel: NSObject {
                 // Thumbnail request keeps pendingLoadsCount elevated until HQ arrives.
                 // Degraded delivery updates cells immediately; final delivery unblocks splash.
                 let pendingCallbacks = self.loadCompletions.removeValue(forKey: id) ?? []
-                self.photoLibraryService.requestThumbnail(for: cover, targetSize: thumbnailSize) { [weak self] image, isDegraded in
-                    Task { @MainActor in
-                        guard let self, self.cacheGeneration == generation else { return }
-                        if isDegraded && image != nil {
-                            for cb in pendingCallbacks { cb(count, image) }
-                            return
+                self.photoLibraryService
+                    .requestThumbnail(for: cover, targetSize: thumbnailSize) { [weak self] image, isDegraded in
+                        Task { @MainActor in
+                            guard let self, self.cacheGeneration == generation else { return }
+                            if isDegraded, image != nil {
+                                for cb in pendingCallbacks {
+                                    cb(count, image)
+                                }
+                                return
+                            }
+                            guard self.pendingLoads.contains(id) else { return }
+                            self.pendingLoads.remove(id)
+                            self.pendingLoadsCount -= 1
+                            for cb in pendingCallbacks {
+                                cb(count, image)
+                            }
                         }
-                        guard self.pendingLoads.contains(id) else { return }
-                        self.pendingLoads.remove(id)
-                        self.pendingLoadsCount -= 1
-                        for cb in pendingCallbacks { cb(count, image) }
                     }
-                }
             }
         }
     }
 
-    func fetchResult(for indexPath: IndexPath) -> (fetchResult: PHFetchResult<PHAsset>?, collection: PHAssetCollection?, title: String?) {
+    func fetchResult(for indexPath: IndexPath)
+        -> (fetchResult: PHFetchResult<PHAsset>?, collection: PHAssetCollection?, title: String?) {
         guard let section = AlbumSection(rawValue: indexPath.section) else {
             return (nil, nil, nil)
         }
@@ -259,19 +276,31 @@ final class AlbumViewModel: NSObject {
         case .userCollections:
             guard indexPath.row < displayedUserCollections.count else { return (nil, nil, nil) }
             let collection = displayedUserCollections[indexPath.row]
-            return (photoLibraryService.fetchAssets(in: collection, sortedBy: sortDescriptor), collection, collection.localizedTitle)
+            return (
+                photoLibraryService.fetchAssets(in: collection, sortedBy: sortDescriptor),
+                collection,
+                collection.localizedTitle
+            )
 
         case .smartAlbums:
             guard indexPath.row < displayedSmartAlbums.count else { return (nil, nil, nil) }
             let collection = displayedSmartAlbums[indexPath.row]
-            return (photoLibraryService.fetchAssets(in: collection, sortedBy: sortDescriptor), collection, collection.localizedTitle)
+            return (
+                photoLibraryService.fetchAssets(in: collection, sortedBy: sortDescriptor),
+                collection,
+                collection.localizedTitle
+            )
         }
     }
 
     // MARK: - Thumbnail
 
     @discardableResult
-    func getThumbnail(for asset: PHAsset, targetSize: CGSize? = nil, completion: @escaping (UIImage?, Bool) -> Void) -> PHImageRequestID {
+    func getThumbnail(
+        for asset: PHAsset,
+        targetSize: CGSize? = nil,
+        completion: @escaping (UIImage?, Bool) -> Void
+    ) -> PHImageRequestID {
         let size = targetSize ?? CGSize(width: 100.0, height: 100.0)
         return photoLibraryService.requestThumbnail(for: asset, targetSize: size) { image, isDegraded in
             Task { @MainActor in completion(image, isDegraded) }
@@ -396,7 +425,8 @@ extension AlbumViewModel: PHPhotoLibraryChangeObserver {
                 self.nonEmptySmartAlbums = updatedNonEmptyAlbums()
             }
 
-            if let userCollections = userCollections, let changeDetails = changeInstance.changeDetails(for: userCollections) {
+            if let userCollections = userCollections,
+               let changeDetails = changeInstance.changeDetails(for: userCollections) {
                 self.userCollections = changeDetails.fetchResultAfterChanges
                 self.userAssetCollections = updatedUserAssetCollections()
             }

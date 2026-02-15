@@ -25,7 +25,8 @@ protocol PhotoLibraryServiceProtocol {
     func fetchAllPhotos(sortedBy sortDescriptor: NSSortDescriptor?) -> PHFetchResult<PHAsset>
 
     /// Fetch assets in a specific collection
-    func fetchAssets(in collection: PHAssetCollection, sortedBy sortDescriptor: NSSortDescriptor?) -> PHFetchResult<PHAsset>
+    func fetchAssets(in collection: PHAssetCollection, sortedBy sortDescriptor: NSSortDescriptor?)
+        -> PHFetchResult<PHAsset>
 
     /// Fetch smart albums
     func fetchSmartAlbums() -> PHFetchResult<PHAssetCollection>
@@ -105,6 +106,7 @@ protocol PhotoLibraryServiceProtocol {
 }
 
 // MARK: - Default Parameters Extension
+
 extension PhotoLibraryServiceProtocol {
     func fetchAllPhotos() -> PHFetchResult<PHAsset> {
         fetchAllPhotos(sortedBy: NSSortDescriptor(key: "creationDate", ascending: false))

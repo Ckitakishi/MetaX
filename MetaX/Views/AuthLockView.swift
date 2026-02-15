@@ -13,7 +13,7 @@ protocol AuthLockViewDelegate: AnyObject {
 }
 
 class AuthLockView: UIView {
-    
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Theme.Typography.title
@@ -31,7 +31,7 @@ class AuthLockView: UIView {
         label.numberOfLines = 0
         return label
     }()
-    
+
     private let buttonContainer = UIView()
 
     private let shadowView: UIView = {
@@ -55,9 +55,9 @@ class AuthLockView: UIView {
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
-    
-    weak var delegate: AuthLockViewDelegate? = nil
-    
+
+    weak var delegate: AuthLockViewDelegate?
+
     var title: String = "Denied." {
         didSet { titleLabel.text = title }
     }
@@ -69,25 +69,26 @@ class AuthLockView: UIView {
     var buttonTitle: String = "Setting" {
         didSet { actionButton.configuration?.title = buttonTitle }
     }
-    
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
     }
-    
+
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private func setupUI() {
         backgroundColor = Theme.Colors.mainBackground
-        
+
         let stack = UIStackView(arrangedSubviews: [titleLabel, descriptionLabel, buttonContainer])
         stack.axis = .vertical
         stack.spacing = Theme.Layout.stackSpacing
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
-        
+
         addSubview(stack)
         buttonContainer.addSubview(actionButton)
 
@@ -111,7 +112,7 @@ class AuthLockView: UIView {
             shadowView.topAnchor.constraint(equalTo: actionButton.topAnchor, constant: offset),
             shadowView.leadingAnchor.constraint(equalTo: actionButton.leadingAnchor, constant: offset),
             shadowView.trailingAnchor.constraint(equalTo: buttonContainer.trailingAnchor),
-            shadowView.bottomAnchor.constraint(equalTo: buttonContainer.bottomAnchor)
+            shadowView.bottomAnchor.constraint(equalTo: buttonContainer.bottomAnchor),
         ])
 
         actionButton.addTarget(self, action: #selector(goToAction), for: .touchUpInside)

@@ -1,22 +1,21 @@
 //
-//  MetaData.swift
+//  Metadata.swift
 //  MetaX
 //
 //  Created by Ckitakishi on 2018/3/25.
 //  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
-import UIKit
-import Foundation
 import CoreLocation
-
+import Foundation
 import ImageIO
+import UIKit
 
 public enum MetadataKeys {
     static let exifDict = kCGImagePropertyExifDictionary as String
     static let tiffDict = kCGImagePropertyTIFFDictionary as String
     static let gpsDict = kCGImagePropertyGPSDictionary as String
-    
+
     static let location = "Location"
     static let dateTimeOriginal = kCGImagePropertyExifDateTimeOriginal as String
     static let dateTimeDigitized = kCGImagePropertyExifDateTimeDigitized as String
@@ -26,7 +25,7 @@ public enum MetadataKeys {
     static let artist = kCGImagePropertyTIFFArtist as String
     static let copyright = kCGImagePropertyTIFFCopyright as String
     static let dateTime = kCGImagePropertyTIFFDateTime as String
-    
+
     static let lensMake = kCGImagePropertyExifLensMake as String
     static let lensModel = kCGImagePropertyExifLensModel as String
     static let fNumber = kCGImagePropertyExifFNumber as String
@@ -39,7 +38,7 @@ public enum MetadataKeys {
     static let meteringMode = kCGImagePropertyExifMeteringMode as String
     static let whiteBalance = kCGImagePropertyExifWhiteBalance as String
     static let flash = kCGImagePropertyExifFlash as String
-    
+
     // GPS Keys
     static let gpsLatitude = kCGImagePropertyGPSLatitude as String
     static let gpsLatitudeRef = kCGImagePropertyGPSLatitudeRef as String
@@ -53,19 +52,19 @@ public enum SaveWorkflowMode {
 }
 
 public enum MetadataSection: String {
-    case basicInfo  = "BASIC INFO"
-    case gear       = "GEAR"
-    case exposure   = "EXPOSURE"
-    case fileInfo   = "FILE INFO"
-    case copyright  = "COPYRIGHT"
+    case basicInfo = "BASIC INFO"
+    case gear = "GEAR"
+    case exposure = "EXPOSURE"
+    case fileInfo = "FILE INFO"
+    case copyright = "COPYRIGHT"
 
     var localizedTitle: String {
         switch self {
-        case .basicInfo:  return String(localized: .editGroupBasicInfo)
-        case .gear:       return String(localized: .editGroupGear)
-        case .exposure:   return String(localized: .shooting)
-        case .fileInfo:   return String(localized: .editGroupFileInfo)
-        case .copyright:  return String(localized: .editGroupCopyright)
+        case .basicInfo: return String(localized: .editGroupBasicInfo)
+        case .gear: return String(localized: .editGroupGear)
+        case .exposure: return String(localized: .shooting)
+        case .fileInfo: return String(localized: .editGroupFileInfo)
+        case .copyright: return String(localized: .editGroupCopyright)
         }
     }
 }
@@ -89,12 +88,13 @@ public struct Metadata {
     public init?(ciimage: CIImage) {
         self.init(props: ciimage.properties)
     }
-    
+
     public init?(props: [String: Any]) {
         sourceProperties = props
 
         guard let path = Bundle.main.path(forResource: "MetadataPlus", ofType: "plist"),
-              let groups = NSArray(contentsOfFile: path) as? [[String: Any]] else {
+              let groups = NSArray(contentsOfFile: path) as? [[String: Any]]
+        else {
             return nil
         }
 
@@ -103,17 +103,19 @@ public struct Metadata {
 
         let exifInfo = props[MetadataKeys.exifDict] as? [String: Any] ?? [:]
         let tiffInfo = props[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
-        
+
         // Extract GPS first for internal use
         if let gpsInfo = props[MetadataKeys.gpsDict] as? [String: Any],
            let latitudeRef = gpsInfo[MetadataKeys.gpsLatitudeRef] as? String,
            let latitude = gpsInfo[MetadataKeys.gpsLatitude] as? Double,
            let longitudeRef = gpsInfo[MetadataKeys.gpsLongitudeRef] as? String,
            let longitude = gpsInfo[MetadataKeys.gpsLongitude] as? Double {
-            tmpGPSProp = CLLocation(latitude: latitudeRef == "N" ? latitude : -latitude,
-                                 longitude: longitudeRef == "E" ? longitude : -longitude)
+            tmpGPSProp = CLLocation(
+                latitude: latitudeRef == "N" ? latitude : -latitude,
+                longitude: longitudeRef == "E" ? longitude : -longitude
+            )
         }
-        self.rawGPS = tmpGPSProp
+        rawGPS = tmpGPSProp
 
         for group in groups {
             guard let title = group["Title"] as? String,
@@ -143,15 +145,16 @@ public struct Metadata {
 
         metaProps = tmpMetaProps
     }
-    
+
     var timeStampKey: String {
         MetadataKeys.dateTimeOriginal
     }
 }
 
-// Mark: Helper
+// MARK: Helper
+
 extension Metadata {
-    // {Exif}.DateTimeOriginal
+    /// {Exif}.DateTimeOriginal
     func writeTimeOriginal(_ date: Date) -> [String: Any] {
         var editableProps = sourceProperties
         var exifInfo = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
@@ -163,7 +166,7 @@ extension Metadata {
     }
 
     func deleteTimeOriginal() -> [String: Any] {
-        var editableProps = self.sourceProperties
+        var editableProps = sourceProperties
         var exifInfo = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
         exifInfo.removeValue(forKey: MetadataKeys.dateTimeOriginal)
         exifInfo.removeValue(forKey: MetadataKeys.dateTimeDigitized)
@@ -178,35 +181,35 @@ extension Metadata {
     }
 
     func deleteGPS() -> [String: Any]? {
-        var editableProps = self.sourceProperties
+        var editableProps = sourceProperties
         if editableProps[MetadataKeys.gpsDict] != nil {
             editableProps.removeValue(forKey: MetadataKeys.gpsDict)
             return updateTiff(with: editableProps)
         }
-        return self.sourceProperties
+        return sourceProperties
     }
-    
+
     func deleteAllExceptOrientation() -> [String: Any]? {
         var editableProps: [String: Any] = [:]
-        editableProps["Orientation"] = self.sourceProperties["Orientation"]
-        return self.updateTiff(with: editableProps)
+        editableProps["Orientation"] = sourceProperties["Orientation"]
+        return updateTiff(with: editableProps)
     }
-    
+
     func write(batch: [String: Any]) -> [String: Any] {
         var editableProps = sourceProperties
-        
+
         let tiffKeys = [
             MetadataKeys.make, MetadataKeys.model, MetadataKeys.artist,
-            MetadataKeys.copyright, MetadataKeys.software, MetadataKeys.dateTime
+            MetadataKeys.copyright, MetadataKeys.software, MetadataKeys.dateTime,
         ]
-        
+
         var tiffInfo = editableProps[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
         var exifInfo = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
         var gpsInfo = editableProps[MetadataKeys.gpsDict] as? [String: Any] ?? [:]
-        
+
         for (key, value) in batch {
             let isRemoval = value is NSNull
-            
+
             if tiffKeys.contains(key) {
                 if isRemoval {
                     tiffInfo.removeValue(forKey: key)
@@ -236,49 +239,48 @@ extension Metadata {
                 }
             }
         }
-        
+
         editableProps[MetadataKeys.tiffDict] = tiffInfo
         editableProps[MetadataKeys.exifDict] = exifInfo
-        
+
         // Ensure GPS dict is updated even if it becomes empty (removal)
         if gpsInfo.isEmpty {
             editableProps.removeValue(forKey: MetadataKeys.gpsDict)
         } else {
             editableProps[MetadataKeys.gpsDict] = gpsInfo
         }
-        
+
         return updateTiff(with: editableProps)
     }
-    
+
     private func makeGpsDictionary(for location: CLLocation) -> [String: Any] {
         var dict: [String: Any] = [:]
         let latitude = location.coordinate.latitude
         let longitude = location.coordinate.longitude
-        
+
         dict[MetadataKeys.gpsLatitudeRef] = latitude < 0 ? "S" : "N"
         dict[MetadataKeys.gpsLatitude] = abs(latitude)
-        
+
         dict[MetadataKeys.gpsLongitudeRef] = longitude < 0 ? "W" : "E"
         dict[MetadataKeys.gpsLongitude] = abs(longitude)
-        
+
         return dict
     }
-    
-    // update software infomation
-    func updateTiff(with source: [String: Any]) -> [String: Any]  {
+
+    /// update software infomation
+    func updateTiff(with source: [String: Any]) -> [String: Any] {
         var editableProps = source
         var tiffInfo = editableProps[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
-        
+
         // Only set default if Software is not already provided by user or original data
         if tiffInfo[MetadataKeys.software] == nil {
             tiffInfo[MetadataKeys.software] = "MetaX"
         }
-        
+
         // Metadata DateTime should be a formatted string, matching the behavior of DateTimeOriginal
         tiffInfo[MetadataKeys.dateTime] = DateFormatter(with: .yMdHms).getStr(from: Date())
-        
+
         editableProps[MetadataKeys.tiffDict] = tiffInfo
         return editableProps
     }
 }
-

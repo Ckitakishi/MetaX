@@ -9,7 +9,7 @@
 import UIKit
 
 class DetailSectionHeaderView: UIView {
-    
+
     private let indicatorBlock: UIView = {
         let view = UIView()
         view.backgroundColor = Theme.Colors.accent
@@ -17,7 +17,7 @@ class DetailSectionHeaderView: UIView {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Theme.Typography.subheadline
@@ -25,7 +25,7 @@ class DetailSectionHeaderView: UIView {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
+
     var headerTitle: String = "" {
         didSet {
             let text = headerTitle.uppercased()
@@ -34,7 +34,7 @@ class DetailSectionHeaderView: UIView {
             titleLabel.attributedText = attributedString
         }
     }
-    
+
     var indicatorColor: UIColor = Theme.Colors.accent {
         didSet {
             indicatorBlock.backgroundColor = indicatorColor
@@ -45,11 +45,12 @@ class DetailSectionHeaderView: UIView {
         super.init(frame: frame)
         setupUI()
     }
-    
+
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private func setupUI() {
         backgroundColor = .clear
         addSubview(indicatorBlock)
@@ -63,7 +64,7 @@ class DetailSectionHeaderView: UIView {
 
             titleLabel.leadingAnchor.constraint(equalTo: indicatorBlock.trailingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Theme.Layout.cardPadding),
-            titleLabel.centerYAnchor.constraint(equalTo: indicatorBlock.centerYAnchor)
+            titleLabel.centerYAnchor.constraint(equalTo: indicatorBlock.centerYAnchor),
         ])
     }
 }

@@ -30,8 +30,8 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
     init(historyService: LocationHistoryServiceProtocol, searchService: LocationSearchServiceProtocol) {
         self.historyService = historyService
         self.searchService = searchService
-        self.history = historyService.fetchAll()
-        
+        history = historyService.fetchAll()
+
         self.searchService.delegate = self
     }
 
@@ -39,7 +39,7 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
 
     func search(query: String) {
         searchTask?.cancel()
-        
+
         if query.isEmpty {
             searchResults = []
             refreshHistory()
@@ -50,13 +50,13 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
             // Debounce for 300ms
             try? await Task.sleep(nanoseconds: 300 * 1_000_000)
             if Task.isCancelled { return }
-            
+
             searchService.search(query: query)
         }
     }
 
     func refreshHistory() {
-        self.history = historyService.fetchAll()
+        history = historyService.fetchAll()
     }
 
     func deleteHistory(at index: Int) {
@@ -75,13 +75,13 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
         }
 
         let selected = searchResults[index]
-        
+
         searchService.resolve(completion: selected) { [weak self] result in
             guard let self = self else { return }
-            
+
             Task { @MainActor in
                 switch result {
-                case .success(let locationModel):
+                case let .success(locationModel):
                     self.selectedLocation = locationModel
                     if let coord = locationModel.coordinate {
                         let historyItem = HistoryLocation(
@@ -100,21 +100,21 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
                         self.refreshHistory()
                     }
                     completion(locationModel)
-                    
-                case .failure(let error):
+
+                case let .failure(error):
                     self.error = error
                     completion(nil)
                 }
             }
         }
     }
-    
+
     func selectHistory(at index: Int) -> LocationModel? {
         guard index < history.count else { return nil }
         let item = history[index]
         var model = LocationModel(title: item.title, subtitle: item.subtitle)
         model.coordinate = CLLocationCoordinate2D(latitude: item.latitude, longitude: item.longitude)
-        
+
         // Restore rich data
         model.country = item.country
         model.countryCode = item.countryCode
@@ -122,22 +122,22 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
         model.city = item.city
         model.street = item.street
         model.houseNumber = item.houseNumber
-        
+
         // Move to top of history
         historyService.save(item)
         refreshHistory()
-        
+
         return model
     }
-    
+
     // MARK: - LocationSearchServiceDelegate
-    
+
     nonisolated func didUpdate(results: [MKLocalSearchCompletion]) {
         Task { @MainActor in
             self.searchResults = results
         }
     }
-    
+
     nonisolated func didFail(with error: Error) {
         Task { @MainActor in
             self.error = error

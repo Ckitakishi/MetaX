@@ -25,11 +25,11 @@ final class DependencyContainer {
 
     init() {
         let photoLibrary = PhotoLibraryService()
-        self.photoLibraryService = photoLibrary
-        self.metadataService = MetadataService()
-        self.imageSaveService = ImageSaveService(photoLibraryService: photoLibrary)
-        self.locationHistoryService = LocationHistoryService()
-        self.locationSearchService = LocationSearchService()
-        self.settingsService = SettingsService()
+        photoLibraryService = photoLibrary
+        metadataService = MetadataService()
+        imageSaveService = ImageSaveService(photoLibraryService: photoLibrary)
+        locationHistoryService = LocationHistoryService()
+        locationSearchService = LocationSearchService()
+        settingsService = SettingsService()
     }
 }

@@ -6,8 +6,8 @@
 //  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
-import UIKit
 import CoreLocation
+import UIKit
 
 protocol DetailCellModelRepresentable {
     var prop: String { get }
@@ -36,7 +36,7 @@ struct DetailCellModel: DetailCellModelRepresentable {
         }
         return result
     }()
-    
+
     init(prop: String, value: String, rawKey: String = "") {
         self.prop = prop
         self.value = value
@@ -45,15 +45,15 @@ struct DetailCellModel: DetailCellModelRepresentable {
 
     init(propValue: [String: Any]) {
         guard let firstProp = propValue.first else {
-            self.prop = "-"
-            self.value = "-"
-            self.rawKey = ""
+            prop = "-"
+            value = "-"
+            rawKey = ""
             return
         }
 
         let rawProp = firstProp.key
-        self.rawKey = rawProp
-        
+        rawKey = rawProp
+
         let localizedProp: String
         switch rawProp {
         case MetadataKeys.dateTimeOriginal: localizedProp = String(localized: .viewAddDate)
@@ -79,13 +79,13 @@ struct DetailCellModel: DetailCellModelRepresentable {
         case MetadataKeys.copyright: localizedProp = String(localized: .copyright)
         default: localizedProp = NSLocalizedString(rawProp, comment: "")
         }
-        
-        self.prop = localizedProp
-        
+
+        prop = localizedProp
+
         let rawValue = DetailCellModel.formatValue(rawValue: firstProp.value, forProp: rawProp)
-        self.value = DetailCellModel.applySymbol(toValue: rawValue, forProp: rawProp)
+        value = DetailCellModel.applySymbol(toValue: rawValue, forProp: rawProp)
     }
-    
+
     private static func formatValue(rawValue: Any, forProp prop: String) -> String {
         // Handle CLLocation
         if let location = rawValue as? CLLocation {
@@ -145,7 +145,7 @@ struct DetailCellModel: DetailCellModelRepresentable {
             : String(format: "%.1f", value)
         return (value > 0 ? "+" : "") + formatted + " EV"
     }
-    
+
     private static func applySymbol(toValue value: String, forProp prop: String) -> String {
         switch prop {
         case MetadataKeys.exposureTime:

@@ -1,0 +1,15 @@
+--maxwidth 120
+--indent 4
+--allman false
+--stripunusedargs closure-only
+--import-grouping alpha
+--trimwhitespace always
+--commas always
+--linebreaks lf
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--extensionacl on-declarations
+--self remove
+--ranges no-space
+--disable blankLinesAtStartOfScope,blankLinesAtEndOfScope,wrapMultilineStatementBraces,wrapLoopBodies,wrapFunctionBodies,wrapPropertyBodies

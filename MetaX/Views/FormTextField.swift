@@ -50,12 +50,19 @@ final class FormTextField: UIView {
         return l
     }()
 
-    init(label: String, placeholder: String? = nil, keyboardType: UIKeyboardType = .default, readOnly: Bool = false, maxLength: Int? = nil, unit: String? = nil) {
+    init(
+        label: String,
+        placeholder: String? = nil,
+        keyboardType: UIKeyboardType = .default,
+        readOnly: Bool = false,
+        maxLength: Int? = nil,
+        unit: String? = nil
+    ) {
         self.maxLength = maxLength
         super.init(frame: .zero)
         self.label.text = label
-        self.textField.placeholder = placeholder
-        self.textField.keyboardType = keyboardType
+        textField.placeholder = placeholder
+        textField.keyboardType = keyboardType
 
         textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 0))
         textField.leftViewMode = .always
@@ -67,7 +74,7 @@ final class FormTextField: UIView {
             NSLayoutConstraint.activate([
                 unitLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
                 unitLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
-                unitLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+                unitLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
             ])
             textField.rightView = container
             textField.rightViewMode = .always
@@ -89,7 +96,7 @@ final class FormTextField: UIView {
             textField.leadingAnchor.constraint(equalTo: leadingAnchor),
             textField.trailingAnchor.constraint(equalTo: trailingAnchor),
             textField.bottomAnchor.constraint(equalTo: bottomAnchor),
-            textField.heightAnchor.constraint(equalToConstant: 50)
+            textField.heightAnchor.constraint(equalToConstant: 50),
         ]
 
         if let max = maxLength {
@@ -98,7 +105,7 @@ final class FormTextField: UIView {
             constraints += [
                 counterLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
                 counterLabel.firstBaselineAnchor.constraint(equalTo: self.label.firstBaselineAnchor),
-                self.label.trailingAnchor.constraint(lessThanOrEqualTo: counterLabel.leadingAnchor, constant: -8)
+                self.label.trailingAnchor.constraint(lessThanOrEqualTo: counterLabel.leadingAnchor, constant: -8),
             ]
             textField.addTarget(self, action: #selector(updateCounter), for: .editingChanged)
         } else {
@@ -112,7 +119,10 @@ final class FormTextField: UIView {
         }
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError()
+    }
 
     @objc private func updateCounter() {
         guard let max = maxLength else { return }

@@ -52,7 +52,8 @@ final class KeyboardObserver {
 
         if isShowing {
             guard let userInfo = notification.userInfo,
-                  let keyboardFrame = (userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue else { return }
+                  let keyboardFrame = (userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue
+            else { return }
 
             let contentInsets = UIEdgeInsets(top: 0, left: 0, bottom: keyboardFrame.height, right: 0)
             scrollView.contentInset = contentInsets

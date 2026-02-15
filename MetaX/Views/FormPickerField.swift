@@ -21,32 +21,32 @@ enum ExifPickerOptions {
         (6, String(localized: .exposureProgramAction)),
         (7, String(localized: .exposureProgramPortrait)),
         (8, String(localized: .exposureProgramLandscape)),
-        (9, String(localized: .exposureProgramBulb))
+        (9, String(localized: .exposureProgramBulb)),
     ]
 
     static let meteringMode: [ExifOption] = [
-        (0,   String(localized: .meteringModeUnknown)),
-        (1,   String(localized: .meteringModeAverage)),
-        (2,   String(localized: .meteringModeCenterWeightedAverage)),
-        (3,   String(localized: .meteringModeSpot)),
-        (4,   String(localized: .meteringModeMultiSpot)),
-        (5,   String(localized: .meteringModeMultiSegment)),
-        (6,   String(localized: .meteringModePartial)),
-        (255, String(localized: .meteringModeOther))
+        (0, String(localized: .meteringModeUnknown)),
+        (1, String(localized: .meteringModeAverage)),
+        (2, String(localized: .meteringModeCenterWeightedAverage)),
+        (3, String(localized: .meteringModeSpot)),
+        (4, String(localized: .meteringModeMultiSpot)),
+        (5, String(localized: .meteringModeMultiSegment)),
+        (6, String(localized: .meteringModePartial)),
+        (255, String(localized: .meteringModeOther)),
     ]
 
     static let whiteBalance: [ExifOption] = [
         (0, String(localized: .whiteBalanceAuto)),
-        (1, String(localized: .whiteBalanceManual))
+        (1, String(localized: .whiteBalanceManual)),
     ]
 
     static let flash: [ExifOption] = [
-        (0,  String(localized: .flashNoFlash)),
-        (1,  String(localized: .flashFired)),
-        (5,  String(localized: .flashFiredReturnNotDetected)),
-        (7,  String(localized: .flashFiredReturnDetected)),
-        (8,  String(localized: .flashOnDidNotFire)),
-        (9,  String(localized: .flashOnFired)),
+        (0, String(localized: .flashNoFlash)),
+        (1, String(localized: .flashFired)),
+        (5, String(localized: .flashFiredReturnNotDetected)),
+        (7, String(localized: .flashFiredReturnDetected)),
+        (8, String(localized: .flashOnDidNotFire)),
+        (9, String(localized: .flashOnFired)),
         (13, String(localized: .flashOnReturnNotDetected)),
         (15, String(localized: .flashOnReturnDetected)),
         (16, String(localized: .flashOffDidNotFire)),
@@ -67,7 +67,7 @@ enum ExifPickerOptions {
         (88, String(localized: .flashAutoDidNotFireRedEyeReduction)),
         (89, String(localized: .flashAutoFiredRedEyeReduction)),
         (93, String(localized: .flashAutoFiredRedEyeReductionReturnNotDetected)),
-        (95, String(localized: .flashAutoFiredRedEyeReductionReturnDetected))
+        (95, String(localized: .flashAutoFiredRedEyeReductionReturnDetected)),
     ]
 }
 
@@ -119,7 +119,7 @@ final class FormPickerField: UIView {
             button.leadingAnchor.constraint(equalTo: leadingAnchor),
             button.trailingAnchor.constraint(equalTo: trailingAnchor),
             button.bottomAnchor.constraint(equalTo: bottomAnchor),
-            button.heightAnchor.constraint(greaterThanOrEqualToConstant: 50)
+            button.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
         ])
 
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: FormPickerField, _: UITraitCollection) in
@@ -130,7 +130,10 @@ final class FormPickerField: UIView {
         }
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError()
+    }
 
     func select(rawValue: Int) {
         selectedRawValue = rawValue

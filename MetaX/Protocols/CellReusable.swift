@@ -14,23 +14,26 @@ protocol Reusable: AnyObject {
 }
 
 extension Reusable {
-    static var reuseIdentifier: String { return String(describing: Self.self) }
-    static var nib: UINib? { return nil }
+    static var reuseIdentifier: String {
+        return String(describing: Self.self)
+    }
+
+    static var nib: UINib? {
+        return nil
+    }
 }
 
 extension UITableView {
-    
-    func registerReusableCell<T: UITableViewCell>(_: T.Type) where T: Reusable {
+
+    func registerReusableCell<T: UITableViewCell & Reusable>(_: T.Type) {
         if let nib = T.nib {
             register(nib, forCellReuseIdentifier: T.reuseIdentifier)
         } else {
             register(T.self, forCellReuseIdentifier: T.reuseIdentifier)
         }
     }
-    
-    func dequeueReusableCell<T: UITableViewCell>(indexPath: IndexPath) -> T where T: Reusable {
-        return self.dequeueReusableCell(withIdentifier: T.reuseIdentifier, for: indexPath) as! T
+
+    func dequeueReusableCell<T: UITableViewCell & Reusable>(indexPath: IndexPath) -> T {
+        return dequeueReusableCell(withIdentifier: T.reuseIdentifier, for: indexPath) as! T
     }
 }
-
-

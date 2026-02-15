@@ -6,11 +6,11 @@
 //  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
-import UIKit
 import MapKit
+import UIKit
 
 class LocationTableViewCell: UITableViewCell {
-    
+
     private let cardView: UIView = {
         let view = UIView()
         view.backgroundColor = Theme.Colors.cardBackground
@@ -20,7 +20,7 @@ class LocationTableViewCell: UITableViewCell {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Theme.Typography.bodyMedium
@@ -28,7 +28,7 @@ class LocationTableViewCell: UITableViewCell {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
+
     private let subTitleLabel: UILabel = {
         let label = UILabel()
         label.font = Theme.Typography.footnote
@@ -37,7 +37,7 @@ class LocationTableViewCell: UITableViewCell {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
+
     var cellDataSource: LocationModelRepresentable? {
         didSet {
             guard let dataSource = cellDataSource else { return }
@@ -45,28 +45,29 @@ class LocationTableViewCell: UITableViewCell {
             subTitleLabel.text = dataSource.shortPlacemark
         }
     }
-    
+
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupUI()
     }
-    
+
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private func setupUI() {
         selectionStyle = .none
         backgroundColor = .clear
-        
+
         contentView.addSubview(cardView)
-        
+
         let stack = UIStackView(arrangedSubviews: [titleLabel, subTitleLabel])
         stack.axis = .vertical
         stack.spacing = 4
         stack.translatesAutoresizingMaskIntoConstraints = false
         cardView.addSubview(stack)
-        
+
         NSLayoutConstraint.activate([
             cardView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 6),
             cardView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
@@ -76,14 +77,17 @@ class LocationTableViewCell: UITableViewCell {
             stack.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 12),
             stack.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -12),
             stack.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 12),
-            stack.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -12)
+            stack.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -12),
         ])
 
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: LocationTableViewCell, _: UITraitCollection) in
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (
+            self: LocationTableViewCell,
+            _: UITraitCollection
+        ) in
             self.cardView.layer.borderColor = Theme.Colors.border.cgColor
         }
     }
-    
+
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         super.setHighlighted(highlighted, animated: animated)
         UIView.animate(withDuration: 0.1) {

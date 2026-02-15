@@ -9,26 +9,26 @@
 import UIKit
 
 extension DateFormatter {
-    
+
     enum Format: String {
         case yMd = "yyyy.MM.dd"
         case yMdHms = "yyyy:MM:dd HH:mm:ss"
     }
-    
+
     convenience init(with format: Format) {
         self.init()
-        self.dateFormat = format.rawValue
+        dateFormat = format.rawValue
     }
-    
+
     func setFormat(_ format: Format) {
         dateFormat = format.rawValue
     }
-    
-    func getStr(from date:Date) -> String {
-        return self.string(from: date)
+
+    func getStr(from date: Date) -> String {
+        return string(from: date)
     }
-    
-    func getDate(from str:String) -> Date? {
+
+    func getDate(from str: String) -> Date? {
         return date(from: str)
     }
 }

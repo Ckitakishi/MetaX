@@ -6,8 +6,8 @@
 //  Copyright © 2026 Chen Yuhan. All rights reserved.
 //
 
-import Photos
 import CoreImage
+import Photos
 import UniformTypeIdentifiers
 
 /// Protocol defining image save operations
@@ -17,7 +17,7 @@ protocol ImageSaveServiceProtocol {
         asset: PHAsset,
         newProperties: [String: Any]
     ) async -> Result<PHAsset, MetaXError>
-    
+
     /// Edit existing asset metadata using non-destructive editing
     func editAssetMetadata(
         asset: PHAsset,
@@ -29,10 +29,12 @@ protocol ImageSaveServiceProtocol {
 final class ImageSaveService: ImageSaveServiceProtocol {
 
     // MARK: - Dependencies
+
     private let photoLibraryService: PhotoLibraryServiceProtocol
     private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
 
     // MARK: - Initialization
+
     init(photoLibraryService: PhotoLibraryServiceProtocol) {
         self.photoLibraryService = photoLibraryService
     }
@@ -51,19 +53,19 @@ final class ImageSaveService: ImageSaveServiceProtocol {
 
         // 2. Generate new image data to temp file
         let tempURLResult = await generateModifiedImageFile(for: asset, newProperties: newProperties)
-        guard case .success(let tempURL) = tempURLResult else {
+        guard case let .success(tempURL) = tempURLResult else {
             return .failure(tempURLResult.error ?? .imageSave(.editionFailed))
         }
 
         // 3. Create new asset from temp file
         let createResult = await createAssetInMetaXAlbum(from: tempURL)
-        
+
         // 4. Clean up temp file
         try? FileManager.default.removeItem(at: tempURL)
 
         return createResult
     }
-    
+
     func editAssetMetadata(
         asset: PHAsset,
         newProperties: [String: Any]
@@ -106,16 +108,16 @@ final class ImageSaveService: ImageSaveServiceProtocol {
 
                 output.adjustmentData = Self.makeAdjustmentData()
 
-                PHPhotoLibrary.shared().performChanges({
+                PHPhotoLibrary.shared().performChanges {
                     PHAssetChangeRequest(for: asset).contentEditingOutput = output
-                }, completionHandler: { success, error in
+                } completionHandler: { success, error in
                     if success {
                         continuation.resume(returning: .success(asset))
                     } else {
                         print("[MetaX] editStillPhotoMetadata: performChanges failed: \(String(describing: error))")
                         continuation.resume(returning: .failure(.imageSave(.editionFailed)))
                     }
-                })
+                }
             }
         }
     }
@@ -128,9 +130,10 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             let options = PHContentEditingInputRequestOptions()
             options.isNetworkAccessAllowed = true
 
-            asset.requestContentEditingInput(with: options) { input, info in
+            asset.requestContentEditingInput(with: options) { input, _ in
                 guard let input = input,
-                      let context = PHLivePhotoEditingContext(livePhotoEditingInput: input) else {
+                      let context = PHLivePhotoEditingContext(livePhotoEditingInput: input)
+                else {
                     print("[MetaX] editLivePhotoMetadata: no input or context")
                     continuation.resume(returning: .failure(.imageSave(.editionFailed)))
                     return
@@ -163,16 +166,16 @@ final class ImageSaveService: ImageSaveServiceProtocol {
 
                     output.adjustmentData = Self.makeAdjustmentData()
 
-                    PHPhotoLibrary.shared().performChanges({
+                    PHPhotoLibrary.shared().performChanges {
                         PHAssetChangeRequest(for: asset).contentEditingOutput = output
-                    }, completionHandler: { success, error in
+                    } completionHandler: { success, error in
                         if success {
                             continuation.resume(returning: .success(asset))
                         } else {
                             print("[MetaX] editLivePhotoMetadata: performChanges failed: \(String(describing: error))")
                             continuation.resume(returning: .failure(.imageSave(.editionFailed)))
                         }
-                    })
+                    }
                 }
             }
         }
@@ -203,29 +206,29 @@ final class ImageSaveService: ImageSaveServiceProtocol {
                     continuation.resume(returning: .failure(.imageSave(.editionFailed)))
                     return
                 }
-                
+
                 // Construct a new filename with suffix, avoiding duplicates
                 let resources = PHAssetResource.assetResources(for: asset)
                 let originalName = resources.first?.originalFilename ?? "IMG.JPG"
                 let nameURL = URL(fileURLWithPath: originalName)
                 let baseName = nameURL.deletingPathExtension().lastPathComponent
                 let ext = nameURL.pathExtension.isEmpty ? "JPG" : nameURL.pathExtension
-                
+
                 let suffix = "_MetaX"
                 let finalBaseName = baseName.hasSuffix(suffix) ? baseName : (baseName + suffix)
                 let newFileName = "\(finalBaseName).\(ext)"
-                
+
                 let tmpUrl = URL(fileURLWithPath: NSTemporaryDirectory() + newFileName)
-                
+
                 // Remove existing temp file if it exists
                 try? FileManager.default.removeItem(at: tmpUrl)
-                
+
                 let success = self.writeModifiedImage(
                     sourceURL: imageURL,
                     destinationURL: tmpUrl,
                     newProperties: newProperties
                 )
-                
+
                 if success {
                     continuation.resume(returning: .success(tmpUrl))
                 } else {
@@ -234,7 +237,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             }
         }
     }
-    
+
     private func writeModifiedImage(
         sourceURL: URL,
         destinationURL: URL,
@@ -243,7 +246,8 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         // Copy pixel data as-is (no decode/re-encode) and only replace metadata.
         // This avoids recompression loss on JPEG/HEIC.
         guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, nil),
-              let sourceType = CGImageSourceGetType(source) else {
+              let sourceType = CGImageSourceGetType(source)
+        else {
             print("[MetaX] writeModifiedImage: CGImageSource creation or type detection failed")
             return false
         }
@@ -284,8 +288,11 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             // CIImage handles wide color, HDR, and HEIC correctly; baking orientation
             // into pixels and setting orientation=1 is required for Photos to accept the output.
             guard let ciImage = CIImage(contentsOf: sourceURL, options: [.applyOrientationProperty: true]),
-                  let cgImage = self.ciContext.createCGImage(ciImage, from: ciImage.extent) else {
-                print("[MetaX] writeModifiedImage: CIImage decode failed for cross-format \(sourceFormatStr) → \(destFormatStr)")
+                  let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent)
+            else {
+                print(
+                    "[MetaX] writeModifiedImage: CIImage decode failed for cross-format \(sourceFormatStr) → \(destFormatStr)"
+                )
                 try? FileManager.default.removeItem(at: tempURL)
                 return false
             }
@@ -319,7 +326,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
     }
 
     private func createAssetInMetaXAlbum(from tempURL: URL) async -> Result<PHAsset, MetaXError> {
-        var localId: String = ""
+        var localId = ""
 
         do {
             try await PHPhotoLibrary.shared().performChanges {
@@ -328,7 +335,11 @@ final class ImageSaveService: ImageSaveServiceProtocol {
 
                 let fetchOptions = PHFetchOptions()
                 fetchOptions.predicate = NSPredicate(format: "title = %@", "MetaX")
-                let collection = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: fetchOptions)
+                let collection = PHAssetCollection.fetchAssetCollections(
+                    with: .album,
+                    subtype: .any,
+                    options: fetchOptions
+                )
 
                 if let album = collection.firstObject,
                    let placeholder = request?.placeholderForCreatedAsset {
@@ -349,9 +360,9 @@ final class ImageSaveService: ImageSaveServiceProtocol {
     }
 }
 
-fileprivate extension Result {
-    var error: Failure? {
-        if case .failure(let error) = self { return error }
+extension Result {
+    fileprivate var error: Failure? {
+        if case let .failure(error) = self { return error }
         return nil
     }
 }

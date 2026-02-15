@@ -6,10 +6,10 @@
 //  Copyright © 2026 Chen Yuhan. All rights reserved.
 //
 
-import UIKit
-import Photos
-import Observation
 import CoreLocation
+import Observation
+import Photos
+import UIKit
 
 enum HeroContent {
     case photo(UIImage)
@@ -83,7 +83,7 @@ final class DetailInfoViewModel {
 
     func configure(with asset: PHAsset, collection: PHAssetCollection?) {
         self.asset = asset
-        self.assetCollection = collection
+        assetCollection = collection
     }
 
     func updateAsset(_ asset: PHAsset?) {
@@ -99,7 +99,7 @@ final class DetailInfoViewModel {
             for: asset,
             targetSize: targetSize,
             contentMode: .aspectFit
-        ) { [weak self] image, isDegraded in
+        ) { [weak self] image, _ in
             Task { @MainActor in
                 if let image { self?.heroContent = .photo(image) }
             }
@@ -128,23 +128,23 @@ final class DetailInfoViewModel {
 
         // Validate media type
         guard asset.mediaType == .image else {
-            self.error = .metadata(.unsupportedMediaType)
+            error = .metadata(.unsupportedMediaType)
             return
         }
 
-        self.isLoading = true
+        isLoading = true
 
         // Force reload from Photo Library to get the latest edited metadata
         let result = await metadataService.loadMetadata(from: asset)
 
-        self.isLoading = false
+        isLoading = false
 
         switch result {
-        case .success(let metadata):
+        case let .success(metadata):
             self.metadata = metadata
-            self.updateDisplayData(from: metadata)
+            updateDisplayData(from: metadata)
             await refreshMetaXEditStatus()
-        case .failure(let error):
+        case let .failure(error):
             self.error = error
         }
     }
@@ -182,8 +182,10 @@ final class DetailInfoViewModel {
                 adjustmentData.formatIdentifier == Bundle.main.bundleIdentifier
             }
             asset.requestContentEditingInput(with: options) { input, _ in
-                continuation.resume(returning:
-                    input?.adjustmentData?.formatIdentifier == Bundle.main.bundleIdentifier)
+                continuation.resume(
+                    returning:
+                    input?.adjustmentData?.formatIdentifier == Bundle.main.bundleIdentifier
+                )
             }
         }
     }
@@ -254,24 +256,24 @@ final class DetailInfoViewModel {
     private func performSaveOperation(properties: [String: Any], mode: SaveWorkflowMode) async -> Bool {
         guard let asset = asset else { return false }
 
-        self.isSaving = true
-        
+        isSaving = true
+
         let result: Result<PHAsset, MetaXError>
         let originalToDelete: PHAsset?
-        
+
         switch mode {
         case .updateOriginal:
             result = await imageSaveService.editAssetMetadata(asset: asset, newProperties: properties)
             originalToDelete = nil
-        case .saveAsCopy(let deleteOriginal):
+        case let .saveAsCopy(deleteOriginal):
             result = await imageSaveService.saveImageAsNewAsset(asset: asset, newProperties: properties)
             originalToDelete = deleteOriginal ? asset : nil
         }
 
-        self.isSaving = false
+        isSaving = false
 
         switch result {
-        case .success(let newAsset):
+        case let .success(newAsset):
             // PHContentEditingOutput only updates the rendered image file.
             // PHAsset-level properties (creationDate, location) live in Photos' own
             // database and must be synced separately for both save modes.
@@ -281,13 +283,13 @@ final class DetailInfoViewModel {
             if let oldAsset = originalToDelete {
                 _ = await photoLibraryService.deleteAsset(oldAsset)
             }
-            
-        case .failure(let error):
+
+        case let .failure(error):
             self.error = error
         }
 
         if case .success = result {
-            await self.loadMetadata()
+            await loadMetadata()
             return true
         }
         return false
@@ -314,8 +316,10 @@ final class DetailInfoViewModel {
            let latRef = gps[MetadataKeys.gpsLatitudeRef] as? String,
            let lon = gps[MetadataKeys.gpsLongitude] as? Double,
            let lonRef = gps[MetadataKeys.gpsLongitudeRef] as? String {
-            newLocation = CLLocation(latitude: latRef == "N" ? lat : -lat,
-                                    longitude: lonRef == "E" ? lon : -lon)
+            newLocation = CLLocation(
+                latitude: latRef == "N" ? lat : -lat,
+                longitude: lonRef == "E" ? lon : -lon
+            )
         } else {
             newLocation = nil
         }
@@ -350,8 +354,8 @@ final class DetailInfoViewModel {
     }
 
     private func updateDisplayData(from metadata: Metadata) {
-        self.currentLocation = metadata.rawGPS
-        self.tableViewDataSource = metadata.metaProps.map { (section, props) in
+        currentLocation = metadata.rawGPS
+        tableViewDataSource = metadata.metaProps.map { section, props in
             (section: section, rows: props.map { DetailCellModel(propValue: $0) })
         }
         if let location = currentLocation {
@@ -373,7 +377,7 @@ final class DetailInfoViewModel {
             updateLocationTextInDataSource(displayText)
         }
     }
-    
+
     private func updateLocationTextInDataSource(_ text: String) {
         for (sIdx, entry) in tableViewDataSource.enumerated() {
             guard entry.section == .basicInfo else { continue }
@@ -390,6 +394,6 @@ final class DetailInfoViewModel {
     }
 
     func setFileName(_ name: String) {
-        self.fileName = name
+        fileName = name
     }
 }

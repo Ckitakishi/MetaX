@@ -91,6 +91,7 @@ class AlbumHeroTableViewCell: UITableViewCell {
         setupUI()
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -99,7 +100,10 @@ class AlbumHeroTableViewCell: UITableViewCell {
         selectionStyle = .none
         backgroundColor = .clear
 
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (cell: AlbumHeroTableViewCell, _: UITraitCollection) in
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (
+            cell: AlbumHeroTableViewCell,
+            _: UITraitCollection
+        ) in
             Theme.Shadows.updateLayerColors(for: cell.cardView.layer)
             Theme.Shadows.updateLayerColors(for: cell.thumbnailImageView.layer)
             Theme.Shadows.updateLayerColors(for: cell.countTagView.layer)
@@ -119,34 +123,49 @@ class AlbumHeroTableViewCell: UITableViewCell {
         NSLayoutConstraint.activate([
             cardView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Theme.Layout.cellSpacing),
             cardView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Theme.Layout.cardPadding),
-            cardView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Theme.Layout.cardPadding),
+            cardView.trailingAnchor.constraint(
+                equalTo: contentView.trailingAnchor,
+                constant: -Theme.Layout.cardPadding
+            ),
             cardView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -Theme.Layout.cellSpacing),
-            
+
             thumbnailImageView.topAnchor.constraint(equalTo: cardView.topAnchor),
             thumbnailImageView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
             thumbnailImageView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-            thumbnailImageView.heightAnchor.constraint(equalTo: thumbnailImageView.widthAnchor, multiplier: Theme.Layout.heroAspectRatio),
+            thumbnailImageView.heightAnchor.constraint(
+                equalTo: thumbnailImageView.widthAnchor,
+                multiplier: Theme.Layout.heroAspectRatio
+            ),
 
-            titleLabel.topAnchor.constraint(equalTo: thumbnailImageView.bottomAnchor, constant: Theme.Layout.cardPadding),
-            titleLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: Theme.Layout.horizontalMargin),
-            titleLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -Theme.Layout.horizontalMargin),
+            titleLabel.topAnchor.constraint(
+                equalTo: thumbnailImageView.bottomAnchor,
+                constant: Theme.Layout.cardPadding
+            ),
+            titleLabel.leadingAnchor.constraint(
+                equalTo: cardView.leadingAnchor,
+                constant: Theme.Layout.horizontalMargin
+            ),
+            titleLabel.trailingAnchor.constraint(
+                equalTo: cardView.trailingAnchor,
+                constant: -Theme.Layout.horizontalMargin
+            ),
             titleLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -Theme.Layout.cardPadding),
-            
+
             countTagView.topAnchor.constraint(equalTo: thumbnailImageView.topAnchor, constant: 12),
             countTagView.trailingAnchor.constraint(equalTo: thumbnailImageView.trailingAnchor, constant: -12),
-            
+
             countIconView.leadingAnchor.constraint(equalTo: countTagView.leadingAnchor, constant: 10),
             countIconView.centerYAnchor.constraint(equalTo: countTagView.centerYAnchor),
             countIconView.widthAnchor.constraint(equalToConstant: 14),
             countIconView.heightAnchor.constraint(equalToConstant: 14),
-            
+
             countLabel.leadingAnchor.constraint(equalTo: countIconView.trailingAnchor, constant: 6),
             countLabel.trailingAnchor.constraint(equalTo: countTagView.trailingAnchor, constant: -10),
             countLabel.centerYAnchor.constraint(equalTo: countTagView.centerYAnchor),
-            countTagView.heightAnchor.constraint(equalToConstant: 26)
+            countTagView.heightAnchor.constraint(equalToConstant: 26),
         ])
     }
-    
+
     override func prepareForReuse() {
         super.prepareForReuse()
         cancelThumbnailRequest?()

@@ -6,9 +6,9 @@
 //  Copyright © 2026 Chen Yuhan. All rights reserved.
 //
 
-import Photos
-import CoreLocation
 import CoreImage
+import CoreLocation
+import Photos
 
 /// Service for metadata operations
 final class MetadataService: MetadataServiceProtocol {
@@ -46,7 +46,8 @@ final class MetadataService: MetadataServiceProtocol {
 
                 guard let imageURL = input?.fullSizeImageURL,
                       let ciImage = CIImage(contentsOf: imageURL),
-                      let metadata = Metadata(ciimage: ciImage) else {
+                      let metadata = Metadata(ciimage: ciImage)
+                else {
                     continuation.resume(returning: .failure(.metadata(.readFailed)))
                     return
                 }
@@ -84,7 +85,7 @@ final class MetadataService: MetadataServiceProtocol {
     func removeAllMetadata(from metadata: Metadata) -> [String: Any] {
         metadata.deleteAllExceptOrientation() ?? metadata.sourceProperties
     }
-    
+
     func updateMetadata(with batch: [String: Any], in metadata: Metadata) -> [String: Any] {
         metadata.write(batch: batch)
     }

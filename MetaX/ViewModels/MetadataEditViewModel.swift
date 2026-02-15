@@ -6,8 +6,8 @@
 //  Copyright © 2026 Yuhan Chen. All rights reserved.
 //
 
-import UIKit
 import CoreLocation
+import UIKit
 
 enum MetadataField: CaseIterable {
     case make, model, lensMake, lensModel
@@ -107,7 +107,7 @@ enum MetadataField: CaseIterable {
 }
 
 struct MetadataEditViewModel {
-    
+
     struct RawFields: Equatable {
         var make: String?
         var model: String?
@@ -153,27 +153,27 @@ struct MetadataEditViewModel {
             if l1 == nil && l2 == nil { return true }
             guard let l1 = l1, let l2 = l2 else { return false }
             return l1.coordinate.latitude == l2.coordinate.latitude &&
-                   l1.coordinate.longitude == l2.coordinate.longitude &&
-                   l1.altitude == l2.altitude
+                l1.coordinate.longitude == l2.coordinate.longitude &&
+                l1.altitude == l2.altitude
         }
     }
-    
+
     /// Converts raw UI inputs into a metadata batch dictionary for saving.
     func prepareBatch(from raw: RawFields) -> [String: Any] {
         var batch: [String: Any] = [:]
-        
+
         batch[MetadataKeys.make] = (raw.make?.isEmpty ?? true) ? NSNull() : raw.make
         batch[MetadataKeys.model] = (raw.model?.isEmpty ?? true) ? NSNull() : raw.model
         batch[MetadataKeys.lensMake] = (raw.lensMake?.isEmpty ?? true) ? NSNull() : raw.lensMake
         batch[MetadataKeys.lensModel] = (raw.lensModel?.isEmpty ?? true) ? NSNull() : raw.lensModel
-        
+
         // Aperture
         if let val = raw.aperture, let d = Double(val) {
             batch[MetadataKeys.fNumber] = d
         } else {
             batch[MetadataKeys.fNumber] = NSNull()
         }
-        
+
         // Shutter Speed
         if let val = raw.shutter, !val.isEmpty {
             if val.contains("/") {
@@ -191,21 +191,21 @@ struct MetadataEditViewModel {
         } else {
             batch[MetadataKeys.exposureTime] = NSNull()
         }
-        
+
         // ISO
         if let val = raw.iso, let i = Int(val) {
             batch[MetadataKeys.isoSpeedRatings] = [i]
         } else {
             batch[MetadataKeys.isoSpeedRatings] = NSNull()
         }
-        
+
         // Focal Length
         if let val = raw.focalLength, let d = Double(val) {
             batch[MetadataKeys.focalLength] = d
         } else {
             batch[MetadataKeys.focalLength] = NSNull()
         }
-        
+
         // Exposure Bias
         if let val = raw.exposureBias, !val.isEmpty {
             let cleanVal = val.replacingOccurrences(of: "+", with: "")
@@ -217,38 +217,43 @@ struct MetadataEditViewModel {
         } else {
             batch[MetadataKeys.exposureBiasValue] = NSNull()
         }
-        
+
         // Focal Length In 35mm
         if let val = raw.focalLength35, let i = Int(val) {
             batch[MetadataKeys.focalLenIn35mmFilm] = i
         } else {
             batch[MetadataKeys.focalLenIn35mmFilm] = NSNull()
         }
-        
+
         // Pickers
         batch[MetadataKeys.exposureProgram] = raw.exposureProgram ?? NSNull()
         batch[MetadataKeys.meteringMode] = raw.meteringMode ?? NSNull()
         batch[MetadataKeys.whiteBalance] = raw.whiteBalance ?? NSNull()
         batch[MetadataKeys.flash] = raw.flash ?? NSNull()
-        
+
         // Date and Location
         batch[MetadataKeys.dateTimeOriginal] = raw.dateTimeOriginal ?? NSNull()
         batch[MetadataKeys.location] = raw.location ?? NSNull()
-        
+
         // Copyright
         batch[MetadataKeys.artist] = (raw.artist?.isEmpty ?? true) ? NSNull() : raw.artist
         batch[MetadataKeys.copyright] = (raw.copyright?.isEmpty ?? true) ? NSNull() : raw.copyright
-        
+
         return batch
     }
-    
+
     /// Pure logic to validate if a string change should be allowed for a specific field.
-    func validateInput(currentText: String, range: NSRange, replacementString string: String, for field: MetadataField) -> Bool {
+    func validateInput(
+        currentText: String,
+        range: NSRange,
+        replacementString string: String,
+        for field: MetadataField
+    ) -> Bool {
         if string.isEmpty { return true } // Always allow backspace
-        
+
         guard let stringRange = Range(range, in: currentText) else { return false }
         let updatedText = currentText.replacingCharacters(in: stringRange, with: string)
-        
+
         // 1. Character length limits
         let maxLength: Int
         switch field {
@@ -259,20 +264,20 @@ struct MetadataEditViewModel {
         default: maxLength = 100
         }
         if updatedText.count > maxLength { return false }
-        
+
         switch field {
         case .iso, .focalLength35:
             // Positive Integers
             let allowedCharset = CharacterSet.decimalDigits
             return updatedText.rangeOfCharacter(from: allowedCharset.inverted) == nil
-            
+
         case .aperture, .focalLength:
             // Positive Decimals
             let allowedCharset = CharacterSet(charactersIn: "0123456789.")
             if updatedText.rangeOfCharacter(from: allowedCharset.inverted) != nil { return false }
             let dotCount = updatedText.filter { $0 == "." }.count
             return dotCount <= 1
-            
+
         case .shutter:
             // Fractions or Decimals
             let allowedCharset = CharacterSet(charactersIn: "0123456789./")
@@ -280,21 +285,21 @@ struct MetadataEditViewModel {
             let slashCount = updatedText.filter { $0 == "/" }.count
             let dotCount = updatedText.filter { $0 == "." }.count
             return slashCount <= 1 && dotCount <= 1
-            
+
         case .exposureBias:
             // Signed Decimals
             let allowedCharset = CharacterSet(charactersIn: "0123456789.+-")
             if updatedText.rangeOfCharacter(from: allowedCharset.inverted) != nil { return false }
-            
+
             if updatedText.filter({ $0 == "." }).count > 1 { return false }
-            
+
             let signs = updatedText.filter { $0 == "+" || $0 == "-" }
             if signs.count > 1 { return false }
             if signs.count == 1 {
                 return updatedText.hasPrefix("+") || updatedText.hasPrefix("-")
             }
             return true
-            
+
         default:
             return true
         }

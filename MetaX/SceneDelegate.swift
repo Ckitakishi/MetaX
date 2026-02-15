@@ -15,7 +15,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
     private var container: DependencyContainer?
     private var coordinator: AppCoordinator?
 
-    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions
+    ) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         let window = UIWindow(windowScene: windowScene)
@@ -33,17 +37,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
         splitVC.viewControllers = [masterNav, detailNav]
         splitVC.delegate = self
         splitVC.preferredDisplayMode = .oneBesideSecondary
-        
+
         // Initialize Global Coordinator
-        self.coordinator = AppCoordinator(navigationController: masterNav, container: container)
+        coordinator = AppCoordinator(navigationController: masterNav, container: container)
         albumVC.router = coordinator
 
         window.rootViewController = splitVC
         window.tintColor = Theme.Colors.accent
-        
+
         // Apply saved appearance
         window.overrideUserInterfaceStyle = container.settingsService.userInterfaceStyle
-        
+
         window.makeKeyAndVisible()
         self.window = window
 
@@ -55,14 +59,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
         splashWindow.windowLevel = .normal + 1
         splashWindow.rootViewController = UIViewController()
         splashWindow.rootViewController?.view.backgroundColor = .clear
-        
+
         let splashView = SplashView(frame: splashWindow.bounds)
         splashView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         splashWindow.rootViewController?.view.addSubview(splashView)
-        
+
         splashWindow.makeKeyAndVisible()
         self.splashWindow = splashWindow
-        
+
         dismissalTrigger.splashDismissHandler = { [weak self] in
             guard let self = self else { return }
             UIView.animate(withDuration: Theme.Animation.splashFade, delay: 0, options: .curveEaseOut) {
@@ -75,8 +79,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
 
     // MARK: - UISplitViewControllerDelegate
 
-    // Ensures that on iPhone (collapsed), we start with the Album list.
-    func splitViewController(_ splitViewController: UISplitViewController, collapseSecondary secondaryViewController: UIViewController, onto primaryViewController: UIViewController) -> Bool {
+    /// Ensures that on iPhone (collapsed), we start with the Album list.
+    func splitViewController(
+        _ splitViewController: UISplitViewController,
+        collapseSecondary secondaryViewController: UIViewController,
+        onto primaryViewController: UIViewController
+    ) -> Bool {
         // Return true to indicate that we have handled the collapse,
         // which will cause the UISplitViewController to show the Primary (Master) view on top for iPhone.
         return true

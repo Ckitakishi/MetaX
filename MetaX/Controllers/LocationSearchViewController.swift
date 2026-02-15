@@ -6,8 +6,8 @@
 //  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
-import UIKit
 import MapKit
+import UIKit
 
 protocol LocationSearchDelegate: AnyObject {
     func didSelect(_ model: LocationModel)
@@ -16,17 +16,18 @@ protocol LocationSearchDelegate: AnyObject {
 class LocationSearchViewController: UIViewController, ViewModelObserving, UITextFieldDelegate {
 
     // MARK: - ViewModel
+
     private let viewModel: LocationSearchViewModel
 
     // MARK: - UI Components
-    
+
     private let searchBarContainer: UIView = {
         let view = UIView()
         view.backgroundColor = Theme.Colors.mainBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
+
     private let searchTextField: UITextField = {
         let tf = UITextField()
         tf.backgroundColor = Theme.Colors.tagBackground
@@ -38,7 +39,7 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
         tf.autocorrectionType = .no
         tf.returnKeyType = .search
         tf.clearButtonMode = .whileEditing
-        
+
         // Left padding with icon
         let iconView = UIImageView(image: UIImage(systemName: "magnifyingglass"))
         iconView.tintColor = .secondaryLabel
@@ -48,7 +49,7 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
         padding.addSubview(iconView)
         tf.leftView = padding
         tf.leftViewMode = .always
-        
+
         tf.translatesAutoresizingMaskIntoConstraints = false
         return tf
     }()
@@ -60,7 +61,7 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
         table.translatesAutoresizingMaskIntoConstraints = false
         return table
     }()
-    
+
     private let emptyStateLabel: UILabel = {
         let label = UILabel()
         label.text = String(localized: .searchEmptyHint)
@@ -80,20 +81,22 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
     }
 
     // MARK: - Initialization
-    
+
     init(container: DependencyContainer) {
-        self.viewModel = LocationSearchViewModel(
+        viewModel = LocationSearchViewModel(
             historyService: container.locationHistoryService,
             searchService: container.locationSearchService
         )
         super.init(nibName: nil, bundle: nil)
     }
-    
+
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
     // MARK: - Life Cycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -104,19 +107,26 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
         title = String(localized: .searchLocation)
         view.backgroundColor = Theme.Colors.mainBackground
 
-        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancel))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .cancel,
+            target: self,
+            action: #selector(cancel)
+        )
 
         view.addSubview(searchBarContainer)
         searchBarContainer.addSubview(searchTextField)
         view.addSubview(tableView)
         view.addSubview(emptyStateLabel)
-        
+
         searchTextField.delegate = self
         searchTextField.addTarget(self, action: #selector(searchTextChanged), for: .editingChanged)
 
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.register(LocationTableViewCell.self, forCellReuseIdentifier: String(describing: LocationTableViewCell.self))
+        tableView.register(
+            LocationTableViewCell.self,
+            forCellReuseIdentifier: String(describing: LocationTableViewCell.self)
+        )
         tableView.keyboardDismissMode = .onDrag
 
         NSLayoutConstraint.activate([
@@ -124,36 +134,40 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
             searchBarContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             searchBarContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             searchBarContainer.heightAnchor.constraint(equalToConstant: 64),
-            
+
             searchTextField.topAnchor.constraint(equalTo: searchBarContainer.topAnchor, constant: 10),
             searchTextField.leadingAnchor.constraint(equalTo: searchBarContainer.leadingAnchor, constant: 16),
             searchTextField.trailingAnchor.constraint(equalTo: searchBarContainer.trailingAnchor, constant: -16),
             searchTextField.bottomAnchor.constraint(equalTo: searchBarContainer.bottomAnchor, constant: -10),
-            
+
             tableView.topAnchor.constraint(equalTo: searchBarContainer.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            
+
             emptyStateLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -20),
             emptyStateLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 40),
-            emptyStateLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40)
+            emptyStateLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40),
         ])
-        
+
         // Auto-focus search bar
         searchTextField.becomeFirstResponder()
 
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: LocationSearchViewController, _: UITraitCollection) in
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (
+            self: LocationSearchViewController,
+            _: UITraitCollection
+        ) in
             self.searchTextField.layer.borderColor = Theme.Colors.border.cgColor
         }
     }
 
     // MARK: - Bindings
+
     private func setupBindings() {
         observe(viewModel: viewModel, property: { $0.searchResults }) { [weak self] _ in
             self?.updateUI()
         }
-        
+
         observe(viewModel: viewModel, property: { $0.history }) { [weak self] _ in
             self?.updateUI()
         }
@@ -164,7 +178,7 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
             }
         }
     }
-    
+
     private func updateUI() {
         tableView.reloadData()
 
@@ -176,15 +190,17 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
     }
 
     // MARK: - Actions
+
     @objc private func cancel() {
         dismiss(animated: true, completion: nil)
     }
-    
+
     @objc private func searchTextChanged() {
         viewModel.search(query: searchTextField.text ?? "")
     }
-    
+
     // MARK: - UITextFieldDelegate
+
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
         return true
@@ -192,12 +208,13 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
 }
 
 // MARK: - UITableViewDataSource
+
 extension LocationSearchViewController: UITableViewDataSource {
-    
+
     func numberOfSections(in tableView: UITableView) -> Int {
         return 1
     }
-    
+
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         if isSearchActive { return nil }
         return viewModel.history.isEmpty ? nil : String(localized: .viewRecentHistory).uppercased()
@@ -223,12 +240,16 @@ extension LocationSearchViewController: UITableViewDataSource {
         }
         return cell
     }
-    
+
     func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
         return !isSearchActive
     }
-    
-    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+
+    func tableView(
+        _ tableView: UITableView,
+        commit editingStyle: UITableViewCell.EditingStyle,
+        forRowAt indexPath: IndexPath
+    ) {
         if editingStyle == .delete {
             viewModel.deleteHistory(at: indexPath.row)
         }
@@ -236,6 +257,7 @@ extension LocationSearchViewController: UITableViewDataSource {
 }
 
 // MARK: - UITableViewDelegate
+
 extension LocationSearchViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)

@@ -6,8 +6,8 @@
 //  Copyright © 2026 Chen Yuhan. All rights reserved.
 //
 
-import Photos
 import CoreLocation
+import Photos
 
 /// Protocol defining metadata operations
 protocol MetadataServiceProtocol {
@@ -35,7 +35,7 @@ protocol MetadataServiceProtocol {
 
     /// Remove all metadata except orientation, returns modified properties dictionary
     func removeAllMetadata(from metadata: Metadata) -> [String: Any]
-    
+
     /// Update multiple metadata fields at once
     func updateMetadata(with batch: [String: Any], in metadata: Metadata) -> [String: Any]
 }

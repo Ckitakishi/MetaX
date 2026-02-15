@@ -8,15 +8,15 @@
 import MapKit
 
 final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
-    
+
     weak var delegate: LocationSearchServiceDelegate?
     private let completer = MKLocalSearchCompleter()
-    
+
     override init() {
         super.init()
         completer.delegate = self
     }
-    
+
     func search(query: String) {
         if query.isEmpty {
             delegate?.didUpdate(results: [])
@@ -24,17 +24,17 @@ final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
             completer.queryFragment = query
         }
     }
-    
+
     func resolve(completion: MKLocalSearchCompletion, resultHandler: @escaping (Result<LocationModel, Error>) -> Void) {
         let searchRequest = MKLocalSearch.Request(completion: completion)
         let search = MKLocalSearch(request: searchRequest)
-        
+
         search.start { response, error in
             if let error = error {
                 resultHandler(.failure(error))
                 return
             }
-            
+
             if let mapItem = response?.mapItems.first {
                 let locationModel = LocationModel(with: mapItem)
                 resultHandler(.success(locationModel))
@@ -49,11 +49,11 @@ final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
 // MARK: - MKLocalSearchCompleterDelegate
 
 extension LocationSearchService: MKLocalSearchCompleterDelegate {
-    
+
     func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
         delegate?.didUpdate(results: completer.results)
     }
-    
+
     func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
         delegate?.didFail(with: error)
     }

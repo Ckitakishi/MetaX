@@ -6,8 +6,8 @@
 //  Copyright © 2026 Yuhan Chen. All rights reserved.
 //
 
-import UIKit
 import MapKit
+import UIKit
 
 final class DetailLocationCell: UITableViewCell {
 
@@ -42,7 +42,7 @@ final class DetailLocationCell: UITableViewCell {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
+
     private let mapView: MKMapView = {
         let map = MKMapView()
         map.isUserInteractionEnabled = false
@@ -55,9 +55,12 @@ final class DetailLocationCell: UITableViewCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupUI()
     }
-    
-    required init?(coder: NSCoder) { fatalError() }
-    
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError()
+    }
+
     func configure(model: DetailCellModel, location: CLLocation, isFirst: Bool, isLast: Bool) {
         // Text
         let text = model.prop
@@ -65,16 +68,16 @@ final class DetailLocationCell: UITableViewCell {
         attributed.addAttribute(.kern, value: 1.0, range: NSRange(location: 0, length: text.count))
         propLabel.attributedText = attributed
         valueLabel.text = model.value
-        
+
         // Map
-        self.currentLocation = location
+        currentLocation = location
         let region = MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 500, longitudinalMeters: 500)
         mapView.setRegion(region, animated: false)
         mapView.removeAnnotations(mapView.annotations)
         let annotation = MKPointAnnotation()
         annotation.coordinate = location.coordinate
         mapView.addAnnotation(annotation)
-        
+
         // Borders
         topBorder.isHidden = !isFirst
         bottomBorder.isHidden = !isLast
@@ -85,12 +88,12 @@ final class DetailLocationCell: UITableViewCell {
         backgroundColor = .clear
 
         contentView.addSubview(container)
-        [leftBorder, rightBorder, topBorder, bottomBorder].forEach {
-            $0.backgroundColor = Theme.Colors.border
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            container.addSubview($0)
+        for item in [leftBorder, rightBorder, topBorder, bottomBorder] {
+            item.backgroundColor = Theme.Colors.border
+            item.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(item)
         }
-        
+
         container.addSubview(propLabel)
         container.addSubview(valueLabel)
         container.addSubview(mapView)
@@ -102,7 +105,10 @@ final class DetailLocationCell: UITableViewCell {
         NSLayoutConstraint.activate([
             container.topAnchor.constraint(equalTo: contentView.topAnchor),
             container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Theme.Layout.cardPadding),
-            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Theme.Layout.cardPadding),
+            container.trailingAnchor.constraint(
+                equalTo: contentView.trailingAnchor,
+                constant: -Theme.Layout.cardPadding
+            ),
             container.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
             // Borders
@@ -134,13 +140,13 @@ final class DetailLocationCell: UITableViewCell {
             valueLabel.topAnchor.constraint(equalTo: propLabel.bottomAnchor, constant: 4),
             valueLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: contentInset),
             valueLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -contentInset),
-            
+
             // Map - Flush with bottom and sides
             mapView.topAnchor.constraint(equalTo: valueLabel.bottomAnchor, constant: 12),
             mapView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 1),
             mapView.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -1),
             mapView.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -1),
-            mapView.heightAnchor.constraint(equalToConstant: 160)
+            mapView.heightAnchor.constraint(equalToConstant: 160),
         ])
     }
 }

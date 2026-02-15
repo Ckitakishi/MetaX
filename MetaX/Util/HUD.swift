@@ -13,8 +13,8 @@ final class HUD {
 
     private var containerView: UIView?
     private var hudView: UIView?
-    // Incremented on each show(); auto-dismiss closures capture their own generation
-    // so they only dismiss the HUD they were created for.
+    /// Incremented on each show(); auto-dismiss closures capture their own generation
+    /// so they only dismiss the HUD they were created for.
     private var showGeneration: Int = 0
 
     private init() {}
@@ -51,7 +51,7 @@ final class HUD {
         container.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         container.backgroundColor = UIColor.black.withAlphaComponent(0.2)
         container.alpha = 0
-        self.containerView = container
+        containerView = container
 
         let hud = UIView()
         hud.backgroundColor = Theme.Colors.tagBackground
@@ -61,7 +61,7 @@ final class HUD {
         hud.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: UIView, _: UITraitCollection) in
             view.layer.borderColor = Theme.Colors.border.cgColor
         }
-        self.hudView = hud
+        hudView = hud
 
         container.addSubview(hud)
         window.addSubview(container)
@@ -80,29 +80,29 @@ final class HUD {
         messageLabel.textAlignment = .center
 
         switch type {
-        case .processing(let message):
+        case let .processing(message):
             let activity = UIActivityIndicatorView(style: .medium)
             activity.color = Theme.Colors.text
             activity.startAnimating()
             stackView.addArrangedSubview(activity)
             messageLabel.text = message
-        case .info(let message):
+        case let .info(message):
             let icon = UIImageView(image: UIImage(systemName: "info.circle"))
             icon.tintColor = Theme.Colors.text
             icon.translatesAutoresizingMaskIntoConstraints = false
             NSLayoutConstraint.activate([
                 icon.widthAnchor.constraint(equalToConstant: 28),
-                icon.heightAnchor.constraint(equalToConstant: 28)
+                icon.heightAnchor.constraint(equalToConstant: 28),
             ])
             stackView.addArrangedSubview(icon)
             messageLabel.text = message
-        case .error(let message):
+        case let .error(message):
             let icon = UIImageView(image: UIImage(systemName: "exclamationmark.triangle"))
             icon.tintColor = .systemRed
             icon.translatesAutoresizingMaskIntoConstraints = false
             NSLayoutConstraint.activate([
                 icon.widthAnchor.constraint(equalToConstant: 28),
-                icon.heightAnchor.constraint(equalToConstant: 28)
+                icon.heightAnchor.constraint(equalToConstant: 28),
             ])
             stackView.addArrangedSubview(icon)
             messageLabel.text = message
@@ -119,7 +119,7 @@ final class HUD {
             stackView.topAnchor.constraint(equalTo: hud.topAnchor, constant: 20),
             stackView.leadingAnchor.constraint(equalTo: hud.leadingAnchor, constant: 20),
             stackView.trailingAnchor.constraint(equalTo: hud.trailingAnchor, constant: -20),
-            stackView.bottomAnchor.constraint(equalTo: hud.bottomAnchor, constant: -20)
+            stackView.bottomAnchor.constraint(equalTo: hud.bottomAnchor, constant: -20),
         ])
 
         UIView.animate(withDuration: 0.2) {

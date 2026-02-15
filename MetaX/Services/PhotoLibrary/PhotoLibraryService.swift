@@ -19,7 +19,7 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
     // MARK: - Initialization
 
     init() {
-        self.imageManager = PHCachingImageManager()
+        imageManager = PHCachingImageManager()
     }
 
     // MARK: - Authorization
@@ -59,7 +59,10 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
         return PHAsset.fetchAssets(with: options)
     }
 
-    func fetchAssets(in collection: PHAssetCollection, sortedBy sortDescriptor: NSSortDescriptor?) -> PHFetchResult<PHAsset> {
+    func fetchAssets(
+        in collection: PHAssetCollection,
+        sortedBy sortDescriptor: NSSortDescriptor?
+    ) -> PHFetchResult<PHAsset> {
         let options = imageFetchOptions()
         if let sortDescriptor = sortDescriptor {
             options.sortDescriptors = [sortDescriptor]
@@ -100,9 +103,10 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
 
             guard let placeholder = albumPlaceholder,
                   let album = PHAssetCollection.fetchAssetCollections(
-                    withLocalIdentifiers: [placeholder.localIdentifier],
-                    options: nil
-                  ).firstObject else {
+                      withLocalIdentifiers: [placeholder.localIdentifier],
+                      options: nil
+                  ).firstObject
+            else {
                 return .failure(.imageSave(.albumCreationFailed))
             }
 

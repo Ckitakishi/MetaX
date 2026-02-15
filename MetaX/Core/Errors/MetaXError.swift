@@ -50,32 +50,32 @@ enum MetaXError: Error {
 extension MetaXError {
     var code: Int {
         switch self {
-        case .photoLibrary(let error):
+        case let .photoLibrary(error):
             switch error {
-            case .accessDenied:    return 1001
-            case .unavailable:     return 1002
-            case .assetNotFound:   return 1003
+            case .accessDenied: return 1001
+            case .unavailable: return 1002
+            case .assetNotFound: return 1003
             case .assetFetchFailed: return 1004
             }
-        case .metadata(let error):
+        case let .metadata(error):
             switch error {
-            case .readFailed:           return 1010
-            case .writeFailed:          return 1011
+            case .readFailed: return 1010
+            case .writeFailed: return 1011
             case .unsupportedMediaType: return 1012
-            case .iCloudSyncRequired:   return 1013
-            case .iCloudSyncFailed:     return 1014
+            case .iCloudSyncRequired: return 1013
+            case .iCloudSyncFailed: return 1014
             }
-        case .imageSave(let error):
+        case let .imageSave(error):
             switch error {
-            case .editionFailed:       return 1020
-            case .creationFailed:      return 1021
+            case .editionFailed: return 1020
+            case .creationFailed: return 1021
             case .albumCreationFailed: return 1022
-            case .temporaryFileError:  return 1023
+            case .temporaryFileError: return 1023
             }
-        case .location(let error):
+        case let .location(error):
             switch error {
-            case .accessDenied:          return 1030
-            case .geocodingFailed:       return 1031
+            case .accessDenied: return 1030
+            case .geocodingFailed: return 1031
             case .coordinateNotAvailable: return 1032
             }
         case .unknown:

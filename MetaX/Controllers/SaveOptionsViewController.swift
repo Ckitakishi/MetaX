@@ -51,7 +51,7 @@ final class SaveOptionsViewController: UIViewController {
                         verticalFittingPriority: .fittingSizeLevel
                     ).height
                     return contentHeight + 48 + 20 // top padding + bottom padding
-                }
+                },
             ]
             sheet.prefersGrabberVisible = true
             sheet.preferredCornerRadius = 20
@@ -212,7 +212,10 @@ private final class OptionCardView: UIView {
         }
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError()
+    }
 
     @objc private func handleTap() {
         UIView.animate(withDuration: Theme.Animation.pressEffect, animations: {

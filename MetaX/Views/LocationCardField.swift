@@ -6,8 +6,8 @@
 //  Copyright © 2026 Yuhan Chen. All rights reserved.
 //
 
-import UIKit
 import MapKit
+import UIKit
 
 final class LocationCardField: UIView {
     let label: UILabel = {
@@ -28,7 +28,7 @@ final class LocationCardField: UIView {
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
     }()
-    
+
     private let mapView: MKMapView = {
         let map = MKMapView()
         map.isUserInteractionEnabled = false
@@ -46,7 +46,7 @@ final class LocationCardField: UIView {
         l.translatesAutoresizingMaskIntoConstraints = false
         return l
     }()
-    
+
     private let midDivider: UIView = {
         let v = UIView()
         v.backgroundColor = Theme.Colors.border.withAlphaComponent(0.3)
@@ -63,7 +63,7 @@ final class LocationCardField: UIView {
 
         addSubview(self.label)
         addSubview(button)
-        
+
         button.addSubview(contentLabel)
         button.addSubview(midDivider)
         button.addSubview(mapView)
@@ -84,7 +84,7 @@ final class LocationCardField: UIView {
             contentLabel.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 12),
             contentLabel.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -12),
             contentLabel.centerYAnchor.constraint(equalTo: button.topAnchor, constant: 25),
-            
+
             midDivider.topAnchor.constraint(equalTo: button.topAnchor, constant: 50),
             midDivider.leadingAnchor.constraint(equalTo: button.leadingAnchor),
             midDivider.trailingAnchor.constraint(equalTo: button.trailingAnchor),
@@ -94,7 +94,7 @@ final class LocationCardField: UIView {
             mapView.leadingAnchor.constraint(equalTo: button.leadingAnchor),
             mapView.trailingAnchor.constraint(equalTo: button.trailingAnchor),
             mapView.bottomAnchor.constraint(equalTo: button.bottomAnchor),
-            mapView.heightAnchor.constraint(equalToConstant: 120)
+            mapView.heightAnchor.constraint(equalToConstant: 120),
         ])
 
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: LocationCardField, _: UITraitCollection) in
@@ -103,7 +103,10 @@ final class LocationCardField: UIView {
         }
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError()
+    }
 
     func setLocation(_ location: CLLocation?, title: String?) {
         if let loc = location {
@@ -111,15 +114,15 @@ final class LocationCardField: UIView {
             mapView.setRegion(region, animated: false)
             mapView.isHidden = false
             midDivider.isHidden = false
-            
+
             contentLabel.numberOfLines = 0
             buttonHeightConstraint?.isActive = false
-            
+
             mapView.removeAnnotations(mapView.annotations)
             let annotation = MKPointAnnotation()
             annotation.coordinate = loc.coordinate
             mapView.addAnnotation(annotation)
-            
+
             if let title = title, !title.isEmpty {
                 contentLabel.text = title
                 contentLabel.textColor = Theme.Colors.text

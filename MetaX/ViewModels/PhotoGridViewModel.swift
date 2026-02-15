@@ -6,19 +6,19 @@
 //  Copyright © 2026 Chen Yuhan. All rights reserved.
 //
 
-import UIKit
-import Photos
 import Observation
+import Photos
+import UIKit
 
 @Observable @MainActor
 final class PhotoGridViewModel: NSObject {
 
     // MARK: - Properties
 
-    // Committed state: matches what the collection view has rendered.
-    // Updated inside performBatchUpdates so numberOfItemsInSection stays consistent.
+    /// Committed state: matches what the collection view has rendered.
+    /// Updated inside performBatchUpdates so numberOfItemsInSection stays consistent.
     private(set) var fetchResult: PHFetchResult<PHAsset>?
-    // Lookahead basis: updated eagerly per notification so each delta is computed from the correct base.
+    /// Lookahead basis: updated eagerly per notification so each delta is computed from the correct base.
     private var basisFetchResult: PHFetchResult<PHAsset>?
 
     private(set) var changeDetails: PHFetchResultChangeDetails<PHAsset>?
@@ -43,12 +43,12 @@ final class PhotoGridViewModel: NSObject {
 
     func configure(with fetchResult: PHFetchResult<PHAsset>?, collection: PHAssetCollection?) {
         self.fetchResult = fetchResult
-        self.basisFetchResult = fetchResult
-        self.assetCollection = collection
+        basisFetchResult = fetchResult
+        assetCollection = collection
     }
 
     func setThumbnailSize(_ size: CGSize) {
-        self.thumbnailSize = size
+        thumbnailSize = size
     }
 
     // MARK: - Public Methods
@@ -94,7 +94,11 @@ final class PhotoGridViewModel: NSObject {
         previousPreheatRect = .zero
     }
 
-    func updateCachedAssets(visibleRect: CGRect, viewBoundsHeight: CGFloat, indexPathsProvider: (CGRect) -> [IndexPath]) {
+    func updateCachedAssets(
+        visibleRect: CGRect,
+        viewBoundsHeight: CGFloat,
+        indexPathsProvider: (CGRect) -> [IndexPath]
+    ) {
         guard thumbnailSize != .zero else { return }
 
         let preheatRect = visibleRect.insetBy(dx: 0, dy: -0.5 * visibleRect.height)
@@ -149,7 +153,7 @@ final class PhotoGridViewModel: NSObject {
 extension PhotoGridViewModel {
 
     func commitFetchResult(_ result: PHFetchResult<PHAsset>) {
-        self.fetchResult = result
+        fetchResult = result
     }
 
     func finishChange() {

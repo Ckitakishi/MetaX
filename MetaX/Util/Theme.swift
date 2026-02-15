@@ -9,31 +9,33 @@ import UIKit
 
 enum Theme {
     // MARK: - Colors
+
     enum Colors {
         static let accent = UIColor(named: "greenSea") ?? .systemTeal
         static let launchBackground = UIColor(named: "LaunchBackground") ?? .systemBackground
-        
+
         // Settings Colors (Matched with Rolog)
         static let settingsAppearance = UIColor(named: "SettingsAppearance") ?? .systemPurple
         static let settingsGeneral = UIColor(named: "SettingsGeneral") ?? .systemBlue
         static let settingsSupport = UIColor(named: "SettingsSupport") ?? .systemGreen
         static let settingsAbout = UIColor(named: "SettingsAbout") ?? .systemGray
-        
+
         static let mainBackground = UIColor { trait in
             trait.userInterfaceStyle == .dark ? UIColor(white: 0.11, alpha: 1.0) : UIColor.systemGray6
         }
-        
+
         static let sheetBackground = UIColor { trait in
             trait.userInterfaceStyle == .dark ? UIColor(white: 0.18, alpha: 1.0) : .systemBackground
         }
-        
+
         static let cardBackground = sheetBackground
         static let border = UIColor.label
         static let text = UIColor.label
         static let tagBackground = mainBackground
     }
-    
+
     // MARK: - Layout
+
     enum Layout {
         static let cardCornerRadius: CGFloat = 0
         static let imageCornerRadius: CGFloat = 0
@@ -51,14 +53,16 @@ enum Theme {
     }
 
     // MARK: - Animation
+
     enum Animation {
         /// Duration for card press/highlight feedback
         static let pressEffect: TimeInterval = 0.1
         /// Duration for splash screen fade-out
         static let splashFade: TimeInterval = 0.35
     }
-    
+
     // MARK: - Shadows
+
     enum Shadows {
         static let layerOffset: CGFloat = 4
         static let pressedTranslation: CGFloat = 4
@@ -93,11 +97,14 @@ enum Theme {
         }
 
         static func applyPressEffect(to view: UIView, isPressed: Bool) {
-            view.transform = isPressed ? CGAffineTransform(translationX: pressedTranslation, y: pressedTranslation) : .identity
+            view
+                .transform = isPressed ? CGAffineTransform(translationX: pressedTranslation, y: pressedTranslation) :
+                .identity
         }
     }
-    
+
     // MARK: - Typography
+
     enum Typography {
         /// For display-level titles (e.g. empty state, lock views)
         static let title = UIFont.systemFont(ofSize: 24, weight: .bold)

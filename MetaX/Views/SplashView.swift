@@ -29,10 +29,11 @@ final class SplashView: UIView {
             iconImageView.centerXAnchor.constraint(equalTo: centerXAnchor),
             iconImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
             iconImageView.widthAnchor.constraint(equalToConstant: 150),
-            iconImageView.heightAnchor.constraint(equalToConstant: 150)
+            iconImageView.heightAnchor.constraint(equalToConstant: 150),
         ])
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

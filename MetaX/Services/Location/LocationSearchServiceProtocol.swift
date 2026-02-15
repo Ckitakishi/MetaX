@@ -14,7 +14,7 @@ protocol LocationSearchServiceDelegate: AnyObject {
 
 protocol LocationSearchServiceProtocol: AnyObject {
     var delegate: LocationSearchServiceDelegate? { get set }
-    
+
     func search(query: String)
     func resolve(completion: MKLocalSearchCompletion, resultHandler: @escaping (Result<LocationModel, Error>) -> Void)
 }

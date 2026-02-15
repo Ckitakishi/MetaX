@@ -6,11 +6,11 @@
 //  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
-import UIKit
-import Photos
-import MapKit
-import PhotosUI
 import CoreLocation
+import MapKit
+import Photos
+import PhotosUI
+import UIKit
 
 class DetailInfoViewController: UIViewController, ViewModelObserving {
 
@@ -26,11 +26,13 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     private var badgeTopConstraint: NSLayoutConstraint?
 
     // MARK: - Dependencies
+
     private let viewModel: DetailInfoViewModel
     private let container: DependencyContainer
     var router: AppRouter?
-    
+
     // MARK: - UI Components
+
     private let tableView: UITableView = {
         let table = UITableView(frame: .zero, style: .grouped)
         table.backgroundColor = .clear
@@ -74,9 +76,10 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         return iv
     }()
 
-    private lazy var moreMenuButton: UIBarButtonItem = {
-        UIBarButtonItem(image: UIImage(systemName: "slider.horizontal.3"), menu: UIMenu(title: "", children: []))
-    }()
+    private lazy var moreMenuButton: UIBarButtonItem = .init(
+        image: UIImage(systemName: "slider.horizontal.3"),
+        menu: UIMenu(title: "", children: [])
+    )
 
     private func buildMoreMenu() -> UIMenu {
         let editAction = UIAction(
@@ -114,7 +117,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     init(container: DependencyContainer) {
         self.container = container
-        self.viewModel = DetailInfoViewModel(
+        viewModel = DetailInfoViewModel(
             metadataService: container.metadataService,
             imageSaveService: container.imageSaveService,
             photoLibraryService: container.photoLibraryService
@@ -122,10 +125,11 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         super.init(nibName: nil, bundle: nil)
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     func configure(with asset: PHAsset?, collection: PHAssetCollection?) {
         if let asset = asset {
             viewModel.configure(with: asset, collection: collection)
@@ -133,6 +137,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     }
 
     // MARK: - Life Cycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -171,6 +176,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     }
 
     // MARK: - UI Setup
+
     private func setupUI() {
         view.backgroundColor = Theme.Colors.mainBackground
         moreMenuButton.menu = buildMoreMenu()
@@ -180,29 +186,52 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         view.addSubview(tableView)
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.register(DetailTableViewCell.self, forCellReuseIdentifier: String(describing: DetailTableViewCell.self))
+        tableView.register(
+            DetailTableViewCell.self,
+            forCellReuseIdentifier: String(describing: DetailTableViewCell.self)
+        )
         tableView.register(DetailLocationCell.self, forCellReuseIdentifier: String(describing: DetailLocationCell.self))
 
         // Header Setup
-        let headerContainer = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: Theme.Layout.heroHeaderHeight))
+        let headerContainer = UIView(frame: CGRect(
+            x: 0,
+            y: 0,
+            width: view.bounds.width,
+            height: Theme.Layout.heroHeaderHeight
+        ))
         headerContainer.addSubview(heroCardView)
         heroCardView.addSubview(heroImageView)
         heroCardView.addSubview(heroLivePhotoView)
         heroCardView.addSubview(heroBadgeView)
 
-        let cardTrailing = heroCardView.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -Theme.Layout.cardPadding)
+        let cardTrailing = heroCardView.trailingAnchor.constraint(
+            equalTo: headerContainer.trailingAnchor,
+            constant: -Theme.Layout.cardPadding
+        )
         cardTrailing.priority = UILayoutPriority(999)
 
-        let imageTrailing = heroImageView.trailingAnchor.constraint(equalTo: heroCardView.trailingAnchor, constant: -HeroLayout.inset)
+        let imageTrailing = heroImageView.trailingAnchor.constraint(
+            equalTo: heroCardView.trailingAnchor,
+            constant: -HeroLayout.inset
+        )
         imageTrailing.priority = UILayoutPriority(999)
-        let liveTrailing = heroLivePhotoView.trailingAnchor.constraint(equalTo: heroCardView.trailingAnchor, constant: -HeroLayout.inset)
+        let liveTrailing = heroLivePhotoView.trailingAnchor.constraint(
+            equalTo: heroCardView.trailingAnchor,
+            constant: -HeroLayout.inset
+        )
         liveTrailing.priority = UILayoutPriority(999)
 
         NSLayoutConstraint.activate([
             heroCardView.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: Theme.Layout.cardPadding),
-            heroCardView.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: Theme.Layout.cardPadding),
+            heroCardView.leadingAnchor.constraint(
+                equalTo: headerContainer.leadingAnchor,
+                constant: Theme.Layout.cardPadding
+            ),
             cardTrailing,
-            heroCardView.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -Theme.Layout.cardPadding),
+            heroCardView.bottomAnchor.constraint(
+                equalTo: headerContainer.bottomAnchor,
+                constant: -Theme.Layout.cardPadding
+            ),
 
             heroImageView.topAnchor.constraint(equalTo: heroCardView.topAnchor, constant: HeroLayout.inset),
             heroImageView.leadingAnchor.constraint(equalTo: heroCardView.leadingAnchor, constant: HeroLayout.inset),
@@ -222,9 +251,11 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         let badgeTop = heroBadgeView.topAnchor.constraint(equalTo: heroLivePhotoView.topAnchor, constant: 4)
         badgeLeadingConstraint = badgeLeading
         badgeTopConstraint = badgeTop
-        NSLayoutConstraint.activate([badgeLeading, badgeTop,
+        NSLayoutConstraint.activate([
+            badgeLeading,
+            badgeTop,
         ])
-        
+
         addCornerMarks(to: heroCardView)
         tableView.tableHeaderView = headerContainer
 
@@ -232,7 +263,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
     }
 
@@ -241,9 +272,9 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         let thickness = HeroLayout.cornerThickness
 
         let corners: [(NSLayoutXAxisAnchor, Bool, NSLayoutYAxisAnchor, Bool)] = [
-            (view.leadingAnchor,  true,  view.topAnchor,    true),
-            (view.trailingAnchor, false, view.topAnchor,    true),
-            (view.leadingAnchor,  true,  view.bottomAnchor, false),
+            (view.leadingAnchor, true, view.topAnchor, true),
+            (view.trailingAnchor, false, view.topAnchor, true),
+            (view.leadingAnchor, true, view.bottomAnchor, false),
             (view.trailingAnchor, false, view.bottomAnchor, false),
         ]
 
@@ -317,16 +348,17 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     }
 
     // MARK: - Bindings
+
     private func setupBindings() {
         observe(viewModel: viewModel, property: { $0.heroContent }) { [weak self] content in
             guard let self else { return }
             switch content {
-            case .photo(let image):
+            case let .photo(image):
                 heroImageView.image = image
                 heroImageView.isHidden = false
                 heroLivePhotoView.isHidden = true
                 heroBadgeView.isHidden = true
-            case .livePhoto(let livePhoto):
+            case let .livePhoto(livePhoto):
                 heroLivePhotoView.livePhoto = livePhoto
                 heroLivePhotoView.isHidden = false
                 heroImageView.isHidden = true
@@ -378,6 +410,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     }
 
     // MARK: - Actions
+
     @objc private func clearAllMetadata() {
         Task {
             guard let mode = await requestSaveMode(presentingVC: nil) else { return }
@@ -437,6 +470,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 }
 
 // MARK: - UITableViewDataSource & Delegate
+
 extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
 
     func numberOfSections(in tableView: UITableView) -> Int {
@@ -452,17 +486,23 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
         let rowData = sectionData.rows[indexPath.row]
         let isFirst = indexPath.row == 0
         let isLast = indexPath.row == sectionData.rows.count - 1
-        
+
         if rowData.prop == String(localized: .viewAddLocation),
            let location = viewModel.currentLocation {
-            guard let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: DetailLocationCell.self), for: indexPath) as? DetailLocationCell else {
+            guard let cell = tableView.dequeueReusableCell(
+                withIdentifier: String(describing: DetailLocationCell.self),
+                for: indexPath
+            ) as? DetailLocationCell else {
                 return UITableViewCell()
             }
             cell.configure(model: rowData, location: location, isFirst: isFirst, isLast: isLast)
             return cell
         }
-        
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: DetailTableViewCell.self), for: indexPath) as? DetailTableViewCell else {
+
+        guard let cell = tableView.dequeueReusableCell(
+            withIdentifier: String(describing: DetailTableViewCell.self),
+            for: indexPath
+        ) as? DetailTableViewCell else {
             return UITableViewCell()
         }
 
@@ -483,7 +523,7 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        
+
         if let cell = tableView.cellForRow(at: indexPath) as? DetailLocationCell, let location = cell.currentLocation {
             router?.openLocationMap(for: location)
         }
@@ -491,13 +531,16 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
 }
 
 // MARK: - Delegates
+
 extension DetailInfoViewController: UIPopoverPresentationControllerDelegate, LocationSearchDelegate {
 
     func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
         return .none
     }
 
-    func popoverPresentationControllerDidDismissPopover(_ popoverPresentationController: UIPopoverPresentationController) {
+    func popoverPresentationControllerDidDismissPopover(
+        _ popoverPresentationController: UIPopoverPresentationController
+    ) {
         if let datePicker = popoverPresentationController.presentedViewController as? DetailDatePickerPopover {
             Task {
                 guard let mode = await requestSaveMode(presentingVC: nil) else { return }
@@ -520,10 +563,12 @@ extension DetailInfoViewController: UIPopoverPresentationControllerDelegate, Loc
 }
 
 // MARK: - PHPhotoLibraryChangeObserver
+
 extension DetailInfoViewController: PHPhotoLibraryChangeObserver {
     func photoLibraryDidChange(_ changeInstance: PHChange) {
         Task { @MainActor in
-            guard let curAsset = viewModel.asset, let details = changeInstance.changeDetails(for: curAsset) else { return }
+            guard let curAsset = viewModel.asset,
+                  let details = changeInstance.changeDetails(for: curAsset) else { return }
             viewModel.updateAsset(details.objectAfterChanges)
             guard viewModel.asset != nil else {
                 navigationController?.popViewController(animated: true)

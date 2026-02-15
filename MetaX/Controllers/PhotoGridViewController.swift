@@ -6,9 +6,9 @@
 //  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
-import UIKit
 import Photos
 import PhotosUI
+import UIKit
 
 class PhotoGridViewController: UIViewController, ViewModelObserving {
 
@@ -33,10 +33,11 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     init(container: DependencyContainer) {
         self.container = container
-        self.viewModel = PhotoGridViewModel(photoLibraryService: container.photoLibraryService)
+        viewModel = PhotoGridViewModel(photoLibraryService: container.photoLibraryService)
         super.init(nibName: nil, bundle: nil)
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -51,10 +52,10 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         setupUI()
         setupBindings()
-        
+
         viewModel.loadDefaultPhotosIfNeeded()
         viewModel.registerPhotoLibraryObserver()
     }
@@ -75,41 +76,48 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
             vm.unregisterPhotoLibraryObserver()
         }
     }
-    
+
     // MARK: - UI Setup
-    
+
     private func setupUI() {
         view.backgroundColor = Theme.Colors.mainBackground
-        
-        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1/3),
-                                             heightDimension: .fractionalWidth(1/3))
+
+        let itemSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1 / 3),
+            heightDimension: .fractionalWidth(1 / 3)
+        )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
         let half: CGFloat = 8
         item.contentInsets = NSDirectionalEdgeInsets(top: half, leading: half, bottom: half, trailing: half)
 
-        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
-                                              heightDimension: .fractionalWidth(1/3))
+        let groupSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1.0),
+            heightDimension: .fractionalWidth(1 / 3)
+        )
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
 
         let section = NSCollectionLayoutSection(group: group)
         section.contentInsets = NSDirectionalEdgeInsets(top: half, leading: half, bottom: half, trailing: half)
         let layout = UICollectionViewCompositionalLayout(section: section)
-        
+
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = .clear
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.translatesAutoresizingMaskIntoConstraints = false
-        
-        collectionView.register(PhotoCollectionViewCell.self, forCellWithReuseIdentifier: String(describing: PhotoCollectionViewCell.self))
-        
+
+        collectionView.register(
+            PhotoCollectionViewCell.self,
+            forCellWithReuseIdentifier: String(describing: PhotoCollectionViewCell.self)
+        )
+
         view.addSubview(collectionView)
-        
+
         NSLayoutConstraint.activate([
             collectionView.topAnchor.constraint(equalTo: view.topAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
     }
 
@@ -161,12 +169,16 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
         return viewModel.numberOfItems
     }
 
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    func collectionView(
+        _ collectionView: UICollectionView,
+        cellForItemAt indexPath: IndexPath
+    ) -> UICollectionViewCell {
         guard let asset = viewModel.asset(at: indexPath.item),
               let cell = collectionView.dequeueReusableCell(
                   withReuseIdentifier: String(describing: PhotoCollectionViewCell.self),
                   for: indexPath
-              ) as? PhotoCollectionViewCell else {
+              ) as? PhotoCollectionViewCell
+        else {
             return UICollectionViewCell()
         }
 
@@ -177,7 +189,7 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
         }
 
         cell.representedAssetIdentifier = asset.localIdentifier
-        viewModel.requestImage(for: asset, targetSize: thumbnailSize) { [weak cell] image, isDegraded in
+        viewModel.requestImage(for: asset, targetSize: thumbnailSize) { [weak cell] image, _ in
             guard cell?.representedAssetIdentifier == asset.localIdentifier else { return }
             Task { @MainActor in
                 cell?.thumbnailImage = image
@@ -186,7 +198,7 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
 
         return cell
     }
-    
+
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let asset = viewModel.asset(at: indexPath.item) else { return }
         router?.viewAssetDetail(for: asset, in: viewModel.assetCollection, from: navigationController)
@@ -199,8 +211,8 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
 
 // MARK: - Helper Extension
 
-private extension UICollectionView {
-    func indexPathsForElements(in rect: CGRect) -> [IndexPath] {
+extension UICollectionView {
+    fileprivate func indexPathsForElements(in rect: CGRect) -> [IndexPath] {
         guard let allLayoutAttributes = collectionViewLayout.layoutAttributesForElements(in: rect) else {
             return []
         }
