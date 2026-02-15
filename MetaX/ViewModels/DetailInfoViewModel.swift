@@ -228,9 +228,10 @@ final class DetailInfoViewModel {
     }
 
     @discardableResult
-    func applyMetadataTemplate(fields: [String: Any], saveMode: SaveWorkflowMode) async -> Bool {
+    func applyMetadataFields(_ fields: [MetadataField: Any], saveMode: SaveWorkflowMode) async -> Bool {
         guard let metadata = metadata else { return false }
-        let newProps = metadataService.updateMetadata(with: fields, in: metadata)
+        let batch = Dictionary(uniqueKeysWithValues: fields.map { ($0.key, $1) })
+        let newProps = metadataService.updateMetadata(with: batch, in: metadata)
         return await performSaveOperation(properties: newProps, mode: saveMode)
     }
 

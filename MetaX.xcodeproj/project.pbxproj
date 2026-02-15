@@ -37,7 +37,7 @@
 		563535E92F3B855100CEE027 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 563535E82F3B855100CEE027 /* LaunchScreen.storyboard */; };
 		563535EB2F3CB39400CEE027 /* MetadataEditViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 563535EA2F3CB39200CEE027 /* MetadataEditViewModel.swift */; };
 		563535EE2F3DAF9A00CEE027 /* DetailLocationCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 563535ED2F3DAF9A00CEE027 /* DetailLocationCell.swift */; };
-		563535F02F3F771D00CEE027 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 563535EF2F3F771D00CEE027 /* AppRouter.swift */; };
+		563535F02F3F771D00CEE027 /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 563535EF2F3F771D00CEE027 /* AppCoordinator.swift */; };
 		563535F22F416D0800CEE027 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 563535F12F416D0800CEE027 /* SettingsViewController.swift */; };
 		563535F42F416D1A00CEE027 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 563535F32F416D1A00CEE027 /* SettingsViewModel.swift */; };
 		563535F62F416DD000CEE027 /* SettingsTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 563535F52F416DD000CEE027 /* SettingsTableViewCell.swift */; };
@@ -123,7 +123,7 @@
 		563535E82F3B855100CEE027 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = MetaX/LaunchScreen.storyboard; sourceTree = SOURCE_ROOT; };
 		563535EA2F3CB39200CEE027 /* MetadataEditViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataEditViewModel.swift; sourceTree = "<group>"; };
 		563535ED2F3DAF9A00CEE027 /* DetailLocationCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailLocationCell.swift; sourceTree = "<group>"; };
-		563535EF2F3F771D00CEE027 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
+		563535EF2F3F771D00CEE027 /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		563535F12F416D0800CEE027 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		563535F32F416D1A00CEE027 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		563535F52F416DD000CEE027 /* SettingsTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTableViewCell.swift; sourceTree = "<group>"; };
@@ -336,7 +336,7 @@
 			isa = PBXGroup;
 			children = (
 				5635362E2F4189B800CEE027 /* AppConstants.swift */,
-				563535EF2F3F771D00CEE027 /* AppRouter.swift */,
+				563535EF2F3F771D00CEE027 /* AppCoordinator.swift */,
 				56D07EA12F37000000000001 /* DependencyContainer.swift */,
 				56D07E272F31000000000005 /* Errors */,
 			);
@@ -519,7 +519,7 @@
 				56D07EA02F37000000000001 /* DependencyContainer.swift in Sources */,
 				56D07E222F31000000000002 /* PhotoLibraryServiceProtocol.swift in Sources */,
 				56D07E242F31000000000003 /* PhotoLibraryService.swift in Sources */,
-				563535F02F3F771D00CEE027 /* AppRouter.swift in Sources */,
+				563535F02F3F771D00CEE027 /* AppCoordinator.swift in Sources */,
 				563535F42F416D1A00CEE027 /* SettingsViewModel.swift in Sources */,
 				56D07E2A2F31000000000010 /* MetadataServiceProtocol.swift in Sources */,
 				56D07E2C2F31000000000011 /* MetadataService.swift in Sources */,

@@ -13,8 +13,9 @@ import UIKit
 final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
     UIAdaptivePresentationControllerDelegate {
 
-    var onSave: (([String: Any]) -> Void)?
+    var onSave: (([MetadataField: Any]) -> Void)?
     var onCancel: (() -> Void)?
+    var onRequestLocationSearch: (() -> Void)?
 
     private let currentMetadata: Metadata
     private let container: DependencyContainer
@@ -481,6 +482,13 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
         )
     }
 
+    func updateLocation(from model: LocationModel) {
+        guard let coord = model.coordinate else { return }
+        let location = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
+        let fullAddress = model.name + (model.shortPlacemark.isEmpty ? "" : ", " + model.shortPlacemark)
+        updateLocationInField(with: location, name: fullAddress)
+    }
+
     private func updateLocationInField(with location: CLLocation, name: String?) {
         selectedLocation = location
         updateSaveButtonState()
@@ -552,9 +560,7 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
     }
 
     @objc private func searchLocation() {
-        let searchVC = LocationSearchViewController(container: container)
-        searchVC.delegate = self
-        present(UINavigationController(rootViewController: searchVC), animated: true)
+        onRequestLocationSearch?()
     }
 
     @objc private func cancel() {
@@ -562,7 +568,7 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
     }
 
     @objc private func save() {
-        let fields = viewModel.prepareBatch(from: captureCurrentFields())
+        let fields = viewModel.prepareFields(from: captureCurrentFields())
         // Don't dismiss yet, wait for save options to be presented on top
         onSave?(fields)
     }
@@ -571,14 +577,5 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
 extension MetadataEditViewController {
     func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
         onCancel?()
-    }
-}
-
-extension MetadataEditViewController: LocationSearchDelegate {
-    func didSelect(_ model: LocationModel) {
-        guard let coord = model.coordinate else { return }
-        let location = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
-        let fullAddress = model.name + (model.shortPlacemark.isEmpty ? "" : ", " + model.shortPlacemark)
-        updateLocationInField(with: location, name: fullAddress)
     }
 }

@@ -12,7 +12,6 @@ final class SettingsViewController: UIViewController {
     // MARK: - Dependencies
 
     private let container: DependencyContainer
-    var router: AppRouter?
     private let viewModel: SettingsViewModel
 
     // MARK: - Properties

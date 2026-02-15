@@ -7,7 +7,6 @@
 //
 
 import CoreLocation
-import MapKit
 import Photos
 import PhotosUI
 import UIKit
@@ -27,9 +26,14 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     // MARK: - Dependencies
 
-    private let viewModel: DetailInfoViewModel
+    let viewModel: DetailInfoViewModel
     private let container: DependencyContainer
-    var router: AppRouter?
+
+    // MARK: - Intent Closures
+
+    var onRequestEdit: ((Metadata) -> Void)?
+    var onRequestLocationMap: ((CLLocation) -> Void)?
+    var requestSaveMode: ((UIViewController?) async -> SaveWorkflowMode?)?
 
     // MARK: - UI Components
 
@@ -413,59 +417,14 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     @objc private func clearAllMetadata() {
         Task {
-            guard let mode = await requestSaveMode(presentingVC: nil) else { return }
+            guard let mode = await requestSaveMode?(nil) else { return }
             await viewModel.clearAllMetadata(saveMode: mode)
         }
     }
 
     private func showMetadataEditor() {
         guard let metadata = viewModel.metadata else { return }
-        let vc = MetadataEditViewController(metadata: metadata, container: container)
-        let nav = UINavigationController(rootViewController: vc)
-
-        vc.onSave = { [weak self, weak nav] fields in
-            guard let self, let nav else { return }
-            Task { @MainActor in
-                guard let mode = await self.requestSaveMode(presentingVC: nav) else { return }
-                let success = await self.viewModel.applyMetadataTemplate(fields: fields, saveMode: mode)
-                if success {
-                    nav.dismiss(animated: true)
-                }
-            }
-        }
-        vc.onCancel = { [weak self] in
-            self?.dismiss(animated: true)
-        }
-
-        present(nav, animated: true) {
-            nav.presentationController?.delegate = vc
-        }
-    }
-
-    private func requestSaveMode(presentingVC: UIViewController?) async -> SaveWorkflowMode? {
-        guard let mode = await router?.pickSaveWorkflow(on: presentingVC) else { return nil }
-        if case .saveAsCopy = mode, viewModel.isLivePhoto {
-            let confirmed = await confirmLivePhotoCopy(on: presentingVC ?? self)
-            return confirmed ? mode : nil
-        }
-        return mode
-    }
-
-    private func confirmLivePhotoCopy(on presenter: UIViewController) async -> Bool {
-        await withCheckedContinuation { continuation in
-            let alert = UIAlertController(
-                title: "Live Photo",
-                message: String(localized: .alertLivePhotoCopyMessage),
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: String(localized: .alertContinue), style: .default) { _ in
-                continuation.resume(returning: true)
-            })
-            alert.addAction(UIAlertAction(title: String(localized: .alertCancel), style: .cancel) { _ in
-                continuation.resume(returning: false)
-            })
-            presenter.present(alert, animated: true)
-        }
+        onRequestEdit?(metadata)
     }
 }
 
@@ -525,14 +484,14 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
         tableView.deselectRow(at: indexPath, animated: true)
 
         if let cell = tableView.cellForRow(at: indexPath) as? DetailLocationCell, let location = cell.currentLocation {
-            router?.openLocationMap(for: location)
+            onRequestLocationMap?(location)
         }
     }
 }
 
 // MARK: - Delegates
 
-extension DetailInfoViewController: UIPopoverPresentationControllerDelegate, LocationSearchDelegate {
+extension DetailInfoViewController: UIPopoverPresentationControllerDelegate {
 
     func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
         return .none
@@ -543,21 +502,9 @@ extension DetailInfoViewController: UIPopoverPresentationControllerDelegate, Loc
     ) {
         if let datePicker = popoverPresentationController.presentedViewController as? DetailDatePickerPopover {
             Task {
-                guard let mode = await requestSaveMode(presentingVC: nil) else { return }
+                guard let mode = await requestSaveMode?(nil) else { return }
                 await viewModel.addTimeStamp(datePicker.curDate, saveMode: mode)
             }
-        }
-    }
-
-    func didSelect(_ model: LocationModel) {
-        guard let coord = model.coordinate else {
-            HUD.showError(with: String(localized: .errorCoordinateFetch))
-            return
-        }
-        Task {
-            let loc = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
-            guard let mode = await requestSaveMode(presentingVC: nil) else { return }
-            await viewModel.addLocation(loc, saveMode: mode)
         }
     }
 }

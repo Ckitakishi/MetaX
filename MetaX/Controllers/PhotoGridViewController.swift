@@ -15,7 +15,10 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
     // MARK: - Dependencies
 
     private let container: DependencyContainer
-    var router: AppRouter?
+
+    // MARK: - Intent Closures
+
+    var onSelectAsset: ((PHAsset, PHAssetCollection?) -> Void)?
 
     // MARK: - UI Components
 
@@ -201,7 +204,7 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let asset = viewModel.asset(at: indexPath.item) else { return }
-        router?.viewAssetDetail(for: asset, in: viewModel.assetCollection, from: navigationController)
+        onSelectAsset?(asset, viewModel.assetCollection)
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {

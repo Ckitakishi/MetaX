@@ -8,7 +8,7 @@
 
 import UIKit
 
-class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDelegate {
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
     private var splashWindow: UIWindow?
@@ -22,36 +22,22 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
-        let window = UIWindow(windowScene: windowScene)
         let container = DependencyContainer()
         self.container = container
 
-        let albumVC = AlbumViewController(container: container)
-        let masterNav = UINavigationController(rootViewController: albumVC)
+        let coordinator = AppCoordinator(container: container)
+        self.coordinator = coordinator
 
-        let photoGridVC = PhotoGridViewController(container: container)
-        photoGridVC.title = String(localized: .viewAllPhotos)
-        let detailNav = UINavigationController(rootViewController: photoGridVC)
-
-        let splitVC = UISplitViewController()
-        splitVC.viewControllers = [masterNav, detailNav]
-        splitVC.delegate = self
-        splitVC.preferredDisplayMode = .oneBesideSecondary
-
-        // Initialize Global Coordinator
-        coordinator = AppCoordinator(navigationController: masterNav, container: container)
-        albumVC.router = coordinator
-
-        window.rootViewController = splitVC
+        let window = UIWindow(windowScene: windowScene)
+        window.rootViewController = coordinator.rootViewController()
         window.tintColor = Theme.Colors.accent
-
-        // Apply saved appearance
         window.overrideUserInterfaceStyle = container.settingsService.userInterfaceStyle
-
         window.makeKeyAndVisible()
         self.window = window
 
-        setupSplashWindow(in: windowScene, dismissalTrigger: albumVC)
+        if let albumVC = coordinator.albumViewController {
+            setupSplashWindow(in: windowScene, dismissalTrigger: albumVC)
+        }
     }
 
     private func setupSplashWindow(in scene: UIWindowScene, dismissalTrigger: AlbumViewController) {
@@ -75,18 +61,5 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
                 self.splashWindow = nil
             }
         }
-    }
-
-    // MARK: - UISplitViewControllerDelegate
-
-    /// Ensures that on iPhone (collapsed), we start with the Album list.
-    func splitViewController(
-        _ splitViewController: UISplitViewController,
-        collapseSecondary secondaryViewController: UIViewController,
-        onto primaryViewController: UIViewController
-    ) -> Bool {
-        // Return true to indicate that we have handled the collapse,
-        // which will cause the UISplitViewController to show the Primary (Master) view on top for iPhone.
-        return true
     }
 }

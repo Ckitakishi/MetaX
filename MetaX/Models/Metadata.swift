@@ -151,6 +151,105 @@ public struct Metadata {
     }
 }
 
+// MARK: - MetadataField
+
+public enum MetadataField: CaseIterable {
+    case make, model, lensMake, lensModel
+    case aperture, shutter, iso, focalLength, focalLength35, exposureBias
+    case exposureProgram, meteringMode, whiteBalance, flash
+    case artist, copyright
+    case pixelWidth, pixelHeight, profileName // Read-only
+    case dateTimeOriginal, location // Special handling
+
+    public var key: String {
+        switch self {
+        case .make: return MetadataKeys.make
+        case .model: return MetadataKeys.model
+        case .lensMake: return MetadataKeys.lensMake
+        case .lensModel: return MetadataKeys.lensModel
+        case .aperture: return MetadataKeys.fNumber
+        case .shutter: return MetadataKeys.exposureTime
+        case .iso: return MetadataKeys.isoSpeedRatings
+        case .focalLength: return MetadataKeys.focalLength
+        case .focalLength35: return MetadataKeys.focalLenIn35mmFilm
+        case .exposureBias: return MetadataKeys.exposureBiasValue
+        case .exposureProgram: return MetadataKeys.exposureProgram
+        case .meteringMode: return MetadataKeys.meteringMode
+        case .whiteBalance: return MetadataKeys.whiteBalance
+        case .flash: return MetadataKeys.flash
+        case .artist: return MetadataKeys.artist
+        case .copyright: return MetadataKeys.copyright
+        case .pixelWidth: return "PixelWidth"
+        case .pixelHeight: return "PixelHeight"
+        case .profileName: return "ProfileName"
+        case .dateTimeOriginal: return MetadataKeys.dateTimeOriginal
+        case .location: return MetadataKeys.location
+        }
+    }
+
+    public var label: String {
+        switch self {
+        case .make: return String(localized: .make)
+        case .model: return String(localized: .model)
+        case .lensMake: return String(localized: .lensMake)
+        case .lensModel: return String(localized: .lensModel)
+        case .aperture: return String(localized: .fnumber)
+        case .shutter: return String(localized: .exposureTime)
+        case .iso: return String(localized: .isospeedRatings)
+        case .focalLength: return String(localized: .focalLength)
+        case .focalLength35: return String(localized: .focalLenIn35MmFilm)
+        case .exposureBias: return String(localized: .exposureBiasValue)
+        case .exposureProgram: return String(localized: .exposureProgram)
+        case .meteringMode: return String(localized: .meteringMode)
+        case .whiteBalance: return String(localized: .whiteBalance)
+        case .flash: return String(localized: .flash)
+        case .artist: return String(localized: .artist)
+        case .copyright: return String(localized: .copyright)
+        case .pixelWidth: return String(localized: .pixelWidth)
+        case .pixelHeight: return String(localized: .pixelHeight)
+        case .profileName: return String(localized: .profileName)
+        case .dateTimeOriginal: return String(localized: .viewAddDate)
+        case .location: return String(localized: .viewAddLocation)
+        }
+    }
+
+    public var unit: String? {
+        switch self {
+        case .focalLength, .focalLength35: return "mm"
+        case .exposureBias: return "EV"
+        case .shutter: return "s"
+        case .pixelWidth, .pixelHeight: return "px"
+        default: return nil
+        }
+    }
+
+    public var keyboardType: UIKeyboardType {
+        switch self {
+        case .iso, .focalLength35: return .numberPad
+        case .aperture, .focalLength, .exposureBias: return .decimalPad
+        case .shutter: return .numbersAndPunctuation
+        default: return .default
+        }
+    }
+
+    public var placeholder: String? {
+        switch self {
+        case .artist: return "Artist name"
+        case .copyright: return "Copyright notice"
+        case .make, .lensMake: return "SONY"
+        case .model: return "ILCE-7C"
+        case .lensModel: return "FE 50mm F1.4 GM"
+        case .aperture: return "e.g. 2.8"
+        case .shutter: return "e.g. 1/125"
+        case .iso: return "e.g. 400"
+        case .focalLength: return "e.g. 35"
+        case .exposureBias: return "e.g. 1.3"
+        case .focalLength35: return "e.g. 28"
+        default: return nil
+        }
+    }
+}
+
 // MARK: Helper
 
 extension Metadata {

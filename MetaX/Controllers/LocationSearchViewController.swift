@@ -9,10 +9,6 @@
 import MapKit
 import UIKit
 
-protocol LocationSearchDelegate: AnyObject {
-    func didSelect(_ model: LocationModel)
-}
-
 class LocationSearchViewController: UIViewController, ViewModelObserving, UITextFieldDelegate {
 
     // MARK: - ViewModel
@@ -74,7 +70,8 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
         return label
     }()
 
-    weak var delegate: LocationSearchDelegate?
+    var onSelect: ((LocationModel) -> Void)?
+    var onCancel: (() -> Void)?
 
     private var isSearchActive: Bool {
         !(searchTextField.text?.isEmpty ?? true)
@@ -192,7 +189,9 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
     // MARK: - Actions
 
     @objc private func cancel() {
-        dismiss(animated: true, completion: nil)
+        dismiss(animated: true) { [weak self] in
+            self?.onCancel?()
+        }
     }
 
     @objc private func searchTextChanged() {
@@ -273,13 +272,13 @@ extension LocationSearchViewController: UITableViewDelegate {
                 view.isUserInteractionEnabled = true
                 guard let model = locationModel else { return }
                 dismiss(animated: true) {
-                    self.delegate?.didSelect(model)
+                    self.onSelect?(model)
                 }
             }
         } else {
             if let model = viewModel.selectHistory(at: indexPath.row) {
                 dismiss(animated: true) { [weak self] in
-                    self?.delegate?.didSelect(model)
+                    self?.onSelect?(model)
                 }
             }
         }

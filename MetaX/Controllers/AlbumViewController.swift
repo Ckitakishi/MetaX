@@ -6,6 +6,7 @@
 //  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
+import Photos
 import UIKit
 
 class AlbumViewController: UITableViewController, ViewModelObserving {
@@ -13,11 +14,15 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     // MARK: - Dependencies
 
     private let container: DependencyContainer
-    var router: AppRouter?
 
     // MARK: - ViewModel
 
     private let viewModel: AlbumViewModel
+
+    // MARK: - Intent Closures
+
+    var onSelectAlbum: ((PHFetchResult<PHAsset>, PHAssetCollection?, String) -> Void)?
+    var onRequestSettings: (() -> Void)?
 
     // MARK: - Properties
 
@@ -127,8 +132,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     }
 
     @objc private func didTapSettings() {
-        guard let nav = navigationController else { return }
-        router?.viewSettings(from: nav)
+        onRequestSettings?()
     }
 
     private var standardThumbnailSize: CGSize {
@@ -378,16 +382,8 @@ extension AlbumViewController {
         tableView.deselectRow(at: indexPath, animated: true)
 
         let (fetchResult, collection, title) = viewModel.fetchResult(for: indexPath)
-        let destination = PhotoGridViewController(container: container)
-        destination.configureWithViewModel(fetchResult: fetchResult, collection: collection)
-        destination.title = title
-        // Pass the router down the chain
-        destination.router = router
-
-        splitViewController?.showDetailViewController(
-            UINavigationController(rootViewController: destination),
-            sender: self
-        )
+        guard let fetchResult = fetchResult, let title = title else { return }
+        onSelectAlbum?(fetchResult, collection, title)
     }
 }
 
