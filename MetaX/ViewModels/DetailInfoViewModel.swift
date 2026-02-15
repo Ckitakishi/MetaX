@@ -11,13 +11,18 @@ import Photos
 import Observation
 import CoreLocation
 
+enum HeroContent {
+    case photo(UIImage)
+    case livePhoto(PHLivePhoto)
+}
+
 /// ViewModel for DetailInfoViewController
 @Observable @MainActor
 final class DetailInfoViewModel {
 
     // MARK: - Properties
 
-    private(set) var image: UIImage?
+    private(set) var heroContent: HeroContent?
     private(set) var metadata: Metadata?
     private(set) var fileName: String = ""
     private(set) var currentLocation: CLLocation?
@@ -25,6 +30,7 @@ final class DetailInfoViewModel {
     private(set) var isLoading: Bool = false
     private(set) var isSaving: Bool = false
     private(set) var error: MetaXError?
+    private(set) var hasMetaXEdit: Bool = false
 
     // MARK: - Computed Properties
 
@@ -33,17 +39,17 @@ final class DetailInfoViewModel {
     }
 
     var hasTimeStamp: Bool {
-        let exif = metadata?.sourceProperties["{Exif}"] as? [String: Any]
+        let exif = metadata?.sourceProperties[MetadataKeys.exifDict] as? [String: Any]
         return exif?[MetadataKeys.dateTimeOriginal] != nil
     }
 
     var timeStamp: String? {
-        let exif = metadata?.sourceProperties["{Exif}"] as? [String: Any]
+        let exif = metadata?.sourceProperties[MetadataKeys.exifDict] as? [String: Any]
         return exif?[MetadataKeys.dateTimeOriginal] as? String
     }
 
     var isLivePhoto: Bool {
-        asset?.mediaSubtypes == .photoLive
+        asset?.mediaSubtypes.contains(.photoLive) ?? false
     }
 
     // MARK: - Dependencies
@@ -57,6 +63,7 @@ final class DetailInfoViewModel {
     private(set) var asset: PHAsset?
     private(set) var assetCollection: PHAssetCollection?
     private var imageRequestId: PHImageRequestID?
+    private var livePhotoRequestId: PHImageRequestID?
     private let geocoder = CLGeocoder()
     private var geocodingTask: Task<Void, Never>?
 
@@ -94,7 +101,24 @@ final class DetailInfoViewModel {
             contentMode: .aspectFit
         ) { [weak self] image, isDegraded in
             Task { @MainActor in
-                self?.image = image
+                if let image { self?.heroContent = .photo(image) }
+            }
+        }
+    }
+
+    func loadLivePhoto(targetSize: CGSize) {
+        guard let asset = asset else { return }
+        let options = PHLivePhotoRequestOptions()
+        options.deliveryMode = .highQualityFormat
+        options.isNetworkAccessAllowed = true
+        livePhotoRequestId = PHImageManager.default().requestLivePhoto(
+            for: asset,
+            targetSize: targetSize,
+            contentMode: .aspectFit,
+            options: options
+        ) { [weak self] livePhoto, _ in
+            Task { @MainActor in
+                if let livePhoto { self?.heroContent = .livePhoto(livePhoto) }
             }
         }
     }
@@ -103,13 +127,14 @@ final class DetailInfoViewModel {
         guard let asset = asset, !isLoading else { return }
 
         // Validate media type
-        guard asset.mediaType == .image, asset.mediaSubtypes.rawValue != 32 else {
+        guard asset.mediaType == .image else {
             self.error = .metadata(.unsupportedMediaType)
             return
         }
 
         self.isLoading = true
 
+        // Force reload from Photo Library to get the latest edited metadata
         let result = await metadataService.loadMetadata(from: asset)
 
         self.isLoading = false
@@ -118,77 +143,93 @@ final class DetailInfoViewModel {
         case .success(let metadata):
             self.metadata = metadata
             self.updateDisplayData(from: metadata)
+            await refreshMetaXEditStatus()
         case .failure(let error):
             self.error = error
         }
     }
 
+    // MARK: - Revert
+
+    func revertToOriginal() async {
+        guard let asset else { return }
+        isSaving = true
+        do {
+            try await PHPhotoLibrary.shared().performChanges {
+                PHAssetChangeRequest(for: asset).revertAssetContentToOriginal()
+            }
+        } catch {
+            self.error = .imageSave(.editionFailed)
+        }
+        isSaving = false
+        await loadMetadata()
+
+        // revertAssetContentToOriginal() restores image content but does NOT undo
+        // PHAsset property changes (creationDate, location) made separately.
+        // Re-sync from the now-restored metadata so the asset sorts correctly.
+        if let metadata {
+            await syncAssetProperties(from: metadata.sourceProperties, for: asset)
+        }
+    }
+
+    private func refreshMetaXEditStatus() async {
+        guard let asset else { hasMetaXEdit = false; return }
+        hasMetaXEdit = await withCheckedContinuation { continuation in
+            let options = PHContentEditingInputRequestOptions()
+            options.isNetworkAccessAllowed = false
+            // Without this, Photos never fills in adjustmentData on PHContentEditingInput.
+            options.canHandleAdjustmentData = { adjustmentData in
+                adjustmentData.formatIdentifier == Bundle.main.bundleIdentifier
+            }
+            asset.requestContentEditingInput(with: options) { input, _ in
+                continuation.resume(returning:
+                    input?.adjustmentData?.formatIdentifier == Bundle.main.bundleIdentifier)
+            }
+        }
+    }
+
     // MARK: - Edit Methods
 
-    func addTimeStamp(_ date: Date, deleteOriginal: Bool) async {
-        guard let metadata = metadata, let asset = asset else { return }
-
+    @discardableResult
+    func addTimeStamp(_ date: Date, saveMode: SaveWorkflowMode) async -> Bool {
+        guard let metadata = metadata else { return false }
         let newProps = metadataService.updateTimestamp(date, in: metadata)
-        let success = await saveImageWithProperties(newProps, deleteOriginal: deleteOriginal)
-
-        if success {
-            // Update PHAsset creation date
-            try? await PHPhotoLibrary.shared().performChanges {
-                let request = PHAssetChangeRequest(for: asset)
-                request.creationDate = date
-            }
-        }
+        return await performSaveOperation(properties: newProps, mode: saveMode)
     }
 
-    func clearTimeStamp(deleteOriginal: Bool) async {
-        guard let metadata = metadata else { return }
-
+    @discardableResult
+    func clearTimeStamp(saveMode: SaveWorkflowMode) async -> Bool {
+        guard let metadata = metadata else { return false }
         let newProps = metadataService.removeTimestamp(from: metadata)
-        await saveImageWithProperties(newProps, deleteOriginal: deleteOriginal)
+        return await performSaveOperation(properties: newProps, mode: saveMode)
     }
 
-    func addLocation(_ location: CLLocation, deleteOriginal: Bool) async {
-        guard let metadata = metadata, let asset = asset else { return }
-
+    @discardableResult
+    func addLocation(_ location: CLLocation, saveMode: SaveWorkflowMode) async -> Bool {
+        guard let metadata = metadata else { return false }
         let newProps = metadataService.updateLocation(location, in: metadata)
-        let success = await saveImageWithProperties(newProps, deleteOriginal: deleteOriginal)
-
-        if success {
-            // Update PHAsset location
-            try? await PHPhotoLibrary.shared().performChanges {
-                let request = PHAssetChangeRequest(for: asset)
-                request.location = location
-            }
-        }
+        return await performSaveOperation(properties: newProps, mode: saveMode)
     }
 
-    func clearLocation(deleteOriginal: Bool) async {
-        guard let metadata = metadata, let asset = asset else { return }
-
+    @discardableResult
+    func clearLocation(saveMode: SaveWorkflowMode) async -> Bool {
+        guard let metadata = metadata else { return false }
         let newProps = metadataService.removeLocation(from: metadata)
-        let success = await saveImageWithProperties(newProps, deleteOriginal: deleteOriginal)
-
-        if success {
-            // Clear PHAsset location
-            try? await PHPhotoLibrary.shared().performChanges {
-                let request = PHAssetChangeRequest(for: asset)
-                request.location = nil
-            }
-        }
+        return await performSaveOperation(properties: newProps, mode: saveMode)
     }
 
-    func clearAllMetadata(deleteOriginal: Bool) async {
-        guard let metadata = metadata else { return }
-
+    @discardableResult
+    func clearAllMetadata(saveMode: SaveWorkflowMode) async -> Bool {
+        guard let metadata = metadata else { return false }
         let newProps = metadataService.removeAllMetadata(from: metadata)
-        await saveImageWithProperties(newProps, deleteOriginal: deleteOriginal)
+        return await performSaveOperation(properties: newProps, mode: saveMode)
     }
-    
-    func applyMetadataTemplate(fields: [String: Any], deleteOriginal: Bool) async {
-        guard let metadata = metadata else { return }
-        
+
+    @discardableResult
+    func applyMetadataTemplate(fields: [String: Any], saveMode: SaveWorkflowMode) async -> Bool {
+        guard let metadata = metadata else { return false }
         let newProps = metadataService.updateMetadata(with: fields, in: metadata)
-        await saveImageWithProperties(newProps, deleteOriginal: deleteOriginal)
+        return await performSaveOperation(properties: newProps, mode: saveMode)
     }
 
     // MARK: - Cancel Requests
@@ -196,6 +237,9 @@ final class DetailInfoViewModel {
     func cancelRequests() {
         if let imageRequestId = imageRequestId {
             photoLibraryService.cancelImageRequest(imageRequestId)
+        }
+        if let livePhotoRequestId = livePhotoRequestId {
+            PHImageManager.default().cancelImageRequest(livePhotoRequestId)
         }
         geocodingTask?.cancel()
     }
@@ -207,22 +251,37 @@ final class DetailInfoViewModel {
     // MARK: - Private Methods
 
     @discardableResult
-    private func saveImageWithProperties(_ properties: [String: Any], deleteOriginal: Bool) async -> Bool {
+    private func performSaveOperation(properties: [String: Any], mode: SaveWorkflowMode) async -> Bool {
         guard let asset = asset else { return false }
 
         self.isSaving = true
-
-        let result = await imageSaveService.saveImage(
-            asset: asset,
-            newProperties: properties,
-            deleteOriginal: deleteOriginal
-        )
+        
+        let result: Result<PHAsset, MetaXError>
+        let originalToDelete: PHAsset?
+        
+        switch mode {
+        case .updateOriginal:
+            result = await imageSaveService.editAssetMetadata(asset: asset, newProperties: properties)
+            originalToDelete = nil
+        case .saveAsCopy(let deleteOriginal):
+            result = await imageSaveService.saveImageAsNewAsset(asset: asset, newProperties: properties)
+            originalToDelete = deleteOriginal ? asset : nil
+        }
 
         self.isSaving = false
 
         switch result {
         case .success(let newAsset):
+            // PHContentEditingOutput only updates the rendered image file.
+            // PHAsset-level properties (creationDate, location) live in Photos' own
+            // database and must be synced separately for both save modes.
+            await syncAssetProperties(from: properties, for: newAsset)
             self.asset = newAsset
+
+            if let oldAsset = originalToDelete {
+                _ = await photoLibraryService.deleteAsset(oldAsset)
+            }
+            
         case .failure(let error):
             self.error = error
         }
@@ -234,16 +293,67 @@ final class DetailInfoViewModel {
         return false
     }
 
-    private func updateDisplayData(from metadata: Metadata) {
-        // Update local state
-        self.currentLocation = metadata.rawGPS
+    /// Syncs PHAsset-level properties (creationDate, location) to match the saved
+    /// image metadata. Only triggers a Photos permission dialog if values actually differ.
+    private func syncAssetProperties(from properties: [String: Any], for asset: PHAsset) async {
+        let exif = properties[MetadataKeys.exifDict] as? [String: Any]
+        let gps = properties[MetadataKeys.gpsDict] as? [String: Any]
 
-        // Build table view data source
+        // Extract date from saved metadata (nil = was removed or never existed)
+        let newDate: Date?
+        if let dateStr = exif?[MetadataKeys.dateTimeOriginal] as? String {
+            newDate = DateFormatter(with: .yMdHms).getDate(from: dateStr)
+        } else {
+            newDate = nil
+        }
+
+        // Extract location from saved metadata
+        let newLocation: CLLocation?
+        if let gps,
+           let lat = gps[MetadataKeys.gpsLatitude] as? Double,
+           let latRef = gps[MetadataKeys.gpsLatitudeRef] as? String,
+           let lon = gps[MetadataKeys.gpsLongitude] as? Double,
+           let lonRef = gps[MetadataKeys.gpsLongitudeRef] as? String {
+            newLocation = CLLocation(latitude: latRef == "N" ? lat : -lat,
+                                    longitude: lonRef == "E" ? lon : -lon)
+        } else {
+            newLocation = nil
+        }
+
+        // Compare with current asset to avoid unnecessary permission dialogs
+        let dateChanged: Bool = {
+            if let newDate, let current = asset.creationDate {
+                return abs(newDate.timeIntervalSince(current)) > 1
+            }
+            return (newDate == nil) != (asset.creationDate == nil)
+        }()
+
+        let locationChanged: Bool = {
+            if let newLoc = newLocation, let curLoc = asset.location {
+                return abs(newLoc.coordinate.latitude - curLoc.coordinate.latitude) > 0.00001
+                    || abs(newLoc.coordinate.longitude - curLoc.coordinate.longitude) > 0.00001
+            }
+            return (newLocation == nil) != (asset.location == nil)
+        }()
+
+        guard dateChanged || locationChanged else { return }
+
+        do {
+            try await PHPhotoLibrary.shared().performChanges {
+                let request = PHAssetChangeRequest(for: asset)
+                if dateChanged { request.creationDate = newDate }
+                if locationChanged { request.location = newLocation }
+            }
+        } catch {
+            print("[MetaX] syncAssetProperties: \(error)")
+        }
+    }
+
+    private func updateDisplayData(from metadata: Metadata) {
+        self.currentLocation = metadata.rawGPS
         self.tableViewDataSource = metadata.metaProps.map { (section, props) in
             (section: section, rows: props.map { DetailCellModel(propValue: $0) })
         }
-
-        // Reverse geocode location if present
         if let location = currentLocation {
             reverseGeocodeLocation(location)
         }

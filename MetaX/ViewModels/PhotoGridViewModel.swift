@@ -10,14 +10,19 @@ import UIKit
 import Photos
 import Observation
 
-/// ViewModel for PhotoGridViewController
 @Observable @MainActor
 final class PhotoGridViewModel: NSObject {
 
     // MARK: - Properties
 
+    // Committed state: matches what the collection view has rendered.
+    // Updated inside performBatchUpdates so numberOfItemsInSection stays consistent.
     private(set) var fetchResult: PHFetchResult<PHAsset>?
+    // Lookahead basis: updated eagerly per notification so each delta is computed from the correct base.
+    private var basisFetchResult: PHFetchResult<PHAsset>?
+
     private(set) var changeDetails: PHFetchResultChangeDetails<PHAsset>?
+    private var pendingChanges: [PHFetchResultChangeDetails<PHAsset>] = []
 
     private(set) var assetCollection: PHAssetCollection?
     private var previousPreheatRect = CGRect.zero
@@ -38,6 +43,7 @@ final class PhotoGridViewModel: NSObject {
 
     func configure(with fetchResult: PHFetchResult<PHAsset>?, collection: PHAssetCollection?) {
         self.fetchResult = fetchResult
+        self.basisFetchResult = fetchResult
         self.assetCollection = collection
     }
 
@@ -53,6 +59,7 @@ final class PhotoGridViewModel: NSObject {
             return
         }
         fetchResult = photoLibraryService.fetchAllPhotos()
+        basisFetchResult = fetchResult
     }
 
     func registerPhotoLibraryObserver() {
@@ -90,14 +97,11 @@ final class PhotoGridViewModel: NSObject {
     func updateCachedAssets(visibleRect: CGRect, viewBoundsHeight: CGFloat, indexPathsProvider: (CGRect) -> [IndexPath]) {
         guard thumbnailSize != .zero else { return }
 
-        // The preheat window is twice the height of the visible rect
         let preheatRect = visibleRect.insetBy(dx: 0, dy: -0.5 * visibleRect.height)
 
-        // Update only if the visible area is significantly different from the last preheated area
         let delta = abs(preheatRect.midY - previousPreheatRect.midY)
         guard delta > viewBoundsHeight / 3 else { return }
 
-        // Compute the assets to start caching and to stop caching
         let (addedRects, removedRects) = differencesBetweenRects(previousPreheatRect, preheatRect)
 
         let addedAssets = addedRects
@@ -111,7 +115,6 @@ final class PhotoGridViewModel: NSObject {
         photoLibraryService.startCachingThumbnails(for: addedAssets, targetSize: thumbnailSize)
         photoLibraryService.stopCachingThumbnails(for: removedAssets, targetSize: thumbnailSize)
 
-        // Store the preheat rect to compare against in the future
         previousPreheatRect = preheatRect
     }
 
@@ -141,21 +144,38 @@ final class PhotoGridViewModel: NSObject {
     }
 }
 
+// MARK: - Change Queue
+
+extension PhotoGridViewModel {
+
+    func commitFetchResult(_ result: PHFetchResult<PHAsset>) {
+        self.fetchResult = result
+    }
+
+    func finishChange() {
+        changeDetails = nil
+        dispatchNextChangeIfNeeded()
+    }
+
+    private func dispatchNextChangeIfNeeded() {
+        guard changeDetails == nil, let next = pendingChanges.first else { return }
+        pendingChanges.removeFirst()
+        changeDetails = next
+    }
+}
+
 // MARK: - PHPhotoLibraryChangeObserver
 
 extension PhotoGridViewModel: PHPhotoLibraryChangeObserver {
 
     nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
-        // Since we are @MainActor isolated, we must capture the necessary data 
-        // and jump to the main actor to update our properties.
         Task { @MainActor in
-            guard let fetchResult = self.fetchResult,
-                  let changes = changeInstance.changeDetails(for: fetchResult) else {
-                return
-            }
-
-            self.fetchResult = changes.fetchResultAfterChanges
-            self.changeDetails = changes
+            let basis = self.basisFetchResult ?? self.fetchResult
+            guard let basis,
+                  let changes = changeInstance.changeDetails(for: basis) else { return }
+            self.basisFetchResult = changes.fetchResultAfterChanges
+            self.pendingChanges.append(changes)
+            self.dispatchNextChangeIfNeeded()
         }
     }
 }

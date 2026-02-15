@@ -13,6 +13,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     // MARK: - Dependencies
 
     private let container: DependencyContainer
+    var router: AppRouter?
 
     // MARK: - ViewModel
 
@@ -363,6 +364,8 @@ extension AlbumViewController {
         let destination = PhotoGridViewController(container: container)
         destination.configureWithViewModel(fetchResult: fetchResult, collection: collection)
         destination.title = title
+        // Pass the router down the chain
+        destination.router = router
 
         splitViewController?.showDetailViewController(
             UINavigationController(rootViewController: destination),

@@ -8,15 +8,20 @@
 
 import Photos
 import CoreImage
-import UIKit
+import UniformTypeIdentifiers
 
 /// Protocol defining image save operations
 protocol ImageSaveServiceProtocol {
-    /// Save image with new metadata properties
-    func saveImage(
+    /// Create a new asset with modified metadata
+    func saveImageAsNewAsset(
         asset: PHAsset,
-        newProperties: [String: Any],
-        deleteOriginal: Bool
+        newProperties: [String: Any]
+    ) async -> Result<PHAsset, MetaXError>
+    
+    /// Edit existing asset metadata using non-destructive editing
+    func editAssetMetadata(
+        asset: PHAsset,
+        newProperties: [String: Any]
     ) async -> Result<PHAsset, MetaXError>
 }
 
@@ -24,21 +29,19 @@ protocol ImageSaveServiceProtocol {
 final class ImageSaveService: ImageSaveServiceProtocol {
 
     // MARK: - Dependencies
-
     private let photoLibraryService: PhotoLibraryServiceProtocol
+    private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
 
     // MARK: - Initialization
-
     init(photoLibraryService: PhotoLibraryServiceProtocol) {
         self.photoLibraryService = photoLibraryService
     }
 
     // MARK: - Public Methods
 
-    func saveImage(
+    func saveImageAsNewAsset(
         asset: PHAsset,
-        newProperties: [String: Any],
-        deleteOriginal: Bool
+        newProperties: [String: Any]
     ) async -> Result<PHAsset, MetaXError> {
         // 1. Ensure MetaX album exists
         let albumResult = await photoLibraryService.createAlbumIfNeeded(title: "MetaX")
@@ -46,39 +49,148 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             return .failure(.imageSave(.albumCreationFailed))
         }
 
-        // 2. Request content editing input and create temp file
-        let tempURLResult = await requestContentEditingInput(for: asset, newProperties: newProperties)
+        // 2. Generate new image data to temp file
+        let tempURLResult = await generateModifiedImageFile(for: asset, newProperties: newProperties)
         guard case .success(let tempURL) = tempURLResult else {
-            if case .failure(let error) = tempURLResult {
-                return .failure(error)
-            }
-            return .failure(.imageSave(.editionFailed))
+            return .failure(tempURLResult.error ?? .imageSave(.editionFailed))
         }
 
         // 3. Create new asset from temp file
-        let createResult = await createAsset(from: tempURL)
-
+        let createResult = await createAssetInMetaXAlbum(from: tempURL)
+        
         // 4. Clean up temp file
         try? FileManager.default.removeItem(at: tempURL)
 
-        guard case .success(let newAsset) = createResult else {
-            if case .failure(let error) = createResult {
-                return .failure(error)
+        return createResult
+    }
+    
+    func editAssetMetadata(
+        asset: PHAsset,
+        newProperties: [String: Any]
+    ) async -> Result<PHAsset, MetaXError> {
+        if asset.mediaSubtypes.contains(.photoLive) {
+            return await editLivePhotoMetadata(asset: asset, newProperties: newProperties)
+        }
+        return await editStillPhotoMetadata(asset: asset, newProperties: newProperties)
+    }
+
+    private func editStillPhotoMetadata(
+        asset: PHAsset,
+        newProperties: [String: Any]
+    ) async -> Result<PHAsset, MetaXError> {
+        return await withCheckedContinuation { continuation in
+            let options = PHContentEditingInputRequestOptions()
+            options.isNetworkAccessAllowed = true
+
+            asset.requestContentEditingInput(with: options) { input, info in
+                if let error = info[PHContentEditingInputErrorKey] as? Error {
+                    print("[MetaX] editStillPhotoMetadata: requestContentEditingInput error: \(error)")
+                }
+                guard let input = input, let imageURL = input.fullSizeImageURL else {
+                    print("[MetaX] editStillPhotoMetadata: no input or fullSizeImageURL")
+                    continuation.resume(returning: .failure(.imageSave(.editionFailed)))
+                    return
+                }
+
+                let output = PHContentEditingOutput(contentEditingInput: input)
+
+                guard self.writeModifiedImage(
+                    sourceURL: imageURL,
+                    destinationURL: output.renderedContentURL,
+                    newProperties: newProperties
+                ) else {
+                    print("[MetaX] editStillPhotoMetadata: writeModifiedImage failed")
+                    continuation.resume(returning: .failure(.imageSave(.editionFailed)))
+                    return
+                }
+
+                output.adjustmentData = Self.makeAdjustmentData()
+
+                PHPhotoLibrary.shared().performChanges({
+                    PHAssetChangeRequest(for: asset).contentEditingOutput = output
+                }, completionHandler: { success, error in
+                    if success {
+                        continuation.resume(returning: .success(asset))
+                    } else {
+                        print("[MetaX] editStillPhotoMetadata: performChanges failed: \(String(describing: error))")
+                        continuation.resume(returning: .failure(.imageSave(.editionFailed)))
+                    }
+                })
             }
-            return .failure(.imageSave(.creationFailed))
         }
+    }
 
-        // 5. Delete original if requested
-        if deleteOriginal {
-            _ = await photoLibraryService.deleteAsset(asset)
+    private func editLivePhotoMetadata(
+        asset: PHAsset,
+        newProperties: [String: Any]
+    ) async -> Result<PHAsset, MetaXError> {
+        return await withCheckedContinuation { continuation in
+            let options = PHContentEditingInputRequestOptions()
+            options.isNetworkAccessAllowed = true
+
+            asset.requestContentEditingInput(with: options) { input, info in
+                guard let input = input,
+                      let context = PHLivePhotoEditingContext(livePhotoEditingInput: input) else {
+                    print("[MetaX] editLivePhotoMetadata: no input or context")
+                    continuation.resume(returning: .failure(.imageSave(.editionFailed)))
+                    return
+                }
+
+                let output = PHContentEditingOutput(contentEditingInput: input)
+
+                // Inject metadata into the still image frame via CIImage.settingProperties.
+                // This lets Photos write the complete Live Photo output (still + video) in one
+                // pass, so the private content-identifier that pairs still and video is never
+                // touched by us and cannot be corrupted.
+                //
+                // NOTE: This is a shallow merge — `newProperties` must contain complete
+                // sub-dicts (e.g. the full {Exif} dict). This is guaranteed because
+                // MetadataService always builds from the full `sourceProperties`.
+                context.frameProcessor = { frame, _ in
+                    guard frame.type == .photo else { return frame.image }
+                    let image = frame.image
+                    var merged = image.properties
+                    for (key, value) in newProperties { merged[key] = value }
+                    return image.settingProperties(merged as [AnyHashable: Any])
+                }
+
+                context.saveLivePhoto(to: output) { success, error in
+                    guard success else {
+                        print("[MetaX] editLivePhotoMetadata: saveLivePhoto failed: \(String(describing: error))")
+                        continuation.resume(returning: .failure(.imageSave(.editionFailed)))
+                        return
+                    }
+
+                    output.adjustmentData = Self.makeAdjustmentData()
+
+                    PHPhotoLibrary.shared().performChanges({
+                        PHAssetChangeRequest(for: asset).contentEditingOutput = output
+                    }, completionHandler: { success, error in
+                        if success {
+                            continuation.resume(returning: .success(asset))
+                        } else {
+                            print("[MetaX] editLivePhotoMetadata: performChanges failed: \(String(describing: error))")
+                            continuation.resume(returning: .failure(.imageSave(.editionFailed)))
+                        }
+                    })
+                }
+            }
         }
+    }
 
-        return .success(newAsset)
+    private static func makeAdjustmentData() -> PHAdjustmentData {
+        let dataPayload = ["app": "MetaX", "edit": "metadata", "date": Date()] as [String: Any]
+        let archivedData = try? NSKeyedArchiver.archivedData(withRootObject: dataPayload, requiringSecureCoding: false)
+        return PHAdjustmentData(
+            formatIdentifier: Bundle.main.bundleIdentifier ?? "com.yuhan.metax",
+            formatVersion: "1.0",
+            data: archivedData ?? "MODIFIED".data(using: .utf8)!
+        )
     }
 
     // MARK: - Private Methods
 
-    private func requestContentEditingInput(
+    private func generateModifiedImageFile(
         for asset: PHAsset,
         newProperties: [String: Any]
     ) async -> Result<URL, MetaXError> {
@@ -86,43 +198,35 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             let options = PHContentEditingInputRequestOptions()
             options.isNetworkAccessAllowed = true
 
-            asset.requestContentEditingInput(with: options) { contentEditingInput, _ in
-                guard let imageURL = contentEditingInput?.fullSizeImageURL else {
+            asset.requestContentEditingInput(with: options) { input, _ in
+                guard let imageURL = input?.fullSizeImageURL else {
                     continuation.resume(returning: .failure(.imageSave(.editionFailed)))
                     return
                 }
-
-                guard let ciImage = CIImage(contentsOf: imageURL) else {
-                    continuation.resume(returning: .failure(.imageSave(.editionFailed)))
-                    return
-                }
-
-                let context = CIContext(options: nil)
-                var tmpUrl = URL(fileURLWithPath: NSTemporaryDirectory() + imageURL.lastPathComponent)
-
-                guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent),
-                      let cgImageSource = CGImageSourceCreateWithURL(imageURL as CFURL, nil),
-                      let sourceType = CGImageSourceGetType(cgImageSource) else {
-                    continuation.resume(returning: .failure(.imageSave(.editionFailed)))
-                    return
-                }
-
-                var createdDestination = CGImageDestinationCreateWithURL(tmpUrl as CFURL, sourceType, 1, nil)
-
-                if createdDestination == nil {
-                    // media type is unsupported: delete temp file, create new one with extension [.JPG]
-                    try? FileManager.default.removeItem(at: tmpUrl)
-                    tmpUrl = URL(fileURLWithPath: NSTemporaryDirectory() + imageURL.deletingPathExtension().lastPathComponent + ".JPG")
-                    createdDestination = CGImageDestinationCreateWithURL(tmpUrl as CFURL, "public.jpeg" as CFString, 1, nil)
-                }
-
-                guard let destination = createdDestination else {
-                    continuation.resume(returning: .failure(.imageSave(.editionFailed)))
-                    return
-                }
-
-                CGImageDestinationAddImage(destination, cgImage, newProperties as CFDictionary)
-                if CGImageDestinationFinalize(destination) {
+                
+                // Construct a new filename with suffix, avoiding duplicates
+                let resources = PHAssetResource.assetResources(for: asset)
+                let originalName = resources.first?.originalFilename ?? "IMG.JPG"
+                let nameURL = URL(fileURLWithPath: originalName)
+                let baseName = nameURL.deletingPathExtension().lastPathComponent
+                let ext = nameURL.pathExtension.isEmpty ? "JPG" : nameURL.pathExtension
+                
+                let suffix = "_MetaX"
+                let finalBaseName = baseName.hasSuffix(suffix) ? baseName : (baseName + suffix)
+                let newFileName = "\(finalBaseName).\(ext)"
+                
+                let tmpUrl = URL(fileURLWithPath: NSTemporaryDirectory() + newFileName)
+                
+                // Remove existing temp file if it exists
+                try? FileManager.default.removeItem(at: tmpUrl)
+                
+                let success = self.writeModifiedImage(
+                    sourceURL: imageURL,
+                    destinationURL: tmpUrl,
+                    newProperties: newProperties
+                )
+                
+                if success {
                     continuation.resume(returning: .success(tmpUrl))
                 } else {
                     continuation.resume(returning: .failure(.imageSave(.editionFailed)))
@@ -130,8 +234,91 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             }
         }
     }
+    
+    private func writeModifiedImage(
+        sourceURL: URL,
+        destinationURL: URL,
+        newProperties: [String: Any]
+    ) -> Bool {
+        // Copy pixel data as-is (no decode/re-encode) and only replace metadata.
+        // This avoids recompression loss on JPEG/HEIC.
+        guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, nil),
+              let sourceType = CGImageSourceGetType(source) else {
+            print("[MetaX] writeModifiedImage: CGImageSource creation or type detection failed")
+            return false
+        }
 
-    private func createAsset(from tempURL: URL) async -> Result<PHAsset, MetaXError> {
+        // For editAssetMetadata, Photos dictates the format via renderedContentURL's extension
+        // (always .JPG regardless of source). Derive encoding type from destination extension,
+        // falling back to source type if unknown.
+        let destExtension = destinationURL.pathExtension.lowercased()
+        let encodingType: CFString
+        let tempExtension: String
+        if !destExtension.isEmpty, let destUTType = UTType(filenameExtension: destExtension) {
+            encodingType = destUTType.identifier as CFString
+            tempExtension = destExtension
+        } else {
+            encodingType = sourceType
+            tempExtension = UTType(sourceType as String)?.preferredFilenameExtension ?? "jpg"
+        }
+
+        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension(tempExtension)
+
+        guard let destination = CGImageDestinationCreateWithURL(tempURL as CFURL, encodingType, 1, nil) else {
+            print("[MetaX] writeModifiedImage: CGImageDestinationCreateWithURL failed for type \(encodingType)")
+            return false
+        }
+
+        // When source and destination formats match, copy pixel data as-is (lossless).
+        // When formats differ (e.g. HEIC source → JPG required by Photos' renderedContentURL),
+        // fall back to pixel decode — format conversion requires it.
+        let sourceFormatStr = CGImageSourceGetType(source) as String? ?? ""
+        let destFormatStr = encodingType as String
+        if sourceFormatStr == destFormatStr {
+            // Same format: copy pixel data as-is, only replace metadata (lossless).
+            CGImageDestinationAddImageFromSource(destination, source, 0, newProperties as CFDictionary)
+        } else {
+            // Cross-format (e.g. HEIC → JPEG): must decode pixels.
+            // CIImage handles wide color, HDR, and HEIC correctly; baking orientation
+            // into pixels and setting orientation=1 is required for Photos to accept the output.
+            guard let ciImage = CIImage(contentsOf: sourceURL, options: [.applyOrientationProperty: true]),
+                  let cgImage = self.ciContext.createCGImage(ciImage, from: ciImage.extent) else {
+                print("[MetaX] writeModifiedImage: CIImage decode failed for cross-format \(sourceFormatStr) → \(destFormatStr)")
+                try? FileManager.default.removeItem(at: tempURL)
+                return false
+            }
+            var finalProps = newProperties
+            finalProps[kCGImagePropertyOrientation as String] = 1
+            CGImageDestinationAddImage(destination, cgImage, finalProps as CFDictionary)
+        }
+
+        guard CGImageDestinationFinalize(destination) else {
+            print("[MetaX] writeModifiedImage: CGImageDestinationFinalize failed")
+            try? FileManager.default.removeItem(at: tempURL)
+            return false
+        }
+
+        do {
+            try FileManager.default.createDirectory(
+                at: destinationURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true,
+                attributes: nil
+            )
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+            try FileManager.default.moveItem(at: tempURL, to: destinationURL)
+            return true
+        } catch {
+            print("[MetaX] writeModifiedImage: Failed to move rendered content: \(error)")
+            try? FileManager.default.removeItem(at: tempURL)
+            return false
+        }
+    }
+
+    private func createAssetInMetaXAlbum(from tempURL: URL) async -> Result<PHAsset, MetaXError> {
         var localId: String = ""
 
         do {
@@ -159,5 +346,12 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         } catch {
             return .failure(.imageSave(.creationFailed))
         }
+    }
+}
+
+fileprivate extension Result {
+    var error: Failure? {
+        if case .failure(let error) = self { return error }
+        return nil
     }
 }

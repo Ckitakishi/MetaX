@@ -10,9 +10,46 @@ import UIKit
 import Foundation
 import CoreLocation
 
+import ImageIO
+
 public enum MetadataKeys {
+    static let exifDict = kCGImagePropertyExifDictionary as String
+    static let tiffDict = kCGImagePropertyTIFFDictionary as String
+    static let gpsDict = kCGImagePropertyGPSDictionary as String
+    
     static let location = "Location"
-    static let dateTimeOriginal = "DateTimeOriginal"
+    static let dateTimeOriginal = kCGImagePropertyExifDateTimeOriginal as String
+    static let dateTimeDigitized = kCGImagePropertyExifDateTimeDigitized as String
+    static let make = kCGImagePropertyTIFFMake as String
+    static let model = kCGImagePropertyTIFFModel as String
+    static let software = kCGImagePropertyTIFFSoftware as String
+    static let artist = kCGImagePropertyTIFFArtist as String
+    static let copyright = kCGImagePropertyTIFFCopyright as String
+    static let dateTime = kCGImagePropertyTIFFDateTime as String
+    
+    static let lensMake = kCGImagePropertyExifLensMake as String
+    static let lensModel = kCGImagePropertyExifLensModel as String
+    static let fNumber = kCGImagePropertyExifFNumber as String
+    static let exposureTime = kCGImagePropertyExifExposureTime as String
+    static let isoSpeedRatings = kCGImagePropertyExifISOSpeedRatings as String
+    static let focalLength = kCGImagePropertyExifFocalLength as String
+    static let exposureBiasValue = kCGImagePropertyExifExposureBiasValue as String
+    static let focalLenIn35mmFilm = kCGImagePropertyExifFocalLenIn35mmFilm as String
+    static let exposureProgram = kCGImagePropertyExifExposureProgram as String
+    static let meteringMode = kCGImagePropertyExifMeteringMode as String
+    static let whiteBalance = kCGImagePropertyExifWhiteBalance as String
+    static let flash = kCGImagePropertyExifFlash as String
+    
+    // GPS Keys
+    static let gpsLatitude = kCGImagePropertyGPSLatitude as String
+    static let gpsLatitudeRef = kCGImagePropertyGPSLatitudeRef as String
+    static let gpsLongitude = kCGImagePropertyGPSLongitude as String
+    static let gpsLongitudeRef = kCGImagePropertyGPSLongitudeRef as String
+}
+
+public enum SaveWorkflowMode {
+    case updateOriginal
+    case saveAsCopy(deleteOriginal: Bool)
 }
 
 public enum MetadataSection: String {
@@ -64,15 +101,15 @@ public struct Metadata {
         var tmpMetaProps: [(section: MetadataSection, props: [[String: Any]])] = []
         var tmpGPSProp: CLLocation?
 
-        let exifInfo = props["{Exif}"] as? [String: Any] ?? [:]
-        let tiffInfo = props["{TIFF}"] as? [String: Any] ?? [:]
+        let exifInfo = props[MetadataKeys.exifDict] as? [String: Any] ?? [:]
+        let tiffInfo = props[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
         
         // Extract GPS first for internal use
-        if let gpsInfo = props["{GPS}"] as? [String: Any],
-           let latitudeRef = gpsInfo["LatitudeRef"] as? String,
-           let latitude = gpsInfo["Latitude"] as? Double,
-           let longitudeRef = gpsInfo["LongitudeRef"] as? String,
-           let longitude = gpsInfo["Longitude"] as? Double {
+        if let gpsInfo = props[MetadataKeys.gpsDict] as? [String: Any],
+           let latitudeRef = gpsInfo[MetadataKeys.gpsLatitudeRef] as? String,
+           let latitude = gpsInfo[MetadataKeys.gpsLatitude] as? Double,
+           let longitudeRef = gpsInfo[MetadataKeys.gpsLongitudeRef] as? String,
+           let longitude = gpsInfo[MetadataKeys.gpsLongitude] as? Double {
             tmpGPSProp = CLLocation(latitude: latitudeRef == "N" ? latitude : -latitude,
                                  longitude: longitudeRef == "E" ? longitude : -longitude)
         }
@@ -117,33 +154,35 @@ extension Metadata {
     // {Exif}.DateTimeOriginal
     func writeTimeOriginal(_ date: Date) -> [String: Any] {
         var editableProps = sourceProperties
-        var exifInfo = editableProps["{Exif}"] as? [String: Any] ?? [:]
-        exifInfo[timeStampKey] = DateFormatter(with: .yMdHms).getStr(from: date)
-        editableProps["{Exif}"] = exifInfo
+        var exifInfo = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
+        let dateStr = DateFormatter(with: .yMdHms).getStr(from: date)
+        exifInfo[MetadataKeys.dateTimeOriginal] = dateStr
+        exifInfo[MetadataKeys.dateTimeDigitized] = dateStr
+        editableProps[MetadataKeys.exifDict] = exifInfo
         return updateTiff(with: editableProps)
     }
 
     func deleteTimeOriginal() -> [String: Any] {
         var editableProps = self.sourceProperties
-        var exifInfo = editableProps["{Exif}"] as? [String: Any] ?? [:]
-        exifInfo.removeValue(forKey: timeStampKey)
-        editableProps["{Exif}"] = exifInfo
+        var exifInfo = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
+        exifInfo.removeValue(forKey: MetadataKeys.dateTimeOriginal)
+        exifInfo.removeValue(forKey: MetadataKeys.dateTimeDigitized)
+        editableProps[MetadataKeys.exifDict] = exifInfo
         return updateTiff(with: editableProps)
     }
-    
-    func writeLocation(_ location: CLLocation) ->  [String: Any] {
+
+    func writeLocation(_ location: CLLocation) -> [String: Any] {
         var editableProps = sourceProperties
-        editableProps["{GPS}"] = location.mapToDictionary()
+        editableProps[MetadataKeys.gpsDict] = makeGpsDictionary(for: location)
         return updateTiff(with: editableProps)
     }
-    
-    func deleteGPS() ->  [String: Any]? {
+
+    func deleteGPS() -> [String: Any]? {
         var editableProps = self.sourceProperties
-        if editableProps["{GPS}"] != nil {
-            editableProps.removeValue(forKey: "{GPS}")
+        if editableProps[MetadataKeys.gpsDict] != nil {
+            editableProps.removeValue(forKey: MetadataKeys.gpsDict)
             return updateTiff(with: editableProps)
         }
-        
         return self.sourceProperties
     }
     
@@ -156,43 +195,89 @@ extension Metadata {
     func write(batch: [String: Any]) -> [String: Any] {
         var editableProps = sourceProperties
         
-        let tiffKeys = ["Make", "Model", "Artist", "Copyright", "Software", "DateTime"]
+        let tiffKeys = [
+            MetadataKeys.make, MetadataKeys.model, MetadataKeys.artist,
+            MetadataKeys.copyright, MetadataKeys.software, MetadataKeys.dateTime
+        ]
         
-        var tiffInfo = editableProps["{TIFF}"] as? [String: Any] ?? [:]
-        var exifInfo = editableProps["{Exif}"] as? [String: Any] ?? [:]
+        var tiffInfo = editableProps[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
+        var exifInfo = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
+        var gpsInfo = editableProps[MetadataKeys.gpsDict] as? [String: Any] ?? [:]
         
         for (key, value) in batch {
+            let isRemoval = value is NSNull
+            
             if tiffKeys.contains(key) {
-                tiffInfo[key] = value
+                if isRemoval {
+                    tiffInfo.removeValue(forKey: key)
+                } else {
+                    tiffInfo[key] = value
+                }
             } else if key == MetadataKeys.dateTimeOriginal {
-                exifInfo[key] = DateFormatter(with: .yMdHms).getStr(from: value as? Date ?? Date())
-            } else if key == MetadataKeys.location, let loc = value as? CLLocation {
-                editableProps["{GPS}"] = loc.mapToDictionary()
+                if isRemoval {
+                    exifInfo.removeValue(forKey: key)
+                    exifInfo.removeValue(forKey: MetadataKeys.dateTimeDigitized)
+                } else if let date = value as? Date {
+                    let dateStr = DateFormatter(with: .yMdHms).getStr(from: date)
+                    exifInfo[key] = dateStr
+                    exifInfo[MetadataKeys.dateTimeDigitized] = dateStr
+                }
+            } else if key == MetadataKeys.location {
+                if isRemoval {
+                    gpsInfo = [:]
+                } else if let loc = value as? CLLocation {
+                    gpsInfo = makeGpsDictionary(for: loc)
+                }
             } else {
-                exifInfo[key] = value
+                if isRemoval {
+                    exifInfo.removeValue(forKey: key)
+                } else {
+                    exifInfo[key] = value
+                }
             }
         }
         
-        editableProps["{TIFF}"] = tiffInfo
-        editableProps["{Exif}"] = exifInfo
+        editableProps[MetadataKeys.tiffDict] = tiffInfo
+        editableProps[MetadataKeys.exifDict] = exifInfo
+        
+        // Ensure GPS dict is updated even if it becomes empty (removal)
+        if gpsInfo.isEmpty {
+            editableProps.removeValue(forKey: MetadataKeys.gpsDict)
+        } else {
+            editableProps[MetadataKeys.gpsDict] = gpsInfo
+        }
         
         return updateTiff(with: editableProps)
+    }
+    
+    private func makeGpsDictionary(for location: CLLocation) -> [String: Any] {
+        var dict: [String: Any] = [:]
+        let latitude = location.coordinate.latitude
+        let longitude = location.coordinate.longitude
+        
+        dict[MetadataKeys.gpsLatitudeRef] = latitude < 0 ? "S" : "N"
+        dict[MetadataKeys.gpsLatitude] = abs(latitude)
+        
+        dict[MetadataKeys.gpsLongitudeRef] = longitude < 0 ? "W" : "E"
+        dict[MetadataKeys.gpsLongitude] = abs(longitude)
+        
+        return dict
     }
     
     // update software infomation
     func updateTiff(with source: [String: Any]) -> [String: Any]  {
         var editableProps = source
-        var tiffInfo = editableProps["{TIFF}"] as? [String: Any] ?? [:]
+        var tiffInfo = editableProps[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
         
         // Only set default if Software is not already provided by user or original data
-        if tiffInfo["Software"] == nil {
-            tiffInfo["Software"] = "MetaX"
+        if tiffInfo[MetadataKeys.software] == nil {
+            tiffInfo[MetadataKeys.software] = "MetaX"
         }
         
         // Metadata DateTime should be a formatted string, matching the behavior of DateTimeOriginal
-        tiffInfo["DateTime"] = DateFormatter(with: .yMdHms).getStr(from: Date())
+        tiffInfo[MetadataKeys.dateTime] = DateFormatter(with: .yMdHms).getStr(from: Date())
         
-        editableProps["{TIFF}"] = tiffInfo
+        editableProps[MetadataKeys.tiffDict] = tiffInfo
         return editableProps
     }
 }

@@ -13,6 +13,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
     var window: UIWindow?
     private var splashWindow: UIWindow?
     private var container: DependencyContainer?
+    private var coordinator: AppCoordinator?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
@@ -32,6 +33,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UISplitViewControllerDe
         splitVC.viewControllers = [masterNav, detailNav]
         splitVC.delegate = self
         splitVC.preferredDisplayMode = .oneBesideSecondary
+        
+        // Initialize Global Coordinator
+        self.coordinator = AppCoordinator(navigationController: masterNav, container: container)
+        albumVC.router = coordinator
 
         window.rootViewController = splitVC
         window.tintColor = Theme.Colors.accent

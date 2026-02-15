@@ -10,20 +10,30 @@ import UIKit
 import CoreLocation
 import MapKit
 
-protocol MetadataEditDelegate: AnyObject {
-    func metadataEditDidSave(fields: [String: Any], completion: @escaping (Bool) -> Void)
-}
+final class MetadataEditViewController: UIViewController, UITextFieldDelegate, UIAdaptivePresentationControllerDelegate {
 
-final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
-
-    weak var delegate: MetadataEditDelegate?
+    var onSave: (([String: Any]) -> Void)?
+    var onCancel: (() -> Void)?
+    
     private let currentMetadata: Metadata
     private let container: DependencyContainer
     private let viewModel = MetadataEditViewModel()
+    
     private var selectedLocation: CLLocation?
     private let geocoder = CLGeocoder()
     private var geocodingTask: Task<Void, Never>?
     private var keyboardObserver: KeyboardObserver?
+    private var initialFields: MetadataEditViewModel.RawFields?
+
+    // Strongly-typed field management
+    private var fieldViews: [MetadataField: UIView] = [:]
+    private var textFieldToField: [UITextField: MetadataField] = [:]
+    
+    struct FormSection {
+        let title: String
+        let hint: LocalizedStringResource?
+        let fields: [MetadataField]
+    }
 
     private let scrollView: UIScrollView = {
         let sv = UIScrollView()
@@ -41,14 +51,6 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
         return stack
     }()
 
-    private let dateLabel: UILabel = {
-        let label = UILabel()
-        label.text = String(localized: .viewAddDate)
-        label.font = Theme.Typography.captionMono
-        label.textColor = .secondaryLabel
-        return label
-    }()
-
     private let datePicker: UIDatePicker = {
         let picker = UIDatePicker()
         picker.datePickerMode = .dateAndTime
@@ -56,39 +58,45 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
         return picker
     }()
 
-    private let locationField = LocationCardField(label: String(localized: .viewAddLocation))
-
-    private let artistField = FormTextField(label: String(localized: .artist), placeholder: "Artist name", maxLength: 64)
-    private let copyrightField = FormTextField(label: String(localized: .copyright), placeholder: "Copyright notice", maxLength: 200)
-
-    private let makeField = FormTextField(label: String(localized: .make), placeholder: "SONY", maxLength: 64)
-    private let modelField = FormTextField(label: String(localized: .model), placeholder: "ILCE-7C", maxLength: 64)
-    private let lensMakeField = FormTextField(label: String(localized: .lensMake), placeholder: "SONY", maxLength: 64)
-    private let lensModelField = FormTextField(label: String(localized: .lensModel), placeholder: "FE 50mm F1.4 GM", maxLength: 64)
-
-    private let apertureField = FormTextField(label: String(localized: .fnumber), placeholder: "e.g. 2.8", keyboardType: .decimalPad)
-    private let shutterField = FormTextField(label: String(localized: .exposureTime), placeholder: "e.g. 1/125", keyboardType: .numbersAndPunctuation)
-    private let isoField = FormTextField(label: String(localized: .isospeedRatings), placeholder: "e.g. 400", keyboardType: .numberPad)
-    private let focalLengthField = FormTextField(label: String(localized: .focalLength), placeholder: "e.g. 35", keyboardType: .decimalPad)
-    private let exposureBiasField = FormTextField(label: String(localized: .exposureBiasValue), placeholder: "e.g. 1.3", keyboardType: .decimalPad)
-    private let focalLength35Field = FormTextField(label: String(localized: .focalLenIn35MmFilm), placeholder: "e.g. 28", keyboardType: .numberPad)
-
-    private let exposureProgramPicker = FormPickerField(label: String(localized: .exposureProgram), options: ExifPickerOptions.exposureProgram)
-    private let meteringModePicker = FormPickerField(label: String(localized: .meteringMode), options: ExifPickerOptions.meteringMode)
-    private let whiteBalancePicker = FormPickerField(label: String(localized: .whiteBalance), options: ExifPickerOptions.whiteBalance)
-    private let flashPicker = FormPickerField(label: String(localized: .flash), options: ExifPickerOptions.flash)
-
-    private let pixelWidthField = FormTextField(label: String(localized: .pixelWidth), readOnly: true)
-    private let pixelHeightField = FormTextField(label: String(localized: .pixelHeight), readOnly: true)
-    private let profileNameField = FormTextField(label: String(localized: .profileName), readOnly: true)
-
     init(metadata: Metadata, container: DependencyContainer) {
         self.currentMetadata = metadata
         self.container = container
         super.init(nibName: nil, bundle: nil)
+        setupFields()
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    private func setupFields() {
+        for field in MetadataField.allCases {
+            switch field {
+            case .dateTimeOriginal:
+                fieldViews[field] = UIView() // Spacer for date row
+            case .location:
+                fieldViews[field] = LocationCardField(label: field.label)
+            case .exposureProgram, .meteringMode, .whiteBalance, .flash:
+                let options: [ExifOption]
+                switch field {
+                case .exposureProgram: options = ExifPickerOptions.exposureProgram
+                case .meteringMode: options = ExifPickerOptions.meteringMode
+                case .whiteBalance: options = ExifPickerOptions.whiteBalance
+                default: options = ExifPickerOptions.flash
+                }
+                fieldViews[field] = FormPickerField(label: field.label, options: options)
+            default:
+                let isReadOnly = [.pixelWidth, .pixelHeight, .profileName].contains(field)
+                let formField = FormTextField(
+                    label: field.label,
+                    placeholder: field.placeholder,
+                    keyboardType: field.keyboardType,
+                    readOnly: isReadOnly,
+                    unit: field.unit
+                )
+                fieldViews[field] = formField
+                textFieldToField[formField.textField] = field
+            }
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -96,9 +104,12 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
         setupAccessoryViews()
         prefillData()
         setupDelegates()
+        setupChangeTracking()
 
         keyboardObserver = KeyboardObserver(scrollView: scrollView)
         keyboardObserver?.startObserving()
+        
+        updateSaveButtonState()
     }
 
     deinit {
@@ -111,37 +122,49 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
         view.backgroundColor = Theme.Colors.mainBackground
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancel))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .save, target: self, action: #selector(save))
+        
+        let saveButton = UIBarButtonItem(title: String(localized: .save), style: .done, target: self, action: #selector(save))
+        saveButton.tintColor = Theme.Colors.accent
+        navigationItem.rightBarButtonItem = saveButton
+        navigationItem.rightBarButtonItem?.isEnabled = false // Disabled by default
 
         view.addSubview(scrollView)
         scrollView.addSubview(stackView)
 
-        locationField.button.addTarget(self, action: #selector(searchLocation), for: .touchUpInside)
+        (fieldViews[.location] as? LocationCardField)?.button.addTarget(self, action: #selector(searchLocation), for: .touchUpInside)
 
-        let dateRow = UIStackView(arrangedSubviews: [dateLabel, datePicker])
-        dateRow.axis = .vertical; dateRow.spacing = 8; dateRow.alignment = .leading
-        let basicGroup = createGroup(title: String(localized: .editGroupBasicInfo), views: [dateRow, locationField])
-        stackView.addArrangedSubview(basicGroup)
+        let sections = [
+            FormSection(title: String(localized: .editGroupBasicInfo), hint: nil, fields: [.dateTimeOriginal, .location]),
+            FormSection(title: String(localized: .editGroupCopyright), hint: nil, fields: [.artist, .copyright]),
+            FormSection(title: String(localized: .editGroupGear), hint: .editHintGear, fields: [.make, .model, .lensMake, .lensModel]),
+            FormSection(title: String(localized: .shooting), hint: .editHintExposure, fields: [
+                .aperture, .shutter, .iso, .focalLength, .exposureBias, .focalLength35,
+                .exposureProgram, .meteringMode, .whiteBalance, .flash
+            ]),
+            FormSection(title: String(localized: .editGroupFileInfo), hint: .editHintFileInfo, fields: [.pixelWidth, .pixelHeight, .profileName])
+        ]
 
-        let copyrightGroup = createGroup(title: String(localized: .editGroupCopyright), views: [artistField, copyrightField])
-        stackView.addArrangedSubview(copyrightGroup)
-
-        let gearHint = createHint(resource: .editHintGear, color: .systemGray)
-        let gearGroup = createGroup(title: String(localized: .editGroupGear), views: [gearHint, makeField, modelField, lensMakeField, lensModelField])
-        stackView.addArrangedSubview(gearGroup)
-
-        let exposureHint = createHint(resource: .editHintExposure, color: .systemGray)
-        let exposureGroup = createGroup(title: String(localized: .editGroupExposure), views: [
-            exposureHint,
-            apertureField, shutterField, isoField, focalLengthField,
-            exposureBiasField, focalLength35Field,
-            exposureProgramPicker, meteringModePicker, whiteBalancePicker, flashPicker
-        ])
-        stackView.addArrangedSubview(exposureGroup)
-
-        let fileInfoHint = createHint(resource: .editHintFileInfo, color: .systemGray2)
-        let fileInfoGroup = createGroup(title: String(localized: .editGroupFileInfo), views: [fileInfoHint, pixelWidthField, pixelHeightField, profileNameField])
-        stackView.addArrangedSubview(fileInfoGroup)
+        for section in sections {
+            var views: [UIView] = []
+            if let hint = section.hint {
+                views.append(createHint(resource: hint, color: .systemGray))
+            }
+            
+            for field in section.fields {
+                if field == .dateTimeOriginal {
+                    let dateLabel = UILabel()
+                    dateLabel.text = field.label
+                    dateLabel.font = Theme.Typography.footnote
+                    dateLabel.textColor = .secondaryLabel
+                    let dateRow = UIStackView(arrangedSubviews: [dateLabel, datePicker])
+                    dateRow.axis = .vertical; dateRow.spacing = 8; dateRow.alignment = .leading
+                    views.append(dateRow)
+                } else if let view = fieldViews[field] {
+                    views.append(view)
+                }
+            }
+            stackView.addArrangedSubview(createGroup(title: section.title, views: views))
+        }
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -161,28 +184,87 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
         view.addGestureRecognizer(tap)
     }
     
+    private func setupChangeTracking() {
+        fieldViews.values.forEach { view in
+            if let tf = view as? FormTextField {
+                tf.textField.addTarget(self, action: #selector(self.fieldDidChange), for: .editingChanged)
+            } else if let pf = view as? FormPickerField {
+                pf.onValueChanged = { [weak self] in self?.updateSaveButtonState() }
+            }
+        }
+        datePicker.addTarget(self, action: #selector(fieldDidChange), for: .valueChanged)
+    }
+    
+    @objc private func fieldDidChange() {
+        updateSaveButtonState()
+    }
+    
+    private func updateSaveButtonState() {
+        let current = captureCurrentFields()
+        navigationItem.rightBarButtonItem?.isEnabled = current != initialFields
+    }
+    
+    private func captureCurrentFields() -> MetadataEditViewModel.RawFields {
+        let f = { (field: MetadataField) -> String? in (self.fieldViews[field] as? FormTextField)?.textField.text }
+        let p = { (field: MetadataField) -> Int? in (self.fieldViews[field] as? FormPickerField)?.selectedRawValue }
+
+        return MetadataEditViewModel.RawFields(
+            make: f(.make),
+            model: f(.model),
+            lensMake: f(.lensMake),
+            lensModel: f(.lensModel),
+            aperture: f(.aperture),
+            shutter: f(.shutter),
+            iso: f(.iso),
+            focalLength: f(.focalLength),
+            exposureBias: f(.exposureBias),
+            focalLength35: f(.focalLength35),
+            exposureProgram: p(.exposureProgram),
+            meteringMode: p(.meteringMode),
+            whiteBalance: p(.whiteBalance),
+            flash: p(.flash),
+            dateTimeOriginal: datePicker.date,
+            location: selectedLocation,
+            artist: f(.artist),
+            copyright: f(.copyright)
+        )
+    }
+    
     private func setupAccessoryViews() {
-        let accessoryContainer = UIView(frame: CGRect(x: 0, y: 0, width: view.frame.width, height: 44))
-        accessoryContainer.backgroundColor = .secondarySystemBackground.withAlphaComponent(0.8)
+        let tf = { (field: MetadataField) -> UITextField? in (self.fieldViews[field] as? FormTextField)?.textField }
+
+        tf(.exposureBias)?.inputAccessoryView = createAccessoryToolbar(items: [
+            ("-", #selector(toggleNegative)),
+            ("+", #selector(togglePositive))
+        ])
+        
+        tf(.shutter)?.inputAccessoryView = createAccessoryToolbar(items: [
+            ("/", #selector(insertSlash))
+        ])
+    }
+    
+    private func createAccessoryToolbar(items: [(String, Selector)]) -> UIView {
+        let container = UIView(frame: CGRect(x: 0, y: 0, width: view.frame.width, height: 44))
+        container.backgroundColor = .secondarySystemBackground.withAlphaComponent(0.8)
 
         let stack = UIStackView()
         stack.axis = .horizontal
         stack.spacing = 8
-        stack.distribution = .fillEqually
         stack.translatesAutoresizingMaskIntoConstraints = false
-        accessoryContainer.addSubview(stack)
+        container.addSubview(stack)
 
-        stack.addArrangedSubview(createAccessoryButton(title: "−", action: #selector(toggleNegative)))
-        stack.addArrangedSubview(createAccessoryButton(title: "+", action: #selector(togglePositive)))
+        for (title, action) in items {
+            stack.addArrangedSubview(createAccessoryButton(title: title, action: action))
+        }
 
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: accessoryContainer.leadingAnchor, constant: 12),
-            stack.topAnchor.constraint(equalTo: accessoryContainer.topAnchor, constant: 6),
-            stack.bottomAnchor.constraint(equalTo: accessoryContainer.bottomAnchor, constant: -6),
-            stack.widthAnchor.constraint(equalToConstant: 110)
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 6),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -6),
+            stack.widthAnchor.constraint(equalToConstant: CGFloat(items.count * 55))
         ])
 
-        exposureBiasField.textField.inputAccessoryView = accessoryContainer
+        return container
     }
     
     private func createAccessoryButton(title: String, action: Selector) -> UIButton {
@@ -199,24 +281,34 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
         return btn
     }
     
+    @objc private func insertSlash() {
+        (fieldViews[.shutter] as? FormTextField)?.textField.insertText("/")
+    }
+    
     @objc private func togglePositive() {
-        guard var text = exposureBiasField.textField.text else { return }
+        guard let tf = (fieldViews[.exposureBias] as? FormTextField)?.textField, var text = tf.text else { return }
         text = text.trimmingCharacters(in: CharacterSet(charactersIn: "+−-"))
-        if !text.isEmpty {
-            exposureBiasField.textField.text = "+" + text
+        if !text.isEmpty && text != "0" {
+            tf.text = "+" + text
+        } else if text == "0" {
+            tf.text = "0"
         } else {
-            exposureBiasField.textField.text = "+"
+            tf.text = "+"
         }
+        updateSaveButtonState()
     }
     
     @objc private func toggleNegative() {
-        guard var text = exposureBiasField.textField.text else { return }
+        guard let tf = (fieldViews[.exposureBias] as? FormTextField)?.textField, var text = tf.text else { return }
         text = text.trimmingCharacters(in: CharacterSet(charactersIn: "+−-"))
-        if !text.isEmpty {
-            exposureBiasField.textField.text = "-" + text
+        if !text.isEmpty && text != "0" {
+            tf.text = "-" + text
+        } else if text == "0" {
+            tf.text = "0"
         } else {
-            exposureBiasField.textField.text = "-"
+            tf.text = "-"
         }
+        updateSaveButtonState()
     }
     
     @objc private func doneEditing() {
@@ -224,13 +316,11 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
     }
 
     private func setupDelegates() {
-        let fields: [UITextField] = [
-            makeField.textField, modelField.textField, lensMakeField.textField, lensModelField.textField,
-            apertureField.textField, shutterField.textField, isoField.textField, focalLengthField.textField,
-            exposureBiasField.textField, focalLength35Field.textField,
-            artistField.textField, copyrightField.textField
-        ]
-        fields.forEach { $0.delegate = self }
+        fieldViews.values.forEach { view in
+            if let tf = view as? FormTextField {
+                tf.textField.delegate = self
+            }
+        }
     }
 
     private func createGroup(title: String, views: [UIView]) -> UIView {
@@ -295,43 +385,51 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
     private func prefillData() {
         datePicker.maximumDate = Date()
         let props = currentMetadata.sourceProperties
-        let exif = props["{Exif}"] as? [String: Any] ?? [:]
-        let tiff = props["{TIFF}"] as? [String: Any] ?? [:]
+        let exif = props[MetadataKeys.exifDict] as? [String: Any] ?? [:]
+        let tiff = props[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
+        
+        let f = fieldViews
+        let setTf = { (field: MetadataField, val: Any?) in (f[field] as? FormTextField)?.textField.text = val as? String }
+        let setPicker = { (field: MetadataField, val: Int?) in if let v = val { (f[field] as? FormPickerField)?.select(rawValue: v) } }
 
-        makeField.textField.text = tiff["Make"] as? String
-        modelField.textField.text = tiff["Model"] as? String
-        lensMakeField.textField.text = exif["LensMake"] as? String
-        lensModelField.textField.text = exif["LensModel"] as? String
+        setTf(.make, tiff[MetadataKeys.make])
+        setTf(.model, tiff[MetadataKeys.model])
+        setTf(.lensMake, exif[MetadataKeys.lensMake])
+        setTf(.lensModel, exif[MetadataKeys.lensModel])
 
-        if let f = exif["FNumber"] as? Double { apertureField.textField.text = String(format: "%.1f", f) }
-        if let s = exif["ExposureTime"] as? Double {
-            let rational = Rational(approximationOf: s)
-            shutterField.textField.text = rational.num < rational.den ? "\(rational.num)/\(rational.den)" : "\(s)"
+        if let val = exif[MetadataKeys.fNumber] as? Double { setTf(.aperture, formatValue(val)) }
+        if let val = exif[MetadataKeys.exposureTime] as? Double {
+            let rational = Rational(approximationOf: val)
+            setTf(.shutter, rational.num < rational.den ? "\(rational.num)/\(rational.den)" : formatValue(val))
         }
-        if let iso = (exif["ISOSpeedRatings"] as? [Int])?.first { isoField.textField.text = "\(iso)" }
-        if let focal = exif["FocalLength"] as? Double { focalLengthField.textField.text = String(format: "%.1f", focal) }
-        if let bias = exif["ExposureBiasValue"] as? Double {
-            exposureBiasField.textField.text = bias > 0 ? String(format: "+%.1f", bias) : (bias == 0 ? "0" : String(format: "%.1f", bias))
+        if let iso = (exif[MetadataKeys.isoSpeedRatings] as? [Int])?.first {
+            setTf(.iso, "\(iso)")
+        } else if let iso = exif[MetadataKeys.isoSpeedRatings] as? Int {
+            setTf(.iso, "\(iso)")
         }
-        if let focal35 = exif["FocalLenIn35mmFilm"] as? Int {
-            focalLength35Field.textField.text = "\(focal35)"
-        } else if let focal35 = exif["FocalLenIn35mmFilm"] as? Double {
-            focalLength35Field.textField.text = "\(Int(focal35))"
+        if let val = exif[MetadataKeys.focalLength] as? Double { setTf(.focalLength, formatValue(val)) }
+        if let val = exif[MetadataKeys.exposureBiasValue] as? Double {
+            setTf(.exposureBias, val > 0 ? "+" + formatValue(val) : formatValue(val))
+        }
+        if let val = exif[MetadataKeys.focalLenIn35mmFilm] as? Int {
+            setTf(.focalLength35, "\(val)")
+        } else if let val = exif[MetadataKeys.focalLenIn35mmFilm] as? Double {
+            setTf(.focalLength35, "\(Int(val))")
         }
 
-        if let val = exif["ExposureProgram"] as? Int { exposureProgramPicker.select(rawValue: val) }
-        if let val = exif["MeteringMode"] as? Int { meteringModePicker.select(rawValue: val) }
-        if let val = exif["WhiteBalance"] as? Int { whiteBalancePicker.select(rawValue: val) }
-        if let val = exif["Flash"] as? Int { flashPicker.select(rawValue: val) }
+        setPicker(.exposureProgram, exif[MetadataKeys.exposureProgram] as? Int)
+        setPicker(.meteringMode, exif[MetadataKeys.meteringMode] as? Int)
+        setPicker(.whiteBalance, exif[MetadataKeys.whiteBalance] as? Int)
+        setPicker(.flash, exif[MetadataKeys.flash] as? Int)
 
-        if let w = props["PixelWidth"] as? Int { pixelWidthField.textField.text = "\(w) px" }
-        if let h = props["PixelHeight"] as? Int { pixelHeightField.textField.text = "\(h) px" }
-        if let profile = props["ProfileName"] as? String { profileNameField.textField.text = profile }
+        if let val = props["PixelWidth"] as? Int { setTf(.pixelWidth, "\(val)") }
+        if let val = props["PixelHeight"] as? Int { setTf(.pixelHeight, "\(val)") }
+        setTf(.profileName, props["ProfileName"])
 
-        artistField.textField.text = tiff["Artist"] as? String
-        copyrightField.textField.text = tiff["Copyright"] as? String
+        setTf(.artist, tiff[MetadataKeys.artist])
+        setTf(.copyright, tiff[MetadataKeys.copyright])
 
-        if let dateStr = exif["DateTimeOriginal"] as? String,
+        if let dateStr = exif[MetadataKeys.dateTimeOriginal] as? String,
            let date = DateFormatter(with: .yMdHms).getDate(from: dateStr) {
             datePicker.date = min(date, Date())
         }
@@ -339,17 +437,26 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
         if let loc = currentMetadata.rawGPS {
             updateLocationInField(with: loc, name: nil)
         }
+        
+        initialFields = captureCurrentFields()
+    }
+    
+    private func formatValue(_ value: Double) -> String {
+        return value.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", value) : String(format: "%.1f", value)
     }
 
     private func updateLocationInField(with location: CLLocation, name: String?) {
         self.selectedLocation = location
+        updateSaveButtonState()
+
+        guard let field = fieldViews[.location] as? LocationCardField else { return }
 
         if let name = name {
-            locationField.setLocation(location, title: name)
+            field.setLocation(location, title: name)
             return
         }
 
-        locationField.setLocation(location, title: "...")
+        field.setLocation(location, title: "...")
         geocodingTask?.cancel()
         geocodingTask = Task { [weak self] in
             guard let self else { return }
@@ -363,10 +470,10 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
                 } else {
                     address = Self.coordinateFallback(for: location)
                 }
-                locationField.setLocation(location, title: address.isEmpty ? nil : address)
+                field.setLocation(location, title: address.isEmpty ? nil : address)
             } catch {
                 guard !Task.isCancelled else { return }
-                locationField.setLocation(location, title: Self.coordinateFallback(for: location))
+                field.setLocation(location, title: Self.coordinateFallback(for: location))
             }
         }
     }
@@ -376,22 +483,22 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
     }
 
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-        let fieldType: MetadataFieldType
-        switch textField {
-        case isoField.textField: fieldType = .iso
-        case apertureField.textField: fieldType = .aperture
-        case focalLengthField.textField: fieldType = .focalLength
-        case shutterField.textField: fieldType = .shutterSpeed
-        case exposureBiasField.textField: fieldType = .exposureBias
-        case focalLength35Field.textField: fieldType = .focalLength35
-        case artistField.textField: fieldType = .artist
-        case copyrightField.textField: fieldType = .copyright
-        case makeField.textField, modelField.textField, lensMakeField.textField, lensModelField.textField:
-            fieldType = .gear
-        default: fieldType = .gear
+        guard let field = textFieldToField[textField] else { return true }
+
+        // Special handling for Exposure Compensation: auto-prefix '+' if first char is a digit
+        if field == .exposureBias {
+            let currentText = textField.text ?? ""
+            if currentText.isEmpty,
+               let firstScalar = string.unicodeScalars.first,
+               CharacterSet.decimalDigits.contains(firstScalar),
+               string != "0" {
+                textField.text = "+" + string
+                updateSaveButtonState()
+                return false
+            }
         }
-        
-        return viewModel.validateInput(currentText: textField.text ?? "", range: range, replacementString: string, for: fieldType)
+
+        return viewModel.validateInput(currentText: textField.text ?? "", range: range, replacementString: string, for: field)
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -406,58 +513,19 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate {
     }
 
     @objc private func cancel() {
-        dismiss(animated: true)
+        onCancel?()
     }
 
     @objc private func save() {
-        var fields: [String: Any] = [:]
+        let fields = viewModel.prepareBatch(from: captureCurrentFields())
+        // Don't dismiss yet, wait for save options to be presented on top
+        self.onSave?(fields)
+    }
+}
 
-        if let val = makeField.textField.text, !val.isEmpty { fields["Make"] = val }
-        if let val = modelField.textField.text, !val.isEmpty { fields["Model"] = val }
-        if let val = lensMakeField.textField.text, !val.isEmpty { fields["LensMake"] = val }
-        if let val = lensModelField.textField.text, !val.isEmpty { fields["LensModel"] = val }
-
-        if let val = apertureField.textField.text, let d = Double(val) { fields["FNumber"] = d }
-
-        if let val = shutterField.textField.text, !val.isEmpty {
-            if val.contains("/") {
-                let parts = val.components(separatedBy: "/")
-                if parts.count == 2, let n = Double(parts[0]), let d = Double(parts[1]), d != 0 {
-                    fields["ExposureTime"] = n / d
-                }
-            } else if let d = Double(val) {
-                fields["ExposureTime"] = d
-            }
-        }
-
-        if let val = isoField.textField.text, let i = Int(val) { fields["ISOSpeedRatings"] = [i] }
-        if let val = focalLengthField.textField.text, let d = Double(val) { fields["FocalLength"] = d }
-
-        if let val = exposureBiasField.textField.text, !val.isEmpty {
-            let cleanVal = val.replacingOccurrences(of: "+", with: "")
-            if let d = Double(cleanVal) { fields["ExposureBiasValue"] = d }
-        }
-
-        if let val = focalLength35Field.textField.text, let i = Int(val) { fields["FocalLenIn35mmFilm"] = i }
-
-        if let val = exposureProgramPicker.selectedRawValue { fields["ExposureProgram"] = val }
-        if let val = meteringModePicker.selectedRawValue { fields["MeteringMode"] = val }
-        if let val = whiteBalancePicker.selectedRawValue { fields["WhiteBalance"] = val }
-        if let val = flashPicker.selectedRawValue { fields["Flash"] = val }
-
-        fields[MetadataKeys.dateTimeOriginal] = datePicker.date
-        if let loc = selectedLocation {
-            fields[MetadataKeys.location] = loc
-        }
-
-        if let val = artistField.textField.text, !val.isEmpty { fields["Artist"] = val }
-        if let val = copyrightField.textField.text, !val.isEmpty { fields["Copyright"] = val }
-
-        delegate?.metadataEditDidSave(fields: fields) { [weak self] shouldDismiss in
-            if shouldDismiss {
-                self?.dismiss(animated: true)
-            }
-        }
+extension MetadataEditViewController {
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        onCancel?()
     }
 }
 
@@ -469,3 +537,4 @@ extension MetadataEditViewController: LocationSearchDelegate {
         updateLocationInField(with: location, name: fullAddress)
     }
 }
+

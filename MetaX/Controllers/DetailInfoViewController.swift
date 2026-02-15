@@ -12,13 +12,6 @@ import MapKit
 import PhotosUI
 import CoreLocation
 
-// MARK: Enum -
-enum EditAlertAction: Int {
-    case add = 0
-    case addAndDel = 1
-    case cancel = 2
-}
-
 class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     private enum HeroLayout {
@@ -27,9 +20,15 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         static let cornerThickness: CGFloat = 3
     }
 
+    // MARK: - Badge Constraints
+
+    private var badgeLeadingConstraint: NSLayoutConstraint?
+    private var badgeTopConstraint: NSLayoutConstraint?
+
     // MARK: - Dependencies
     private let viewModel: DetailInfoViewModel
     private let container: DependencyContainer
+    var router: AppRouter?
     
     // MARK: - UI Components
     private let tableView: UITableView = {
@@ -56,24 +55,60 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         return imageView
     }()
 
+    private let heroLivePhotoView: PHLivePhotoView = {
+        let view = PHLivePhotoView()
+        view.isMuted = true
+        view.contentMode = .scaleAspectFit
+        view.clipsToBounds = true
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    private let heroBadgeView: UIImageView = {
+        let iv = UIImageView()
+        iv.image = PHLivePhotoView.livePhotoBadgeImage(options: .overContent)
+        iv.contentMode = .scaleAspectFit
+        iv.isHidden = true
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
     private lazy var moreMenuButton: UIBarButtonItem = {
+        UIBarButtonItem(image: UIImage(systemName: "slider.horizontal.3"), menu: UIMenu(title: "", children: []))
+    }()
+
+    private func buildMoreMenu() -> UIMenu {
         let editAction = UIAction(
             title: String(localized: .viewEditMetadata),
             image: UIImage(systemName: "pencil.and.outline")
         ) { [weak self] _ in
             self?.showMetadataEditor()
         }
-        
+
         let removeAllAction = UIAction(
             title: String(localized: .viewClearAllMetadata),
-            image: UIImage(systemName: "trash")
+            image: UIImage(systemName: "trash"),
+            attributes: .destructive
         ) { [weak self] _ in
             self?.clearAllMetadata()
         }
-        
-        let menu = UIMenu(title: "", children: [editAction, removeAllAction])
-        return UIBarButtonItem(image: UIImage(systemName: "slider.horizontal.3"), menu: menu)
-    }()
+
+        var actions: [UIMenuElement] = [editAction]
+
+        if viewModel.hasMetaXEdit {
+            let revertAction = UIAction(
+                title: String(localized: .viewRevertToOriginal),
+                image: UIImage(systemName: "arrow.uturn.backward")
+            ) { [weak self] _ in
+                Task { await self?.viewModel.revertToOriginal() }
+            }
+            actions.append(revertAction)
+        }
+
+        actions.append(removeAllAction)
+        return UIMenu(title: "", children: actions)
+    }
 
     // MARK: - Initialization
 
@@ -109,7 +144,11 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         updateHeaderHeight()
-        viewModel.loadPhoto(targetSize: targetSize)
+        if viewModel.isLivePhoto {
+            viewModel.loadLivePhoto(targetSize: targetSize)
+        } else {
+            viewModel.loadPhoto(targetSize: targetSize)
+        }
         Task {
             await viewModel.loadMetadata()
         }
@@ -134,6 +173,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     // MARK: - UI Setup
     private func setupUI() {
         view.backgroundColor = Theme.Colors.mainBackground
+        moreMenuButton.menu = buildMoreMenu()
         navigationItem.rightBarButtonItem = moreMenuButton
 
         // TableView setup
@@ -147,12 +187,16 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         let headerContainer = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: Theme.Layout.heroHeaderHeight))
         headerContainer.addSubview(heroCardView)
         heroCardView.addSubview(heroImageView)
+        heroCardView.addSubview(heroLivePhotoView)
+        heroCardView.addSubview(heroBadgeView)
 
         let cardTrailing = heroCardView.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -Theme.Layout.cardPadding)
         cardTrailing.priority = UILayoutPriority(999)
-        
+
         let imageTrailing = heroImageView.trailingAnchor.constraint(equalTo: heroCardView.trailingAnchor, constant: -HeroLayout.inset)
         imageTrailing.priority = UILayoutPriority(999)
+        let liveTrailing = heroLivePhotoView.trailingAnchor.constraint(equalTo: heroCardView.trailingAnchor, constant: -HeroLayout.inset)
+        liveTrailing.priority = UILayoutPriority(999)
 
         NSLayoutConstraint.activate([
             heroCardView.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: Theme.Layout.cardPadding),
@@ -163,7 +207,22 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
             heroImageView.topAnchor.constraint(equalTo: heroCardView.topAnchor, constant: HeroLayout.inset),
             heroImageView.leadingAnchor.constraint(equalTo: heroCardView.leadingAnchor, constant: HeroLayout.inset),
             imageTrailing,
-            heroImageView.bottomAnchor.constraint(equalTo: heroCardView.bottomAnchor, constant: -HeroLayout.inset)
+            heroImageView.bottomAnchor.constraint(equalTo: heroCardView.bottomAnchor, constant: -HeroLayout.inset),
+
+            heroLivePhotoView.topAnchor.constraint(equalTo: heroCardView.topAnchor, constant: HeroLayout.inset),
+            heroLivePhotoView.leadingAnchor.constraint(equalTo: heroCardView.leadingAnchor, constant: HeroLayout.inset),
+            liveTrailing,
+            heroLivePhotoView.bottomAnchor.constraint(equalTo: heroCardView.bottomAnchor, constant: -HeroLayout.inset),
+
+            heroBadgeView.widthAnchor.constraint(equalToConstant: 28),
+            heroBadgeView.heightAnchor.constraint(equalToConstant: 28),
+        ])
+
+        let badgeLeading = heroBadgeView.leadingAnchor.constraint(equalTo: heroLivePhotoView.leadingAnchor, constant: 4)
+        let badgeTop = heroBadgeView.topAnchor.constraint(equalTo: heroLivePhotoView.topAnchor, constant: 4)
+        badgeLeadingConstraint = badgeLeading
+        badgeTopConstraint = badgeTop
+        NSLayoutConstraint.activate([badgeLeading, badgeTop,
         ])
         
         addCornerMarks(to: heroCardView)
@@ -181,7 +240,6 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         let length = HeroLayout.cornerLength
         let thickness = HeroLayout.cornerThickness
 
-        // (xAnchor, isLeading, yAnchor, isTop)
         let corners: [(NSLayoutXAxisAnchor, Bool, NSLayoutYAxisAnchor, Bool)] = [
             (view.leadingAnchor,  true,  view.topAnchor,    true),
             (view.trailingAnchor, false, view.topAnchor,    true),
@@ -214,6 +272,28 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         }
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        updateBadgePosition()
+    }
+
+    private func updateBadgePosition() {
+        guard let asset = viewModel.asset,
+              !heroLivePhotoView.isHidden,
+              heroLivePhotoView.bounds.width > 0,
+              heroLivePhotoView.bounds.height > 0,
+              asset.pixelWidth > 0, asset.pixelHeight > 0 else { return }
+
+        let viewW = heroLivePhotoView.bounds.width
+        let viewH = heroLivePhotoView.bounds.height
+        let scale = min(viewW / CGFloat(asset.pixelWidth), viewH / CGFloat(asset.pixelHeight))
+        let xOffset = (viewW - CGFloat(asset.pixelWidth) * scale) / 2
+        let yOffset = (viewH - CGFloat(asset.pixelHeight) * scale) / 2
+
+        badgeLeadingConstraint?.constant = xOffset + 4
+        badgeTopConstraint?.constant = yOffset + 4
+    }
+
     private func updateHeaderHeight() {
         guard let asset = viewModel.asset else { return }
         let padding = Theme.Layout.cardPadding
@@ -238,8 +318,23 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     // MARK: - Bindings
     private func setupBindings() {
-        observe(viewModel: viewModel, property: { $0.image }) { [weak self] image in
-            self?.heroImageView.image = image
+        observe(viewModel: viewModel, property: { $0.heroContent }) { [weak self] content in
+            guard let self else { return }
+            switch content {
+            case .photo(let image):
+                heroImageView.image = image
+                heroImageView.isHidden = false
+                heroLivePhotoView.isHidden = true
+                heroBadgeView.isHidden = true
+            case .livePhoto(let livePhoto):
+                heroLivePhotoView.livePhoto = livePhoto
+                heroLivePhotoView.isHidden = false
+                heroImageView.isHidden = true
+                heroBadgeView.isHidden = false
+                updateBadgePosition()
+            case nil:
+                break
+            }
         }
 
         observe(viewModel: viewModel, property: { $0.isSaving }) { [weak self] isSaving in
@@ -275,24 +370,69 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
                 self?.navigationItem.title = fileName
             }
         }
+
+        observe(viewModel: viewModel, property: { $0.hasMetaXEdit }) { [weak self] _ in
+            guard let self else { return }
+            moreMenuButton.menu = buildMoreMenu()
+        }
     }
 
     // MARK: - Actions
     @objc private func clearAllMetadata() {
-        deleteAlert { [weak self] action in
-            guard let self = self, action != .cancel else { return }
-            Task {
-                await self.viewModel.clearAllMetadata(deleteOriginal: action == .addAndDel)
-            }
+        Task {
+            guard let mode = await requestSaveMode(presentingVC: nil) else { return }
+            await viewModel.clearAllMetadata(saveMode: mode)
         }
     }
 
     private func showMetadataEditor() {
         guard let metadata = viewModel.metadata else { return }
-        let editorVC = MetadataEditViewController(metadata: metadata, container: container)
-        editorVC.delegate = self
-        let nav = UINavigationController(rootViewController: editorVC)
-        present(nav, animated: true)
+        let vc = MetadataEditViewController(metadata: metadata, container: container)
+        let nav = UINavigationController(rootViewController: vc)
+
+        vc.onSave = { [weak self, weak nav] fields in
+            guard let self, let nav else { return }
+            Task { @MainActor in
+                guard let mode = await self.requestSaveMode(presentingVC: nav) else { return }
+                let success = await self.viewModel.applyMetadataTemplate(fields: fields, saveMode: mode)
+                if success {
+                    nav.dismiss(animated: true)
+                }
+            }
+        }
+        vc.onCancel = { [weak self] in
+            self?.dismiss(animated: true)
+        }
+
+        present(nav, animated: true) {
+            nav.presentationController?.delegate = vc
+        }
+    }
+
+    private func requestSaveMode(presentingVC: UIViewController?) async -> SaveWorkflowMode? {
+        guard let mode = await router?.pickSaveWorkflow(on: presentingVC) else { return nil }
+        if case .saveAsCopy = mode, viewModel.isLivePhoto {
+            let confirmed = await confirmLivePhotoCopy(on: presentingVC ?? self)
+            return confirmed ? mode : nil
+        }
+        return mode
+    }
+
+    private func confirmLivePhotoCopy(on presenter: UIViewController) async -> Bool {
+        await withCheckedContinuation { continuation in
+            let alert = UIAlertController(
+                title: "Live Photo",
+                message: String(localized: .alertLivePhotoCopyMessage),
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: String(localized: .alertContinue), style: .default) { _ in
+                continuation.resume(returning: true)
+            })
+            alert.addAction(UIAlertAction(title: String(localized: .alertCancel), style: .cancel) { _ in
+                continuation.resume(returning: false)
+            })
+            presenter.present(alert, animated: true)
+        }
     }
 }
 
@@ -313,7 +453,6 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
         let isFirst = indexPath.row == 0
         let isLast = indexPath.row == sectionData.rows.count - 1
         
-        // Use DetailLocationCell if it's the location row and we have coordinate data
         if rowData.prop == String(localized: .viewAddLocation),
            let location = viewModel.currentLocation {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: DetailLocationCell.self), for: indexPath) as? DetailLocationCell else {
@@ -328,7 +467,6 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
         }
 
         cell.cellDataSource = rowData
-        // Apply borders immediately for standard cells
         cell.applyCardBorders(isFirst: isFirst, isLast: isLast)
         return cell
     }
@@ -347,47 +485,8 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
         tableView.deselectRow(at: indexPath, animated: true)
         
         if let cell = tableView.cellForRow(at: indexPath) as? DetailLocationCell, let location = cell.currentLocation {
-            openFullMap(for: location)
+            router?.openLocationMap(for: location)
         }
-    }
-}
-
-fileprivate extension DetailInfoViewController {
-    func openFullMap(for location: CLLocation) {
-        let mapVC = UIViewController()
-        mapVC.title = String(localized: .viewAddLocation)
-        let fullMapView = MKMapView()
-        fullMapView.translatesAutoresizingMaskIntoConstraints = false
-        fullMapView.setRegion(MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 1000, longitudinalMeters: 1000), animated: false)
-
-        let annotation = MKPointAnnotation()
-        annotation.coordinate = location.coordinate
-        fullMapView.addAnnotation(annotation)
-
-        mapVC.view.addSubview(fullMapView)
-        NSLayoutConstraint.activate([
-            fullMapView.topAnchor.constraint(equalTo: mapVC.view.topAnchor),
-            fullMapView.leadingAnchor.constraint(equalTo: mapVC.view.leadingAnchor),
-            fullMapView.trailingAnchor.constraint(equalTo: mapVC.view.trailingAnchor),
-            fullMapView.bottomAnchor.constraint(equalTo: mapVC.view.bottomAnchor)
-        ])
-
-        let nav = UINavigationController(rootViewController: mapVC)
-        mapVC.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(dismissMap))
-        present(nav, animated: true)
-    }
-    
-    @objc func dismissMap() {
-        dismiss(animated: true)
-    }
-    
-    func deleteAlert(completionHandler: @escaping (EditAlertAction) -> Void) {
-        let message = viewModel.isLivePhoto ? String(localized: .alertLiveAlertDesc) : String(localized: .alertConfirmDesc)
-        let alert = UIAlertController(title: String(localized: .alertConfirm), message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: String(localized: .alertAddAndDel), style: .destructive) { _ in completionHandler(.addAndDel) })
-        alert.addAction(UIAlertAction(title: String(localized: .alertAdd), style: .default) { _ in completionHandler(.add) })
-        alert.addAction(UIAlertAction(title: String(localized: .alertCancel), style: .cancel) { _ in completionHandler(.cancel) })
-        present(alert, animated: true)
     }
 }
 
@@ -400,9 +499,9 @@ extension DetailInfoViewController: UIPopoverPresentationControllerDelegate, Loc
 
     func popoverPresentationControllerDidDismissPopover(_ popoverPresentationController: UIPopoverPresentationController) {
         if let datePicker = popoverPresentationController.presentedViewController as? DetailDatePickerPopover {
-            deleteAlert { [weak self] action in
-                guard let self = self, action != .cancel else { return }
-                Task { await self.viewModel.addTimeStamp(datePicker.curDate, deleteOriginal: action == .addAndDel) }
+            Task {
+                guard let mode = await requestSaveMode(presentingVC: nil) else { return }
+                await viewModel.addTimeStamp(datePicker.curDate, saveMode: mode)
             }
         }
     }
@@ -412,25 +511,10 @@ extension DetailInfoViewController: UIPopoverPresentationControllerDelegate, Loc
             HUD.showError(with: String(localized: .errorCoordinateFetch))
             return
         }
-        deleteAlert { [weak self] action in
-            guard let self = self, action != .cancel else { return }
-            Task { await self.viewModel.addLocation(CLLocation(latitude: coord.latitude, longitude: coord.longitude), deleteOriginal: action == .addAndDel) }
-        }
-    }
-}
-
-// MARK: - MetadataEditDelegate
-extension DetailInfoViewController: MetadataEditDelegate {
-    func metadataEditDidSave(fields: [String: Any], completion: @escaping (Bool) -> Void) {
-        deleteAlert { [weak self] action in
-            guard let self = self, action != .cancel else {
-                completion(false)
-                return
-            }
-            completion(true)
-            Task {
-                await self.viewModel.applyMetadataTemplate(fields: fields, deleteOriginal: action == .addAndDel)
-            }
+        Task {
+            let loc = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
+            guard let mode = await requestSaveMode(presentingVC: nil) else { return }
+            await viewModel.addLocation(loc, saveMode: mode)
         }
     }
 }
@@ -446,7 +530,11 @@ extension DetailInfoViewController: PHPhotoLibraryChangeObserver {
                 return
             }
             if details.assetContentChanged {
-                viewModel.loadPhoto(targetSize: targetSize)
+                if viewModel.isLivePhoto {
+                    viewModel.loadLivePhoto(targetSize: targetSize)
+                } else {
+                    viewModel.loadPhoto(targetSize: targetSize)
+                }
                 await viewModel.loadMetadata()
             }
         }

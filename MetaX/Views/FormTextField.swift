@@ -31,6 +31,14 @@ final class FormTextField: UIView {
         return tf
     }()
 
+    private let unitLabel: UILabel = {
+        let l = UILabel()
+        l.font = Theme.Typography.footnote
+        l.textColor = .tertiaryLabel
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
     private let maxLength: Int?
 
     private lazy var counterLabel: UILabel = {
@@ -42,12 +50,28 @@ final class FormTextField: UIView {
         return l
     }()
 
-    init(label: String, placeholder: String? = nil, keyboardType: UIKeyboardType = .default, readOnly: Bool = false, maxLength: Int? = nil) {
+    init(label: String, placeholder: String? = nil, keyboardType: UIKeyboardType = .default, readOnly: Bool = false, maxLength: Int? = nil, unit: String? = nil) {
         self.maxLength = maxLength
         super.init(frame: .zero)
         self.label.text = label
         self.textField.placeholder = placeholder
         self.textField.keyboardType = keyboardType
+
+        textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 0))
+        textField.leftViewMode = .always
+
+        if let unit = unit {
+            unitLabel.text = unit
+            let container = UIView()
+            container.addSubview(unitLabel)
+            NSLayoutConstraint.activate([
+                unitLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                unitLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+                unitLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+            ])
+            textField.rightView = container
+            textField.rightViewMode = .always
+        }
 
         if readOnly {
             textField.isUserInteractionEnabled = false

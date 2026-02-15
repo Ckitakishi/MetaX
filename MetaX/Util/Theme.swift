@@ -12,11 +12,19 @@ enum Theme {
     enum Colors {
         static let accent = UIColor(named: "greenSea") ?? .systemTeal
         static let launchBackground = UIColor(named: "LaunchBackground") ?? .systemBackground
-        static let cardBackground = UIColor.secondarySystemGroupedBackground
-        static let mainBackground = UIColor.systemGroupedBackground
+        
+        static let mainBackground = UIColor { trait in
+            trait.userInterfaceStyle == .dark ? UIColor(white: 0.11, alpha: 1.0) : UIColor.systemGray6
+        }
+        
+        static let sheetBackground = UIColor { trait in
+            trait.userInterfaceStyle == .dark ? UIColor(white: 0.18, alpha: 1.0) : .systemBackground
+        }
+        
+        static let cardBackground = sheetBackground
         static let border = UIColor.label
         static let text = UIColor.label
-        static let tagBackground = UIColor.systemBackground
+        static let tagBackground = mainBackground
     }
     
     // MARK: - Layout
@@ -51,9 +59,9 @@ enum Theme {
 
         /// Adds a stacked layer behind the card for Neo-Brutalist depth effect
         @discardableResult
-        static func applyStackedLayer(to cardView: UIView, in parentView: UIView) -> UIView {
+        static func applyStackedLayer(to cardView: UIView, in parentView: UIView, color: UIColor? = nil) -> UIView {
             let layerView = UIView()
-            layerView.backgroundColor = Colors.cardBackground
+            layerView.backgroundColor = color ?? Colors.cardBackground
             layerView.translatesAutoresizingMaskIntoConstraints = false
             parentView.insertSubview(layerView, belowSubview: cardView)
 
@@ -70,7 +78,7 @@ enum Theme {
         }
 
         static func applyCardBorder(to layer: CALayer) {
-            layer.borderWidth = 1
+            layer.borderWidth = 1.0
             layer.borderColor = Colors.border.cgColor
         }
 

@@ -15,6 +15,7 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
     // MARK: - Dependencies
 
     private let container: DependencyContainer
+    var router: AppRouter?
 
     // MARK: - UI Components
 
@@ -130,28 +131,9 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
     }
 
     private func handlePhotoLibraryChanges(_ changes: PHFetchResultChangeDetails<PHAsset>) {
-        if changes.hasIncrementalChanges {
-            collectionView.performBatchUpdates({
-                if let removed = changes.removedIndexes, !removed.isEmpty {
-                    self.collectionView.deleteItems(at: removed.map { IndexPath(item: $0, section: 0) })
-                }
-                if let inserted = changes.insertedIndexes, !inserted.isEmpty {
-                    self.collectionView.insertItems(at: inserted.map { IndexPath(item: $0, section: 0) })
-                }
-                if let changed = changes.changedIndexes, !changed.isEmpty {
-                    self.collectionView.reloadItems(at: changed.map { IndexPath(item: $0, section: 0) })
-                }
-
-                changes.enumerateMoves { fromIndex, toIndex in
-                    self.collectionView.moveItem(
-                        at: IndexPath(item: fromIndex, section: 0),
-                        to: IndexPath(item: toIndex, section: 0)
-                    )
-                }
-            })
-        } else {
-            collectionView.reloadData()
-        }
+        viewModel.commitFetchResult(changes.fetchResultAfterChanges)
+        collectionView.reloadData()
+        viewModel.finishChange()
         viewModel.resetCachedAssets()
     }
 
@@ -206,10 +188,8 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let destination = DetailInfoViewController(container: container)
-        destination.configure(with: viewModel.asset(at: indexPath.item), collection: viewModel.assetCollection)
-        
-        navigationController?.pushViewController(destination, animated: true)
+        guard let asset = viewModel.asset(at: indexPath.item) else { return }
+        router?.viewAssetDetail(for: asset, in: viewModel.assetCollection, from: navigationController)
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {

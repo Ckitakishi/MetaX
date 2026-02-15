@@ -139,6 +139,29 @@
         }
       }
     },
+    "Alert.Continue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "続ける"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续"
+          }
+        }
+      }
+    },
     "Alert.LiveAlertDesc" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -158,6 +181,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "修改后的新图像将会被存储到图库，以及该 live 图像将会被存储为普通格式，是否仍然要同时删除原始图像？"
+          }
+        }
+      }
+    },
+    "Alert.LivePhoto.CopyMessage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the still image will be saved as a copy. The video component of this Live Photo will not be included."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "静止画のみがコピーとして保存されます。このLive Photoのビデオ部分は含まれません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅保存静态图，Live Photo 的视频部分不会包含在内。"
           }
         }
       }
@@ -254,6 +300,52 @@
         }
       }
     },
+    "Choose whether to keep the original photo alongside the new copy." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose whether to keep the original photo alongside the new copy."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元の画像を保持するか、新しいコピーのみを作成するかを選択します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择是保留原始照片还是仅保留新副本。"
+          }
+        }
+      }
+    },
+    "Completely remove the original photo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completely remove the original photo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元の画像を完全に削除します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "彻底移除原始图片。"
+          }
+        }
+      }
+    },
     "Copyright" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -277,6 +369,52 @@
         }
       }
     },
+    "Create a new file with updated metadata." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a new file with updated metadata."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メタデータを更新した新しいファイルを作成します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建一个更新了元数据的新文件。"
+          }
+        }
+      }
+    },
+    "Delete Original" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Original"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元の画像を削除"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除原始图片"
+          }
+        }
+      }
+    },
     "Device" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -296,6 +434,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "设备"
+          }
+        }
+      }
+    },
+    "Directly update the original file. This is non-destructive." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Directly update the original file. This is non-destructive."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元のファイルを直接更新します。非破壊編集です。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接更新原始文件。这是非破坏性的。"
           }
         }
       }
@@ -1668,6 +1829,29 @@
         }
       }
     },
+    "Keep Original" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Original"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元の画像を保持"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留原始图片"
+          }
+        }
+      }
+    },
     "LensMake" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1710,6 +1894,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "镜头型号"
+          }
+        }
+      }
+    },
+    "Location" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置"
           }
         }
       }
@@ -1967,6 +2174,29 @@
         }
       }
     },
+    "Modify Current Photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modify Current Photo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の画像を修正"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修改当前图片"
+          }
+        }
+      }
+    },
     "PixelHeight" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2055,6 +2285,259 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "版权"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
+        }
+      }
+    },
+    "Save as New Photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save as New Photo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい画像として保存"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另存为新图片"
+          }
+        }
+      }
+    },
+    "Save Options" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save Options"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存オプション"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存选项"
+          }
+        }
+      }
+    },
+    "Save.AsCopy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save a Copy"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コピーとして保存"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存副本"
+          }
+        }
+      }
+    },
+    "Save.AsCopy.Desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new photo will be created with all metadata."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メタデータを含む新しい写真を作成します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建包含元数据的新图片。"
+          }
+        }
+      }
+    },
+    "Save.DeleteOriginal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除"
+          }
+        }
+      }
+    },
+    "Save.DeleteOriginal.Desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The original will be deleted."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元の写真は削除されます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原图将被删除。"
+          }
+        }
+      }
+    },
+    "Save.KeepOriginal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保持する"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留"
+          }
+        }
+      }
+    },
+    "Save.KeepOriginal.Desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Both photos will coexist in your library."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元の写真と新しい写真が両方ライブラリに残ります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原图与新图将同时存在于相册。"
+          }
+        }
+      }
+    },
+    "Save.ModifyOriginal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit in Place"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元の写真を編集"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑原图"
+          }
+        }
+      }
+    },
+    "Save.ModifyOriginal.Desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update the original photo data, non-permanent and reversible. Only the date and location are visible in the Photos app. Other fields can be viewed using other apps like MetaX."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元の写真のメタデータを直接編集でき、いつでも元に戻せます。写真アプリには日時と位置情報のみ表示されます。その他の項目は MetaX などのアプリでご確認いただけます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接编辑原图元数据，非永久性操作，可复原。系统相册中仅显示日期和位置。其他字段可通过 MetaX 等 App 查看。"
           }
         }
       }
@@ -2272,19 +2755,42 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Clear All Metadata"
+            "value" : "Clear Metadata"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "すべてのメタデータを消去"
+            "value" : "メタデータを消去"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "清除所有元数据"
+            "value" : "清除元数据"
+          }
+        }
+      }
+    },
+    "View.RevertToOriginal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revert"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元に戻す"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复原"
           }
         }
       }
@@ -2301,7 +2807,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "メタデータの編集"
+            "value" : "メタデータを編集"
           }
         },
         "zh-Hans" : {

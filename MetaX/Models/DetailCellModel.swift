@@ -56,27 +56,27 @@ struct DetailCellModel: DetailCellModelRepresentable {
         
         let localizedProp: String
         switch rawProp {
-        case "DateTimeOriginal": localizedProp = String(localized: .viewAddDate)
-        case "Location": localizedProp = String(localized: .viewAddLocation)
-        case "ExposureTime": localizedProp = String(localized: .exposureTime)
-        case "FNumber": localizedProp = String(localized: .fnumber)
-        case "ISOSpeedRatings": localizedProp = String(localized: .isospeedRatings)
-        case "ExposureBiasValue": localizedProp = String(localized: .exposureBiasValue)
-        case "ExposureProgram": localizedProp = String(localized: .exposureProgram)
-        case "MeteringMode": localizedProp = String(localized: .meteringMode)
-        case "Make": localizedProp = String(localized: .make)
-        case "Model": localizedProp = String(localized: .model)
-        case "WhiteBalance": localizedProp = String(localized: .whiteBalance)
-        case "Flash": localizedProp = String(localized: .flash)
-        case "LensMake": localizedProp = String(localized: .lensMake)
-        case "LensModel": localizedProp = String(localized: .lensModel)
-        case "FocalLength": localizedProp = String(localized: .focalLength)
-        case "FocalLenIn35mmFilm": localizedProp = String(localized: .focalLenIn35MmFilm)
+        case MetadataKeys.dateTimeOriginal: localizedProp = String(localized: .viewAddDate)
+        case MetadataKeys.location: localizedProp = String(localized: .viewAddLocation)
+        case MetadataKeys.exposureTime: localizedProp = String(localized: .exposureTime)
+        case MetadataKeys.fNumber: localizedProp = String(localized: .fnumber)
+        case MetadataKeys.isoSpeedRatings: localizedProp = String(localized: .isospeedRatings)
+        case MetadataKeys.exposureBiasValue: localizedProp = String(localized: .exposureBiasValue)
+        case MetadataKeys.exposureProgram: localizedProp = String(localized: .exposureProgram)
+        case MetadataKeys.meteringMode: localizedProp = String(localized: .meteringMode)
+        case MetadataKeys.make: localizedProp = String(localized: .make)
+        case MetadataKeys.model: localizedProp = String(localized: .model)
+        case MetadataKeys.whiteBalance: localizedProp = String(localized: .whiteBalance)
+        case MetadataKeys.flash: localizedProp = String(localized: .flash)
+        case MetadataKeys.lensMake: localizedProp = String(localized: .lensMake)
+        case MetadataKeys.lensModel: localizedProp = String(localized: .lensModel)
+        case MetadataKeys.focalLength: localizedProp = String(localized: .focalLength)
+        case MetadataKeys.focalLenIn35mmFilm: localizedProp = String(localized: .focalLenIn35MmFilm)
         case "PixelWidth": localizedProp = String(localized: .pixelWidth)
         case "PixelHeight": localizedProp = String(localized: .pixelHeight)
         case "ProfileName": localizedProp = String(localized: .profileName)
-        case "Artist": localizedProp = String(localized: .artist)
-        case "Copyright": localizedProp = String(localized: .copyright)
+        case MetadataKeys.artist: localizedProp = String(localized: .artist)
+        case MetadataKeys.copyright: localizedProp = String(localized: .copyright)
         default: localizedProp = NSLocalizedString(rawProp, comment: "")
         }
         
@@ -97,8 +97,18 @@ struct DetailCellModel: DetailCellModelRepresentable {
             return enumFormatted
         }
 
+        // DateTimeOriginal special formatting
+        if prop == MetadataKeys.dateTimeOriginal, let dateStr = rawValue as? String {
+            if let date = DateFormatter(with: .yMdHms).getDate(from: dateStr) {
+                let displayFormatter = DateFormatter()
+                displayFormatter.dateStyle = .medium
+                displayFormatter.timeStyle = .short
+                return displayFormatter.string(from: date)
+            }
+        }
+
         // ExposureBiasValue special formatting
-        if prop == "ExposureBiasValue", let val = rawValue as? Double {
+        if prop == MetadataKeys.exposureBiasValue, let val = rawValue as? Double {
             return formatExposureBias(val)
         }
 
@@ -106,7 +116,7 @@ struct DetailCellModel: DetailCellModelRepresentable {
         if let val = rawValue as? Int {
             return String(val)
         } else if let val = rawValue as? Double {
-            if prop == "ExposureTime" {
+            if prop == MetadataKeys.exposureTime {
                 let rational = Rational(approximationOf: val)
                 if rational.num < rational.den {
                     return "\(rational.num)/\(rational.den)"
@@ -138,11 +148,11 @@ struct DetailCellModel: DetailCellModelRepresentable {
     
     private static func applySymbol(toValue value: String, forProp prop: String) -> String {
         switch prop {
-        case "ExposureTime":
+        case MetadataKeys.exposureTime:
             return value + "s"
-        case "FNumber":
+        case MetadataKeys.fNumber:
             return "f/" + value
-        case "FocalLenIn35mmFilm", "FocalLength":
+        case MetadataKeys.focalLenIn35mmFilm, MetadataKeys.focalLength:
             return value + "mm"
         default:
             return value
