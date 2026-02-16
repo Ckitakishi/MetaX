@@ -73,11 +73,11 @@ class DetailTableViewCell: UITableViewCell {
             neoContainer.topAnchor.constraint(equalTo: contentView.topAnchor),
             neoContainer.leadingAnchor.constraint(
                 equalTo: contentView.leadingAnchor,
-                constant: Theme.Layout.cardPadding
+                constant: Theme.Layout.standardPadding
             ),
             neoContainer.trailingAnchor.constraint(
                 equalTo: contentView.trailingAnchor,
-                constant: -Theme.Layout.cardPadding
+                constant: -Theme.Layout.standardPadding
             ),
             neoContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 

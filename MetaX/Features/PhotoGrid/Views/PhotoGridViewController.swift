@@ -27,6 +27,16 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
     // MARK: - Properties
 
     private var thumbnailSize: CGSize = .zero
+    private var columns: Int {
+        calculateColumns(for: view.safeAreaLayoutGuide.layoutFrame.width)
+    }
+
+    private func calculateColumns(for width: CGFloat) -> Int {
+        let actualWidth = width > 0 ? width : view.bounds.width
+        guard traitCollection.horizontalSizeClass == .regular else { return 3 }
+        let minColumnWidth: CGFloat = 200
+        return max(3, Int(actualWidth / minColumnWidth))
+    }
 
     // MARK: - Initialization
 
@@ -63,6 +73,19 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
         updateThumbnailSize()
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+
+        let currentWidth = view.safeAreaLayoutGuide.layoutFrame.width
+        if currentWidth > 0, abs(lastLayoutWidth - currentWidth) > 1.0 {
+            lastLayoutWidth = currentWidth
+            collectionView.setCollectionViewLayout(createLayout(for: currentWidth), animated: false)
+            updateThumbnailSize()
+        }
+    }
+
+    private var lastLayoutWidth: CGFloat = 0
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         updateCachedAssets()
@@ -80,25 +103,7 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
     private func setupUI() {
         view.backgroundColor = Theme.Colors.mainBackground
 
-        let itemSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(1 / 3),
-            heightDimension: .fractionalWidth(1 / 3)
-        )
-        let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        let half: CGFloat = 8
-        item.contentInsets = NSDirectionalEdgeInsets(top: half, leading: half, bottom: half, trailing: half)
-
-        let groupSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(1.0),
-            heightDimension: .fractionalWidth(1 / 3)
-        )
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
-
-        let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = NSDirectionalEdgeInsets(top: half, leading: half, bottom: half, trailing: half)
-        let layout = UICollectionViewCompositionalLayout(section: section)
-
-        collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView = UICollectionView(frame: .zero, collectionViewLayout: createLayout())
         collectionView.backgroundColor = .clear
         collectionView.delegate = self
         collectionView.dataSource = self
@@ -114,14 +119,37 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
         NSLayoutConstraint.activate([
             collectionView.topAnchor.constraint(equalTo: view.topAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
     }
 
+    private func createLayout(for width: CGFloat? = nil) -> UICollectionViewLayout {
+        let targetWidth = width ?? view.safeAreaLayoutGuide.layoutFrame.width
+        let currentColumns = CGFloat(calculateColumns(for: targetWidth))
+        let itemSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1 / currentColumns),
+            heightDimension: .fractionalWidth(1 / currentColumns)
+        )
+        let item = NSCollectionLayoutItem(layoutSize: itemSize)
+        let half: CGFloat = 8
+        item.contentInsets = NSDirectionalEdgeInsets(top: half, leading: half, bottom: half, trailing: half)
+
+        let groupSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1.0),
+            heightDimension: .fractionalWidth(1 / currentColumns)
+        )
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+
+        let section = NSCollectionLayoutSection(group: group)
+        section.contentInsets = NSDirectionalEdgeInsets(top: half, leading: half, bottom: half, trailing: half)
+        return UICollectionViewCompositionalLayout(section: section)
+    }
+
     private func updateThumbnailSize() {
-        let width = view.bounds.width / 3
+        let currentWidth = view.safeAreaLayoutGuide.layoutFrame.width
+        let width = (currentWidth > 0 ? currentWidth : view.bounds.width) / CGFloat(columns)
         let scale = traitCollection.displayScale
         thumbnailSize = CGSize(width: ceil(width * scale), height: ceil(width * scale))
         viewModel.setThumbnailSize(thumbnailSize)

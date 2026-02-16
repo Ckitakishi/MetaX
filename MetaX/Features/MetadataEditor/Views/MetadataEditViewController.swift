@@ -194,10 +194,15 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             stackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 20),
-            stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 20),
-            stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -20),
+            stackView.leadingAnchor.constraint(
+                equalTo: scrollView.readableContentGuide.leadingAnchor,
+                constant: Theme.Layout.horizontalMargin
+            ),
+            stackView.trailingAnchor.constraint(
+                equalTo: scrollView.readableContentGuide.trailingAnchor,
+                constant: -Theme.Layout.horizontalMargin
+            ),
             stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -40),
-            stackView.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -40),
         ])
 
         let tap = UITapGestureRecognizer(target: view, action: #selector(UIView.endEditing))
@@ -386,7 +391,7 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
 
         let headerLabel = UILabel()
         headerLabel.text = title
-        headerLabel.font = .systemFont(ofSize: 16, weight: .bold)
+        headerLabel.font = Theme.Typography.subheadline
         headerLabel.textColor = .label
 
         let headerStack = UIStackView(arrangedSubviews: [pixelIcon, headerLabel])

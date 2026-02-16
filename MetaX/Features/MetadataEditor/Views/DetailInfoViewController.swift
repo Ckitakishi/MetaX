@@ -160,9 +160,9 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
-        coordinator.animate(alongsideTransition: nil) { _ in
-            self.updateHeaderHeight()
-        }
+        coordinator.animate(alongsideTransition: { [weak self] _ in
+            self?.updateBadgePosition()
+        })
     }
 
     deinit {
@@ -195,16 +195,11 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
             width: view.bounds.width,
             height: Theme.Layout.heroHeaderHeight
         ))
+        headerContainer.autoresizingMask = [.flexibleWidth]
         headerContainer.addSubview(heroCardView)
         heroCardView.addSubview(heroImageView)
         heroCardView.addSubview(heroLivePhotoView)
         heroCardView.addSubview(heroBadgeView)
-
-        let cardTrailing = heroCardView.trailingAnchor.constraint(
-            equalTo: headerContainer.trailingAnchor,
-            constant: -Theme.Layout.cardPadding
-        )
-        cardTrailing.priority = UILayoutPriority(999)
 
         let imageTrailing = heroImageView.trailingAnchor.constraint(
             equalTo: heroCardView.trailingAnchor,
@@ -217,16 +212,22 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         )
         liveTrailing.priority = UILayoutPriority(999)
 
+        let cardWidthConstraint = heroCardView.widthAnchor.constraint(
+            equalTo: headerContainer.widthAnchor,
+            constant: -Theme.Layout.standardPadding * 2
+        )
+        cardWidthConstraint.priority = .defaultHigh
+
         NSLayoutConstraint.activate([
-            heroCardView.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: Theme.Layout.cardPadding),
-            heroCardView.leadingAnchor.constraint(
-                equalTo: headerContainer.leadingAnchor,
-                constant: Theme.Layout.cardPadding
+            heroCardView.topAnchor.constraint(
+                equalTo: headerContainer.topAnchor,
+                constant: Theme.Layout.standardPadding
             ),
-            cardTrailing,
+            heroCardView.centerXAnchor.constraint(equalTo: headerContainer.centerXAnchor),
+            cardWidthConstraint,
             heroCardView.bottomAnchor.constraint(
                 equalTo: headerContainer.bottomAnchor,
-                constant: -Theme.Layout.cardPadding
+                constant: -Theme.Layout.standardPadding
             ),
 
             heroImageView.topAnchor.constraint(equalTo: heroCardView.topAnchor, constant: HeroLayout.inset),
@@ -257,8 +258,8 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
     }
@@ -301,6 +302,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        updateHeaderHeight()
         updateBadgePosition()
     }
 
@@ -321,26 +323,48 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         badgeTopConstraint?.constant = yOffset + 4
     }
 
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        updateHeaderHeight()
+        updateBadgePosition()
+    }
+
     private func updateHeaderHeight() {
         guard let asset = viewModel.asset else { return }
-        let padding = Theme.Layout.cardPadding
-        let cardWidth = view.bounds.width - padding * 2
+        let padding = Theme.Layout.standardPadding
+
+        let currentWidth = tableView.bounds.width
+        guard currentWidth > 0 else { return }
+
+        let effectiveWidth = currentWidth - padding * 2
         let cardHeight: CGFloat
+
         if asset.pixelWidth > asset.pixelHeight {
-            cardHeight = cardWidth * CGFloat(asset.pixelHeight) / CGFloat(asset.pixelWidth)
+            // Landscape: Maintain original aspect ratio
+            let aspectRatio = CGFloat(asset.pixelHeight) / CGFloat(asset.pixelWidth)
+            cardHeight = effectiveWidth * aspectRatio
         } else {
-            cardHeight = cardWidth
+            // Portrait or Square: Use 1:1 aspect ratio
+            cardHeight = effectiveWidth
         }
+
         if let header = tableView.tableHeaderView {
-            header.frame.size = CGSize(width: view.bounds.width, height: cardHeight + padding * 2)
-            tableView.tableHeaderView = header
+            let newSize = CGSize(width: currentWidth, height: cardHeight + padding * 2)
+
+            if abs(header.frame.width - newSize.width) > 0.1 || abs(header.frame.height - newSize.height) > 0.1 {
+                header.frame = CGRect(origin: .zero, size: newSize)
+                // Re-assign to force TableView to update its header layout
+                tableView.tableHeaderView = header
+                header.layoutIfNeeded()
+            }
         }
     }
 
     private var targetSize: CGSize {
         let scale = traitCollection.displayScale
+        let width = tableView.bounds.width
         let headerHeight = tableView.tableHeaderView?.frame.height ?? Theme.Layout.heroHeaderHeight
-        return CGSize(width: ceil(view.bounds.width * scale), height: ceil(headerHeight * scale))
+        return CGSize(width: ceil(width * scale), height: ceil(headerHeight * scale))
     }
 
     // MARK: - Bindings

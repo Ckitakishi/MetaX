@@ -128,10 +128,13 @@ class AlbumStandardTableViewCell: UITableViewCell {
 
         NSLayoutConstraint.activate([
             cardView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Theme.Layout.cellSpacing),
-            cardView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Theme.Layout.cardPadding),
+            cardView.leadingAnchor.constraint(
+                equalTo: contentView.leadingAnchor,
+                constant: Theme.Layout.standardPadding
+            ),
             cardView.trailingAnchor.constraint(
                 equalTo: contentView.trailingAnchor,
-                constant: -Theme.Layout.cardPadding
+                constant: -Theme.Layout.standardPadding
             ),
             cardView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -Theme.Layout.cellSpacing),
 
@@ -151,7 +154,7 @@ class AlbumStandardTableViewCell: UITableViewCell {
             // Vertically Centered Info Stack
             infoStack.leadingAnchor.constraint(
                 equalTo: imageRightBorder.trailingAnchor,
-                constant: Theme.Layout.cardPadding
+                constant: Theme.Layout.standardPadding
             ),
             infoStack.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -12),
             infoStack.centerYAnchor.constraint(equalTo: cardView.centerYAnchor),

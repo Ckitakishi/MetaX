@@ -93,7 +93,6 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         searchController.searchResultsUpdater = self
         searchController.obscuresBackgroundDuringPresentation = false
         searchController.searchBar.placeholder = String(localized: .viewMyAlbums)
-        navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = true
         definesPresentationContext = true
 
@@ -120,13 +119,13 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
 
     private var standardThumbnailSize: CGSize {
         let scale = traitCollection.displayScale
-        let side = ceil(Theme.Layout.thumbnailSize * scale)
+        let side = max(1, ceil(Theme.Layout.thumbnailSize * scale))
         return CGSize(width: side, height: side)
     }
 
     private var heroThumbnailSize: CGSize {
         let scale = traitCollection.displayScale
-        let width = view.bounds.width - 2 * Theme.Layout.cardPadding
+        let width = max(1, view.bounds.width - 2 * Theme.Layout.standardPadding)
         return CGSize(width: ceil(width * scale), height: ceil(width * Theme.Layout.heroAspectRatio * scale))
     }
 
@@ -148,6 +147,11 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     private func setupBindings() {
         observe(viewModel: viewModel, property: { $0.isAuthorized }) { [weak self] in
             $0 ? self?.removeLockView() : self?.showLockView()
+        }
+
+        observe(viewModel: viewModel, property: { $0.isSearchAvailable }) { [weak self] isAvailable in
+            guard let self else { return }
+            self.navigationItem.searchController = isAvailable ? self.searchController : nil
         }
 
         observe(viewModel: viewModel, property: { $0.reloadToken }) { [weak self] _ in

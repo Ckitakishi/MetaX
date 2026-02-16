@@ -13,7 +13,7 @@ final class AppCoordinator: NSObject, Coordinator {
     var childCoordinators: [Coordinator] = []
     var navigationController: UINavigationController = .init()
 
-    private let splitViewController = UISplitViewController()
+    private let splitViewController = UISplitViewController(style: .doubleColumn)
     private let container: DependencyContainer
 
     init(container: DependencyContainer) {
@@ -43,16 +43,9 @@ final class AppCoordinator: NSObject, Coordinator {
     private func setupSplitView() {
         splitViewController.delegate = self
         splitViewController.preferredDisplayMode = .oneBesideSecondary
+        splitViewController.preferredSplitBehavior = .tile
 
-        // The PhotoFlowCoordinator will handle setting up the master and detail VCs
-        // We'll call start() which will configure the navigationController
-
-        // Initial placeholder for detail
-        let placeholderVC = UIViewController()
-        placeholderVC.view.backgroundColor = Theme.Colors.mainBackground
-        let detailNav = UINavigationController(rootViewController: placeholderVC)
-
-        splitViewController.viewControllers = [navigationController, detailNav]
+        splitViewController.setViewController(navigationController, for: .primary)
     }
 }
 

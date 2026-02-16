@@ -39,7 +39,7 @@ enum Theme {
     enum Layout {
         static let cardCornerRadius: CGFloat = 0
         static let imageCornerRadius: CGFloat = 0
-        static let cardPadding: CGFloat = 16
+        static let standardPadding: CGFloat = 16
         static let cellSpacing: CGFloat = 10
         static let stackSpacing: CGFloat = 24
         static let sectionHeaderHeight: CGFloat = 60

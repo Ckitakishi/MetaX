@@ -2,8 +2,8 @@
 //  SceneDelegate.swift
 //  MetaX
 //
-//  Created by Yuhan Chen on 2025/2/6.
-//  Copyright © 2025 Yuhan Chen. All rights reserved.
+//  Created by Yuhan Chen on 2026/2/6.
+//  Copyright © 2026 Yuhan Chen. All rights reserved.
 //
 
 import UIKit
@@ -27,7 +27,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let coordinator = AppCoordinator(container: container)
         self.coordinator = coordinator
-        coordinator.start()
 
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = coordinator.rootViewController()
@@ -35,6 +34,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.overrideUserInterfaceStyle = container.settingsService.userInterfaceStyle
         window.makeKeyAndVisible()
         self.window = window
+
+        coordinator.start()
 
         if let albumVC = coordinator.albumViewController {
             setupSplashWindow(in: windowScene, dismissalTrigger: albumVC)

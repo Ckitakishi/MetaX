@@ -72,6 +72,12 @@ final class AlbumViewModel: NSObject {
 
     private(set) var isAuthorized: Bool = true
     private(set) var reloadToken: Int = 0
+
+    /// Returns true if there are albums available to be searched.
+    var isSearchAvailable: Bool {
+        isAuthorized && (!userAssetCollections.isEmpty || !nonEmptySmartAlbums.isEmpty)
+    }
+
     /// Number of in-flight loadCellDataIfNeeded DB queries.
     /// Observed by AlbumViewController to know when all initial data is loaded.
     private(set) var pendingLoadsCount: Int = 0
@@ -405,23 +411,30 @@ extension AlbumViewModel: PHPhotoLibraryChangeObserver {
 
     nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
         Task { @MainActor in
+            var hasChanges = false
+
             if let allPhotos = allPhotos, let changeDetails = changeInstance.changeDetails(for: allPhotos) {
                 self.allPhotos = changeDetails.fetchResultAfterChanges
+                hasChanges = true
             }
 
             if let smartAlbums = smartAlbums, let changeDetails = changeInstance.changeDetails(for: smartAlbums) {
                 self.smartAlbums = changeDetails.fetchResultAfterChanges
                 self.nonEmptySmartAlbums = updatedNonEmptyAlbums()
+                hasChanges = true
             }
 
             if let userCollections = userCollections,
                let changeDetails = changeInstance.changeDetails(for: userCollections) {
                 self.userCollections = changeDetails.fetchResultAfterChanges
                 self.userAssetCollections = updatedUserAssetCollections()
+                hasChanges = true
             }
 
-            invalidateCaches()
-            applySearchAndSort()
+            if hasChanges {
+                invalidateCaches()
+                applySearchAndSort()
+            }
         }
     }
 }

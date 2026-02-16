@@ -57,13 +57,13 @@ class DetailSectionHeaderView: UIView {
         addSubview(titleLabel)
 
         NSLayoutConstraint.activate([
-            indicatorBlock.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Theme.Layout.cardPadding),
+            indicatorBlock.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Theme.Layout.standardPadding),
             indicatorBlock.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -20),
             indicatorBlock.widthAnchor.constraint(equalToConstant: 8),
             indicatorBlock.heightAnchor.constraint(equalToConstant: 8),
 
             titleLabel.leadingAnchor.constraint(equalTo: indicatorBlock.trailingAnchor, constant: 12),
-            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Theme.Layout.cardPadding),
+            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Theme.Layout.standardPadding),
             titleLabel.centerYAnchor.constraint(equalTo: indicatorBlock.centerYAnchor),
         ])
     }

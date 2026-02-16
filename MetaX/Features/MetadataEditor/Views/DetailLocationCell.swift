@@ -104,10 +104,13 @@ final class DetailLocationCell: UITableViewCell {
 
         NSLayoutConstraint.activate([
             container.topAnchor.constraint(equalTo: contentView.topAnchor),
-            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Theme.Layout.cardPadding),
+            container.leadingAnchor.constraint(
+                equalTo: contentView.leadingAnchor,
+                constant: Theme.Layout.standardPadding
+            ),
             container.trailingAnchor.constraint(
                 equalTo: contentView.trailingAnchor,
-                constant: -Theme.Layout.cardPadding
+                constant: -Theme.Layout.standardPadding
             ),
             container.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 

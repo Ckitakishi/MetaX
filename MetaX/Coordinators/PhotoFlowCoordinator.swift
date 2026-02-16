@@ -38,6 +38,14 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
 
     func start() {
         navigate(to: .albumList)
+
+        // Default to All Photos grid on startup
+        let fetchResult = container.photoLibraryService.fetchAllPhotos()
+        navigate(to: .photoGrid(
+            fetchResult: fetchResult,
+            collection: nil,
+            title: String(localized: .viewAllPhotos)
+        ))
     }
 
     /// The single entry point for all navigation within this flow.
@@ -161,6 +169,9 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
         let viewModel = MetadataEditViewModel(metadata: metadata)
         let vc = MetadataEditViewController(metadata: metadata, viewModel: viewModel)
         let nav = UINavigationController(rootViewController: vc)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            nav.modalPresentationStyle = .fullScreen
+        }
 
         vc.onRequestLocationSearch = { [weak self, weak vc] in
             guard let vc else { return }
@@ -205,6 +216,9 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
         let host = presenter ?? navigationController
         return await withCheckedContinuation { continuation in
             let vc = SaveOptionsViewController()
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                vc.modalPresentationStyle = .pageSheet
+            }
             var isResumed = false
             vc.onSelect = { mode in
                 if !isResumed { isResumed = true; continuation.resume(returning: mode) }

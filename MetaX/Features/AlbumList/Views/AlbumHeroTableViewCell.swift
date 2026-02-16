@@ -122,10 +122,13 @@ class AlbumHeroTableViewCell: UITableViewCell {
 
         NSLayoutConstraint.activate([
             cardView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Theme.Layout.cellSpacing),
-            cardView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Theme.Layout.cardPadding),
+            cardView.leadingAnchor.constraint(
+                equalTo: contentView.leadingAnchor,
+                constant: Theme.Layout.standardPadding
+            ),
             cardView.trailingAnchor.constraint(
                 equalTo: contentView.trailingAnchor,
-                constant: -Theme.Layout.cardPadding
+                constant: -Theme.Layout.standardPadding
             ),
             cardView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -Theme.Layout.cellSpacing),
 
@@ -139,7 +142,7 @@ class AlbumHeroTableViewCell: UITableViewCell {
 
             titleLabel.topAnchor.constraint(
                 equalTo: thumbnailImageView.bottomAnchor,
-                constant: Theme.Layout.cardPadding
+                constant: Theme.Layout.standardPadding
             ),
             titleLabel.leadingAnchor.constraint(
                 equalTo: cardView.leadingAnchor,
@@ -149,7 +152,7 @@ class AlbumHeroTableViewCell: UITableViewCell {
                 equalTo: cardView.trailingAnchor,
                 constant: -Theme.Layout.horizontalMargin
             ),
-            titleLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -Theme.Layout.cardPadding),
+            titleLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -Theme.Layout.standardPadding),
 
             countTagView.topAnchor.constraint(equalTo: thumbnailImageView.topAnchor, constant: 12),
             countTagView.trailingAnchor.constraint(equalTo: thumbnailImageView.trailingAnchor, constant: -12),
