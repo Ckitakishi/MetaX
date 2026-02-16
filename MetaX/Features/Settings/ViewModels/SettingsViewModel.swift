@@ -49,9 +49,9 @@ final class SettingsViewModel {
     private let photoLibraryService: PhotoLibraryServiceProtocol
     private var settingsService: SettingsServiceProtocol
 
-    init(container: DependencyContainer) {
-        photoLibraryService = container.photoLibraryService
-        settingsService = container.settingsService
+    init(photoLibraryService: PhotoLibraryServiceProtocol, settingsService: SettingsServiceProtocol) {
+        self.photoLibraryService = photoLibraryService
+        self.settingsService = settingsService
     }
 
     func items(for section: SettingsSection) -> [SettingsItem] {

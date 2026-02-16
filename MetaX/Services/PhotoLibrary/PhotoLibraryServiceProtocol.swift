@@ -44,26 +44,6 @@ protocol PhotoLibraryServiceProtocol {
 
     // MARK: - Image Operations
 
-    /// Request image for asset asynchronously. The continuation resumes once only,
-    /// with the final non-degraded result (or an error).
-    func requestImage(
-        for asset: PHAsset,
-        targetSize: CGSize,
-        contentMode: PHImageContentMode,
-        options: PHImageRequestOptions?
-    ) async -> Result<UIImage, MetaXError>
-
-    /// Callback-based image request. With `.standard` options the completion fires
-    /// twice: once with a fast degraded frame, then with the full-quality result.
-    /// Returns a request ID that can be passed to `cancelImageRequest(_:)`.
-    @discardableResult
-    func requestImage(
-        for asset: PHAsset,
-        targetSize: CGSize,
-        contentMode: PHImageContentMode,
-        completion: @escaping (UIImage?, Bool) -> Void
-    ) -> PHImageRequestID
-
     /// Cancels a pending image request.
     func cancelImageRequest(_ requestID: PHImageRequestID)
 
@@ -78,16 +58,11 @@ protocol PhotoLibraryServiceProtocol {
         completion: @escaping (UIImage?, Bool) -> Void
     ) -> PHImageRequestID
 
-    /// Request a thumbnail asynchronously.
-    func requestThumbnail(for asset: PHAsset, targetSize: CGSize) async -> UIImage?
+    /// Request a thumbnail as an AsyncStream. Yields multiple results (degraded image first, then high-quality).
+    func requestThumbnailStream(for asset: PHAsset, targetSize: CGSize) -> AsyncStream<(UIImage?, Bool)>
 
-    /// Request a live photo for the given asset.
-    @discardableResult
-    func requestLivePhoto(
-        for asset: PHAsset,
-        targetSize: CGSize,
-        completion: @escaping (PHLivePhoto?, Bool) -> Void
-    ) -> PHImageRequestID
+    /// Request a live photo as an AsyncStream.
+    func requestLivePhotoStream(for asset: PHAsset, targetSize: CGSize) -> AsyncStream<(PHLivePhoto?, Bool)>
 
     // MARK: - Thumbnail Caching
 
@@ -131,13 +106,5 @@ extension PhotoLibraryServiceProtocol {
 
     func fetchAssets(in collection: PHAssetCollection) -> PHFetchResult<PHAsset> {
         fetchAssets(in: collection, sortedBy: nil)
-    }
-
-    func requestImage(
-        for asset: PHAsset,
-        targetSize: CGSize,
-        contentMode: PHImageContentMode
-    ) async -> Result<UIImage, MetaXError> {
-        await requestImage(for: asset, targetSize: targetSize, contentMode: contentMode, options: nil)
     }
 }

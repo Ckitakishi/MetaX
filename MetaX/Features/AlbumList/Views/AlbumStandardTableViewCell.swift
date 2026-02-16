@@ -1,5 +1,5 @@
 //
-//  AlbumHeroTableViewCell.swift
+//  AlbumStandardTableViewCell.swift
 //  MetaX
 //
 //  Created by Yuhan Chen on 2026/02/08.
@@ -8,7 +8,7 @@
 
 import UIKit
 
-class AlbumHeroTableViewCell: UITableViewCell {
+class AlbumStandardTableViewCell: UITableViewCell {
 
     private var stackedLayer: UIView?
 
@@ -24,18 +24,24 @@ class AlbumHeroTableViewCell: UITableViewCell {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        Theme.Shadows.applyCardBorder(to: imageView.layer)
+        imageView.layer.cornerRadius = 0
         imageView.backgroundColor = .secondarySystemFill
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
+    }()
+
+    private let imageRightBorder: UIView = {
+        let view = UIView()
+        view.backgroundColor = Theme.Colors.border
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
 
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Theme.Typography.headline
         label.textColor = Theme.Colors.text
-        label.textAlignment = .left
-        label.numberOfLines = 0
+        label.numberOfLines = 2
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -43,8 +49,8 @@ class AlbumHeroTableViewCell: UITableViewCell {
     private let countTagView: UIView = {
         let view = UIView()
         view.backgroundColor = Theme.Colors.tagBackground
-        view.layer.borderWidth = 1.0
-        view.layer.borderColor = Theme.Colors.border.cgColor
+        Theme.Shadows.applyCardBorder(to: view.layer)
+        view.layer.cornerRadius = 2
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -66,16 +72,10 @@ class AlbumHeroTableViewCell: UITableViewCell {
     }()
 
     var representedIdentifier: String?
-    var cancelThumbnailRequest: (() -> Void)?
+    var imageLoadTask: Task<Void, Never>?
 
     var title: String? {
-        didSet {
-            guard let title = title else { return }
-            let text = title
-            let attributedString = NSMutableAttributedString(string: text)
-            attributedString.addAttribute(.kern, value: 2.0, range: NSRange(location: 0, length: text.count))
-            titleLabel.attributedText = attributedString
-        }
+        didSet { titleLabel.text = title }
     }
 
     var count: Int? {
@@ -101,11 +101,10 @@ class AlbumHeroTableViewCell: UITableViewCell {
         backgroundColor = .clear
 
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (
-            cell: AlbumHeroTableViewCell,
+            cell: AlbumStandardTableViewCell,
             _: UITraitCollection
         ) in
             Theme.Shadows.updateLayerColors(for: cell.cardView.layer)
-            Theme.Shadows.updateLayerColors(for: cell.thumbnailImageView.layer)
             Theme.Shadows.updateLayerColors(for: cell.countTagView.layer)
             if let layer = cell.stackedLayer {
                 Theme.Shadows.updateLayerColors(for: layer.layer)
@@ -115,10 +114,17 @@ class AlbumHeroTableViewCell: UITableViewCell {
         contentView.addSubview(cardView)
         stackedLayer = Theme.Shadows.applyStackedLayer(to: cardView, in: contentView)
         cardView.addSubview(thumbnailImageView)
-        cardView.addSubview(countTagView)
+        cardView.addSubview(imageRightBorder)
+
+        let infoStack = UIStackView(arrangedSubviews: [titleLabel, countTagView])
+        infoStack.axis = .vertical
+        infoStack.spacing = 8
+        infoStack.alignment = .leading
+        infoStack.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(infoStack)
+
         countTagView.addSubview(countIconView)
         countTagView.addSubview(countLabel)
-        cardView.addSubview(titleLabel)
 
         NSLayoutConstraint.activate([
             cardView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Theme.Layout.cellSpacing),
@@ -129,47 +135,43 @@ class AlbumHeroTableViewCell: UITableViewCell {
             ),
             cardView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -Theme.Layout.cellSpacing),
 
+            // Image Bleed Layout
             thumbnailImageView.topAnchor.constraint(equalTo: cardView.topAnchor),
             thumbnailImageView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
-            thumbnailImageView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-            thumbnailImageView.heightAnchor.constraint(
-                equalTo: thumbnailImageView.widthAnchor,
-                multiplier: Theme.Layout.heroAspectRatio
-            ),
+            thumbnailImageView.bottomAnchor.constraint(equalTo: cardView.bottomAnchor),
+            thumbnailImageView.widthAnchor.constraint(equalToConstant: Theme.Layout.thumbnailSize),
+            thumbnailImageView.heightAnchor.constraint(equalToConstant: Theme.Layout.thumbnailSize),
 
-            titleLabel.topAnchor.constraint(
-                equalTo: thumbnailImageView.bottomAnchor,
+            // Image Right Border
+            imageRightBorder.topAnchor.constraint(equalTo: cardView.topAnchor),
+            imageRightBorder.bottomAnchor.constraint(equalTo: cardView.bottomAnchor),
+            imageRightBorder.leadingAnchor.constraint(equalTo: thumbnailImageView.trailingAnchor),
+            imageRightBorder.widthAnchor.constraint(equalToConstant: 1.0), // Reduced to 1.0
+
+            // Vertically Centered Info Stack
+            infoStack.leadingAnchor.constraint(
+                equalTo: imageRightBorder.trailingAnchor,
                 constant: Theme.Layout.cardPadding
             ),
-            titleLabel.leadingAnchor.constraint(
-                equalTo: cardView.leadingAnchor,
-                constant: Theme.Layout.horizontalMargin
-            ),
-            titleLabel.trailingAnchor.constraint(
-                equalTo: cardView.trailingAnchor,
-                constant: -Theme.Layout.horizontalMargin
-            ),
-            titleLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -Theme.Layout.cardPadding),
+            infoStack.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -12),
+            infoStack.centerYAnchor.constraint(equalTo: cardView.centerYAnchor),
 
-            countTagView.topAnchor.constraint(equalTo: thumbnailImageView.topAnchor, constant: 12),
-            countTagView.trailingAnchor.constraint(equalTo: thumbnailImageView.trailingAnchor, constant: -12),
-
-            countIconView.leadingAnchor.constraint(equalTo: countTagView.leadingAnchor, constant: 10),
+            countIconView.leadingAnchor.constraint(equalTo: countTagView.leadingAnchor, constant: 8),
             countIconView.centerYAnchor.constraint(equalTo: countTagView.centerYAnchor),
-            countIconView.widthAnchor.constraint(equalToConstant: 14),
-            countIconView.heightAnchor.constraint(equalToConstant: 14),
+            countIconView.widthAnchor.constraint(equalToConstant: 12),
+            countIconView.heightAnchor.constraint(equalToConstant: 12),
 
-            countLabel.leadingAnchor.constraint(equalTo: countIconView.trailingAnchor, constant: 6),
-            countLabel.trailingAnchor.constraint(equalTo: countTagView.trailingAnchor, constant: -10),
-            countLabel.centerYAnchor.constraint(equalTo: countTagView.centerYAnchor),
-            countTagView.heightAnchor.constraint(equalToConstant: 26),
+            countLabel.leadingAnchor.constraint(equalTo: countIconView.trailingAnchor, constant: 4),
+            countLabel.trailingAnchor.constraint(equalTo: countTagView.trailingAnchor, constant: -8),
+            countLabel.topAnchor.constraint(equalTo: countTagView.topAnchor, constant: 4),
+            countLabel.bottomAnchor.constraint(equalTo: countTagView.bottomAnchor, constant: -4),
         ])
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        cancelThumbnailRequest?()
-        cancelThumbnailRequest = nil
+        imageLoadTask?.cancel()
+        imageLoadTask = nil
         representedIdentifier = nil
         thumbnailImageView.image = nil
         countLabel.text = "—"

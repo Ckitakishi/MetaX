@@ -12,10 +12,6 @@ import UIKit
 
 class PhotoGridViewController: UIViewController, ViewModelObserving {
 
-    // MARK: - Dependencies
-
-    private let container: DependencyContainer
-
     // MARK: - Intent Closures
 
     var onSelectAsset: ((PHAsset, PHAssetCollection?) -> Void)?
@@ -34,9 +30,8 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     // MARK: - Initialization
 
-    init(container: DependencyContainer) {
-        self.container = container
-        viewModel = PhotoGridViewModel(photoLibraryService: container.photoLibraryService)
+    init(viewModel: PhotoGridViewModel) {
+        self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -107,6 +102,7 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
         collectionView.backgroundColor = .clear
         collectionView.delegate = self
         collectionView.dataSource = self
+        collectionView.showsVerticalScrollIndicator = false
         collectionView.translatesAutoresizingMaskIntoConstraints = false
 
         collectionView.register(
@@ -188,14 +184,14 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
 
         cell.representedAssetIdentifier = asset.localIdentifier
 
-        // Request image. Note: We use completion here because PHImageManager
-        // handles the threading and caching efficiently.
-        // We avoid wrapping this in an extra Task/await here to keep cell scrolling smooth.
-        viewModel.requestImage(for: asset, targetSize: thumbnailSize) { [weak cell] image, _ in
-            guard let cell, cell.representedAssetIdentifier == asset.localIdentifier else { return }
-            // PHImageManager callbacks are on main thread by default unless specified,
-            // but we ensure main actor isolation.
-            cell.thumbnailImage = image
+        // Request image using Swift 6 AsyncStream.
+        // We cancel the previous task to ensure no stale images are applied.
+        cell.imageLoadTask?.cancel()
+        cell.imageLoadTask = Task { @MainActor in
+            for await (image, _) in viewModel.requestImageStream(for: asset, targetSize: thumbnailSize) {
+                guard !Task.isCancelled else { break }
+                cell.thumbnailImage = image
+            }
         }
 
         return cell

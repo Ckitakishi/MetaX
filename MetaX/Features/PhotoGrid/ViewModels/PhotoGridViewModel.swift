@@ -74,8 +74,8 @@ final class PhotoGridViewModel: NSObject {
 
     // MARK: - Image Loading
 
-    func requestImage(for asset: PHAsset, targetSize: CGSize, completion: @escaping (UIImage?, Bool) -> Void) {
-        photoLibraryService.requestThumbnail(for: asset, targetSize: targetSize, completion: completion)
+    func requestImageStream(for asset: PHAsset, targetSize: CGSize) -> AsyncStream<(UIImage?, Bool)> {
+        photoLibraryService.requestThumbnailStream(for: asset, targetSize: targetSize)
     }
 
     // MARK: - Caching

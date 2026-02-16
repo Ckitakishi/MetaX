@@ -11,10 +11,6 @@ import UIKit
 
 class AlbumViewController: UITableViewController, ViewModelObserving {
 
-    // MARK: - Dependencies
-
-    private let container: DependencyContainer
-
     // MARK: - ViewModel
 
     private let viewModel: AlbumViewModel
@@ -28,15 +24,6 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
 
     var splashDismissHandler: (() -> Void)?
     private var isHeroImageLoaded = false
-    private var currentSectionIndex = 0
-
-    private var visibleSectionIndices: [Int] {
-        return (0..<AlbumSection.count).filter {
-            if $0 == 0 { return true }
-            guard let section = AlbumSection(rawValue: $0) else { return false }
-            return viewModel.numberOfRows(in: section) > 0
-        }
-    }
 
     private let sectionTitles = [
         "",
@@ -48,9 +35,8 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
 
     // MARK: - Initialization
 
-    init(container: DependencyContainer) {
-        self.container = container
-        viewModel = AlbumViewModel(photoLibraryService: container.photoLibraryService)
+    init(viewModel: AlbumViewModel) {
+        self.viewModel = viewModel
         super.init(style: .grouped)
     }
 
@@ -117,6 +103,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         tableView.estimatedRowHeight = 120
         tableView.sectionHeaderTopPadding = 0
         tableView.prefetchDataSource = self
+        tableView.showsVerticalScrollIndicator = false
         tableView.register(
             AlbumHeroTableViewCell.self,
             forCellReuseIdentifier: String(describing: AlbumHeroTableViewCell.self)
@@ -125,10 +112,6 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
             AlbumStandardTableViewCell.self,
             forCellReuseIdentifier: String(describing: AlbumStandardTableViewCell.self)
         )
-
-        tableView.sectionIndexColor = Theme.Colors.text
-        tableView.sectionIndexBackgroundColor = .clear
-        tableView.sectionIndexTrackingBackgroundColor = .clear
     }
 
     @objc private func didTapSettings() {
@@ -254,22 +237,23 @@ extension AlbumViewController {
             cell.title = title
             cell.count = count
             cell.thumbnail = nil
+
             if let asset {
-                let requestID = viewModel.getThumbnail(for: asset, targetSize: heroThumbnailSize) { [
-                    weak cell,
-                    weak self
-                ] image, isDegraded in
-                    Task { @MainActor in
+                cell.imageLoadTask?.cancel()
+                cell.imageLoadTask = Task { @MainActor [weak self, weak cell] in
+                    guard let self, let cell else { return }
+                    for await (image, isDegraded) in viewModel.requestThumbnailStream(
+                        for: asset,
+                        targetSize: heroThumbnailSize
+                    ) {
+                        guard !Task.isCancelled else { break }
                         if !isDegraded {
-                            self?.isHeroImageLoaded = true
-                            self?.checkSplashDismissal()
+                            isHeroImageLoaded = true
+                            checkSplashDismissal()
                         }
-                        guard cell?.representedIdentifier == "allPhotos" else { return }
-                        cell?.thumbnail = image
+                        guard cell.representedIdentifier == "allPhotos" else { break }
+                        cell.thumbnail = image
                     }
-                }
-                cell.cancelThumbnailRequest = { [weak self] in
-                    self?.viewModel.cancelThumbnailRequest(requestID)
                 }
             } else if viewModel.allPhotos != nil {
                 isHeroImageLoaded = true
@@ -290,22 +274,23 @@ extension AlbumViewController {
 
             // Show cached cover immediately if available
             if let asset {
-                let requestID = viewModel
-                    .getThumbnail(for: asset, targetSize: standardThumbnailSize) { [weak cell] image, _ in
-                        // Guard inside Task to avoid TOCTOU: cell may be reused between
-                        // the callback firing and the Task body executing on the main actor.
-                        Task { @MainActor in
-                            guard let cell, cell.representedIdentifier == collectionId else { return }
-                            cell.thumbnail = image
-                        }
+                cell.imageLoadTask?.cancel()
+                cell.imageLoadTask = Task { @MainActor [weak self, weak cell] in
+                    guard let self, let cell else { return }
+                    for await (image, _) in viewModel.requestThumbnailStream(
+                        for: asset,
+                        targetSize: standardThumbnailSize
+                    ) {
+                        guard !Task.isCancelled else { break }
+                        guard cell.representedIdentifier == collectionId else { break }
+                        cell.thumbnail = image
                     }
-                cell.cancelThumbnailRequest = { [weak self] in
-                    self?.viewModel.cancelThumbnailRequest(requestID)
                 }
             }
 
             // Async-load count + thumbnail if not yet cached (no-op when already cached).
-            // Completion fires only when both count and first thumbnail image are ready.
+            // Note: Keeping this completion-based for now as it handles complex synchronization
+            // within the ViewModel, but image loading is now Task-based above.
             viewModel
                 .loadCellDataIfNeeded(at: indexPath, thumbnailSize: standardThumbnailSize) { [weak cell] count, image in
                     guard let cell, cell.representedIdentifier == collectionId else { return }
@@ -328,7 +313,8 @@ extension AlbumViewController {
 
     override func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         if section == 0 { return CGFloat.leastNonzeroMagnitude }
-        if self.tableView(tableView, numberOfRowsInSection: section) == 0 {
+        guard let albumSection = AlbumSection(rawValue: section) else { return 0 }
+        if viewModel.numberOfRows(in: albumSection) == 0 {
             return CGFloat.leastNonzeroMagnitude
         }
         return Theme.Layout.sectionHeaderHeight
@@ -340,42 +326,6 @@ extension AlbumViewController {
 
     override func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
         return section == 0 ? Theme.Layout.stackSpacing : 0.1
-    }
-
-    override func sectionIndexTitles(for tableView: UITableView) -> [String]? {
-        let indices = visibleSectionIndices
-        return indices.map { $0 == currentSectionIndex ? "●" : "○" }
-    }
-
-    override func tableView(_ tableView: UITableView, sectionForSectionIndexTitle title: String, at index: Int) -> Int {
-        let indices = visibleSectionIndices
-        return index < indices.count ? indices[index] : 0
-    }
-
-    override func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        let currentOffset = scrollView.contentOffset.y
-        let maximumOffset = scrollView.contentSize.height - scrollView.frame.size.height
-        let visualTop = currentOffset + scrollView.adjustedContentInset.top
-
-        var activeSection = 0
-        let indices = visibleSectionIndices
-
-        if maximumOffset > 0, currentOffset > 0, maximumOffset - currentOffset <= 20 {
-            activeSection = indices.last ?? 0
-        } else {
-            for section in indices {
-                let rect = tableView.rect(forSection: section)
-                if rect.minY <= visualTop + 1, rect.maxY > visualTop + 1 {
-                    activeSection = section
-                    break
-                }
-            }
-        }
-
-        if currentSectionIndex != activeSection {
-            currentSectionIndex = activeSection
-            tableView.reloadSectionIndexTitles()
-        }
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {

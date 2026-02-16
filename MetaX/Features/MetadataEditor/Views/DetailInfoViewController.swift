@@ -27,7 +27,6 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     // MARK: - Dependencies
 
     let viewModel: DetailInfoViewModel
-    private let container: DependencyContainer
 
     // MARK: - Intent Closures
 
@@ -41,6 +40,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         let table = UITableView(frame: .zero, style: .grouped)
         table.backgroundColor = .clear
         table.separatorStyle = .none
+        table.showsVerticalScrollIndicator = false
         table.translatesAutoresizingMaskIntoConstraints = false
         return table
     }()
@@ -119,13 +119,8 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     // MARK: - Initialization
 
-    init(container: DependencyContainer) {
-        self.container = container
-        viewModel = DetailInfoViewModel(
-            metadataService: container.metadataService,
-            imageSaveService: container.imageSaveService,
-            photoLibraryService: container.photoLibraryService
-        )
+    init(viewModel: DetailInfoViewModel) {
+        self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -152,11 +147,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         updateHeaderHeight()
-        if viewModel.isLivePhoto {
-            viewModel.loadLivePhoto(targetSize: targetSize)
-        } else {
-            viewModel.loadPhoto(targetSize: targetSize)
-        }
+        viewModel.loadHeroContent(targetSize: targetSize)
         Task {
             await viewModel.loadMetadata()
         }
@@ -423,11 +414,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         observe(viewModel: viewModel, property: { $0.asset }) { [weak self] _ in
             guard let self = self, self.isViewLoaded, self.view.window != nil else { return }
             // Re-load hero image if asset changes (e.g. content edit)
-            if self.viewModel.isLivePhoto {
-                self.viewModel.loadLivePhoto(targetSize: self.targetSize)
-            } else {
-                self.viewModel.loadPhoto(targetSize: self.targetSize)
-            }
+            self.viewModel.loadHeroContent(targetSize: self.targetSize)
         }
     }
 

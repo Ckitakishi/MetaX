@@ -129,34 +129,6 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     // MARK: - Image Operations
 
-    func requestImage(
-        for asset: PHAsset,
-        targetSize: CGSize,
-        contentMode: PHImageContentMode,
-        options: PHImageRequestOptions?
-    ) async -> Result<UIImage, MetaXError> {
-        await withCheckedContinuation { continuation in
-            imageManager.requestImage(
-                for: asset,
-                targetSize: targetSize,
-                contentMode: contentMode,
-                options: options ?? PHImageRequestOptions.standard
-            ) { image, info in
-                // Check if this is the final result (not a degraded thumbnail)
-                let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
-                if isDegraded {
-                    return // Wait for full quality image
-                }
-
-                if let image = image {
-                    continuation.resume(returning: .success(image))
-                } else {
-                    continuation.resume(returning: .failure(.photoLibrary(.assetFetchFailed(underlying: nil))))
-                }
-            }
-        }
-    }
-
     @discardableResult
     func requestThumbnail(
         for asset: PHAsset,
@@ -171,16 +143,6 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
         ) { image, info in
             let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
             completion(image, isDegraded)
-        }
-    }
-
-    func requestThumbnail(for asset: PHAsset, targetSize: CGSize) async -> UIImage? {
-        await withCheckedContinuation { continuation in
-            requestThumbnail(for: asset, targetSize: targetSize) { image, isDegraded in
-                if !isDegraded {
-                    continuation.resume(returning: image)
-                }
-            }
         }
     }
 
@@ -207,24 +169,6 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
     }
 
     @discardableResult
-    func requestImage(
-        for asset: PHAsset,
-        targetSize: CGSize,
-        contentMode: PHImageContentMode,
-        completion: @escaping (UIImage?, Bool) -> Void
-    ) -> PHImageRequestID {
-        return imageManager.requestImage(
-            for: asset,
-            targetSize: targetSize,
-            contentMode: contentMode,
-            options: .standard
-        ) { image, info in
-            let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
-            completion(image, isDegraded)
-        }
-    }
-
-    @discardableResult
     func requestLivePhoto(
         for asset: PHAsset,
         targetSize: CGSize,
@@ -241,6 +185,36 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
         ) { livePhoto, info in
             let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
             completion(livePhoto, isDegraded)
+        }
+    }
+
+    func requestThumbnailStream(for asset: PHAsset, targetSize: CGSize) -> AsyncStream<(UIImage?, Bool)> {
+        AsyncStream { continuation in
+            let requestID = requestThumbnail(for: asset, targetSize: targetSize) { image, isDegraded in
+                continuation.yield((image, isDegraded))
+                if !isDegraded {
+                    continuation.finish()
+                }
+            }
+
+            continuation.onTermination = { [weak self] _ in
+                self?.imageManager.cancelImageRequest(requestID)
+            }
+        }
+    }
+
+    func requestLivePhotoStream(for asset: PHAsset, targetSize: CGSize) -> AsyncStream<(PHLivePhoto?, Bool)> {
+        AsyncStream { continuation in
+            let requestID = requestLivePhoto(for: asset, targetSize: targetSize) { livePhoto, isDegraded in
+                continuation.yield((livePhoto, isDegraded))
+                if !isDegraded {
+                    continuation.finish()
+                }
+            }
+
+            continuation.onTermination = { [weak self] _ in
+                self?.imageManager.cancelImageRequest(requestID)
+            }
         }
     }
 

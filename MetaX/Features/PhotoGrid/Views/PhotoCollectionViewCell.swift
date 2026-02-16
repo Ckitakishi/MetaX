@@ -42,6 +42,7 @@ class PhotoCollectionViewCell: UICollectionViewCell {
     // MARK: - Properties
 
     var representedAssetIdentifier: String!
+    var imageLoadTask: Task<Void, Never>?
 
     var thumbnailImage: UIImage? {
         didSet {
@@ -112,6 +113,8 @@ class PhotoCollectionViewCell: UICollectionViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        imageLoadTask?.cancel()
+        imageLoadTask = nil
         imageView.image = nil
         livePhotoBadgeImageView.image = nil
         representedAssetIdentifier = nil

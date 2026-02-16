@@ -9,9 +9,8 @@ import UIKit
 
 final class SettingsViewController: UIViewController {
 
-    // MARK: - Dependencies
+    // MARK: - ViewModel
 
-    private let container: DependencyContainer
     private let viewModel: SettingsViewModel
 
     // MARK: - Properties
@@ -26,9 +25,8 @@ final class SettingsViewController: UIViewController {
 
     // MARK: - Initialization
 
-    init(container: DependencyContainer) {
-        self.container = container
-        viewModel = SettingsViewModel(container: container)
+    init(viewModel: SettingsViewModel) {
+        self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
 

@@ -295,20 +295,9 @@ final class AlbumViewModel: NSObject {
 
     // MARK: - Thumbnail
 
-    @discardableResult
-    func getThumbnail(
-        for asset: PHAsset,
-        targetSize: CGSize? = nil,
-        completion: @escaping (UIImage?, Bool) -> Void
-    ) -> PHImageRequestID {
+    func requestThumbnailStream(for asset: PHAsset, targetSize: CGSize? = nil) -> AsyncStream<(UIImage?, Bool)> {
         let size = targetSize ?? CGSize(width: 100.0, height: 100.0)
-        return photoLibraryService.requestThumbnail(for: asset, targetSize: size) { image, isDegraded in
-            Task { @MainActor in completion(image, isDegraded) }
-        }
-    }
-
-    func cancelThumbnailRequest(_ requestID: PHImageRequestID) {
-        photoLibraryService.cancelImageRequest(requestID)
+        return photoLibraryService.requestThumbnailStream(for: asset, targetSize: size)
     }
 
     // MARK: - Private Methods

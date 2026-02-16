@@ -18,8 +18,7 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
     var onRequestLocationSearch: (() -> Void)?
 
     private let currentMetadata: Metadata
-    private let container: DependencyContainer
-    private let viewModel = MetadataEditViewModel()
+    private let viewModel: MetadataEditViewModel
 
     private var selectedLocation: CLLocation?
     private let geocoder = CLGeocoder()
@@ -41,6 +40,7 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
         let sv = UIScrollView()
         sv.alwaysBounceVertical = true
         sv.keyboardDismissMode = .onDrag
+        sv.showsVerticalScrollIndicator = false
         sv.translatesAutoresizingMaskIntoConstraints = false
         return sv
     }()
@@ -60,9 +60,9 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
         return picker
     }()
 
-    init(metadata: Metadata, container: DependencyContainer) {
+    init(metadata: Metadata, viewModel: MetadataEditViewModel) {
         currentMetadata = metadata
-        self.container = container
+        self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
         setupFields()
     }

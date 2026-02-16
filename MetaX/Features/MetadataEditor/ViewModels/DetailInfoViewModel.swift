@@ -111,8 +111,7 @@ final class DetailInfoViewModel: NSObject {
 
     private(set) var asset: PHAsset?
     private(set) var assetCollection: PHAssetCollection?
-    private var imageRequestId: PHImageRequestID?
-    private var livePhotoRequestId: PHImageRequestID?
+    private var heroLoadTask: Task<Void, Never>?
     private let geocoder = CLGeocoder()
     private var geocodingTask: Task<Void, Never>?
 
@@ -141,28 +140,24 @@ final class DetailInfoViewModel: NSObject {
 
     // MARK: - Load Methods
 
-    func loadPhoto(targetSize: CGSize) {
+    func loadHeroContent(targetSize: CGSize) {
         guard let asset = asset else { return }
 
-        imageRequestId = photoLibraryService.requestImage(
-            for: asset,
-            targetSize: targetSize,
-            contentMode: .aspectFit
-        ) { [weak self] image, _ in
-            Task { @MainActor in
-                if let image { self?.ui.heroContent = .photo(image) }
-            }
-        }
-    }
-
-    func loadLivePhoto(targetSize: CGSize) {
-        guard let asset = asset else { return }
-        livePhotoRequestId = photoLibraryService.requestLivePhoto(
-            for: asset,
-            targetSize: targetSize
-        ) { [weak self] livePhoto, _ in
-            Task { @MainActor in
-                if let livePhoto { self?.ui.heroContent = .livePhoto(livePhoto) }
+        heroLoadTask?.cancel()
+        heroLoadTask = Task { @MainActor in
+            if isLivePhoto {
+                for await (livePhoto, _) in photoLibraryService.requestLivePhotoStream(
+                    for: asset,
+                    targetSize: targetSize
+                ) {
+                    guard !Task.isCancelled else { break }
+                    if let livePhoto { self.ui.heroContent = .livePhoto(livePhoto) }
+                }
+            } else {
+                for await (image, _) in photoLibraryService.requestThumbnailStream(for: asset, targetSize: targetSize) {
+                    guard !Task.isCancelled else { break }
+                    if let image { self.ui.heroContent = .photo(image) }
+                }
             }
         }
     }
@@ -271,12 +266,8 @@ final class DetailInfoViewModel: NSObject {
     // MARK: - Cancel Requests
 
     func cancelRequests() {
-        if let imageRequestId = imageRequestId {
-            photoLibraryService.cancelImageRequest(imageRequestId)
-        }
-        if let livePhotoRequestId = livePhotoRequestId {
-            PHImageManager.default().cancelImageRequest(livePhotoRequestId)
-        }
+        heroLoadTask?.cancel()
+        heroLoadTask = nil
         geocodingTask?.cancel()
     }
 

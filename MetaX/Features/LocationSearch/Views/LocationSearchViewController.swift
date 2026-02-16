@@ -54,6 +54,7 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
         let table = UITableView(frame: .zero, style: .grouped)
         table.backgroundColor = .clear
         table.separatorStyle = .none
+        table.showsVerticalScrollIndicator = false
         table.translatesAutoresizingMaskIntoConstraints = false
         return table
     }()
@@ -79,11 +80,8 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
 
     // MARK: - Initialization
 
-    init(container: DependencyContainer) {
-        viewModel = LocationSearchViewModel(
-            historyService: container.locationHistoryService,
-            searchService: container.locationSearchService
-        )
+    init(viewModel: LocationSearchViewModel) {
+        self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
 
