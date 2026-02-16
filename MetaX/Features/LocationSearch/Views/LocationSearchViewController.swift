@@ -74,10 +74,6 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
     var onSelect: ((LocationModel) -> Void)?
     var onCancel: (() -> Void)?
 
-    private var isSearchActive: Bool {
-        !(searchTextField.text?.isEmpty ?? true)
-    }
-
     // MARK: - Initialization
 
     init(viewModel: LocationSearchViewModel) {
@@ -159,28 +155,16 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
     // MARK: - Bindings
 
     private func setupBindings() {
-        observe(viewModel: viewModel, property: { $0.searchResults }) { [weak self] _ in
-            self?.updateUI()
+        observe(viewModel: viewModel, property: { $0.sections }) { [weak self] _ in
+            self?.tableView.reloadData()
         }
 
-        observe(viewModel: viewModel, property: { $0.history }) { [weak self] _ in
-            self?.updateUI()
+        observe(viewModel: viewModel, property: { $0.isEmpty }) { [weak self] isEmpty in
+            self?.emptyStateLabel.isHidden = !isEmpty
         }
 
-        observe(viewModel: viewModel, property: { $0.error }) { error in
-            if let error = error {
-                HUD.showError(with: error.localizedDescription)
-            }
-        }
-    }
-
-    private func updateUI() {
-        tableView.reloadData()
-
-        if isSearchActive {
-            emptyStateLabel.isHidden = !viewModel.searchResults.isEmpty
-        } else {
-            emptyStateLabel.isHidden = !viewModel.history.isEmpty
+        viewModel.onError = { error in
+            HUD.showError(with: error.localizedDescription)
         }
     }
 
@@ -193,7 +177,7 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
     }
 
     @objc private func searchTextChanged() {
-        viewModel.search(query: searchTextField.text ?? "")
+        viewModel.searchText = searchTextField.text ?? ""
     }
 
     // MARK: - UITextFieldDelegate
@@ -209,16 +193,15 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
 extension LocationSearchViewController: UITableViewDataSource {
 
     func numberOfSections(in tableView: UITableView) -> Int {
-        return 1
+        return viewModel.sections.count
     }
 
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        if isSearchActive { return nil }
-        return viewModel.history.isEmpty ? nil : String(localized: .viewRecentHistory).uppercased()
+        return viewModel.sections[section].title
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return isSearchActive ? viewModel.searchResults.count : viewModel.history.count
+        return viewModel.sections[section].rows.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -229,17 +212,20 @@ extension LocationSearchViewController: UITableViewDataSource {
             return UITableViewCell()
         }
 
-        if isSearchActive {
-            cell.cellDataSource = viewModel.searchResults[indexPath.row]
-        } else {
-            let item = viewModel.history[indexPath.row]
+        let row = viewModel.sections[indexPath.section].rows[indexPath.row]
+        switch row {
+        case let .history(item):
             cell.cellDataSource = LocationModel(title: item.title, subtitle: item.subtitle)
+        case let .result(completion):
+            cell.cellDataSource = completion
         }
         return cell
     }
 
     func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        return !isSearchActive
+        let row = viewModel.sections[indexPath.section].rows[indexPath.row]
+        if case .history = row { return true }
+        return false
     }
 
     func tableView(
@@ -259,24 +245,14 @@ extension LocationSearchViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
 
-        if isSearchActive {
-            // Resolve first while the VC (and its ViewModel) are still alive,
-            // then dismiss once we have a result. The original pattern of dismissing
-            // first caused the ViewModel to be deallocated before MKLocalSearch
-            // could complete, so the callback (and history save) never fired.
-            view.isUserInteractionEnabled = false
-            Task {
-                let locationModel = await viewModel.selectLocation(at: indexPath.row)
-                view.isUserInteractionEnabled = true
-                guard let model = locationModel else { return }
+        view.isUserInteractionEnabled = false
+        Task {
+            let model = await viewModel.selectItem(at: indexPath)
+            view.isUserInteractionEnabled = true
+
+            if let model = model {
                 dismiss(animated: true) {
                     self.onSelect?(model)
-                }
-            }
-        } else {
-            if let model = viewModel.selectHistory(at: indexPath.row) {
-                dismiss(animated: true) { [weak self] in
-                    self?.onSelect?(model)
                 }
             }
         }

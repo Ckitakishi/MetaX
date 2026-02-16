@@ -8,9 +8,11 @@
 
 import UIKit
 
-final class SaveOptionsViewController: UIViewController {
+final class SaveOptionsViewController: UIViewController, ViewModelObserving {
     var onSelect: ((SaveWorkflowMode) -> Void)?
     var onCancel: (() -> Void)?
+
+    private let viewModel = SaveOptionsViewModel()
     private var didSelectOption = false
 
     private let containerStack: UIStackView = {
@@ -24,16 +26,14 @@ final class SaveOptionsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        setupBindings()
     }
 
     private func setupUI() {
         view.backgroundColor = Theme.Colors.sheetBackground
         view.addSubview(containerStack)
 
-        setupInitialCards()
-
         NSLayoutConstraint.activate([
-            // 48pt clears the grabber handle area
             containerStack.topAnchor.constraint(equalTo: view.topAnchor, constant: 48),
             containerStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             containerStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
@@ -50,7 +50,7 @@ final class SaveOptionsViewController: UIViewController {
                         withHorizontalFittingPriority: .required,
                         verticalFittingPriority: .fittingSizeLevel
                     ).height
-                    return contentHeight + 48 + 20 // top padding + bottom padding
+                    return contentHeight + 48 + 20
                 },
             ]
             sheet.prefersGrabberVisible = true
@@ -58,66 +58,46 @@ final class SaveOptionsViewController: UIViewController {
         }
     }
 
-    private func setupInitialCards() {
-        containerStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-
-        let modifyCard = OptionCardView(
-            title: String(localized: .saveModifyOriginal),
-            description: String(localized: .saveModifyOriginalDesc),
-            icon: "pencil"
-        )
-        let saveNewCard = OptionCardView(
-            title: String(localized: .saveAsCopy),
-            description: String(localized: .saveAsCopyDesc),
-            icon: "photo.badge.plus"
-        )
-
-        containerStack.addArrangedSubview(modifyCard)
-        containerStack.addArrangedSubview(saveNewCard)
-
-        modifyCard.onTap = { [weak self] in
+    private func setupBindings() {
+        viewModel.onSelect = { [weak self] mode in
             self?.didSelectOption = true
             self?.dismiss(animated: true) {
-                self?.onSelect?(.updateOriginal)
+                self?.onSelect?(mode)
             }
         }
-        saveNewCard.onTap = { [weak self] in
-            self?.showDeletionInquiry()
+
+        observe(viewModel: viewModel, property: { $0.options }) { [weak self] options in
+            self?.renderOptions(options)
         }
     }
 
-    private func showDeletionInquiry() {
-        UIView.transition(with: containerStack, duration: 0.2, options: .transitionCrossDissolve) {
+    private func renderOptions(_ options: [SaveOptionsViewModel.Option]) {
+        let isTransition = !containerStack.arrangedSubviews.isEmpty
+
+        let updateBlock = {
             self.containerStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+            for option in options {
+                let card = OptionCardView(
+                    title: option.title,
+                    description: option.description,
+                    icon: option.icon,
+                    iconTint: option.color
+                )
+                card.onTap = option.action
+                self.containerStack.addArrangedSubview(card)
+            }
             self.sheetPresentationController?.invalidateDetents()
+        }
 
-            let keepCard = OptionCardView(
-                title: String(localized: .saveKeepOriginal),
-                description: String(localized: .saveKeepOriginalDesc),
-                icon: "doc.on.doc"
+        if isTransition {
+            UIView.transition(
+                with: containerStack,
+                duration: 0.2,
+                options: .transitionCrossDissolve,
+                animations: updateBlock
             )
-            let deleteCard = OptionCardView(
-                title: String(localized: .saveDeleteOriginal),
-                description: String(localized: .saveDeleteOriginalDesc),
-                icon: "trash",
-                iconTint: .systemRed
-            )
-
-            self.containerStack.addArrangedSubview(keepCard)
-            self.containerStack.addArrangedSubview(deleteCard)
-
-            keepCard.onTap = { [weak self] in
-                self?.didSelectOption = true
-                self?.dismiss(animated: true) {
-                    self?.onSelect?(.saveAsCopy(deleteOriginal: false))
-                }
-            }
-            deleteCard.onTap = { [weak self] in
-                self?.didSelectOption = true
-                self?.dismiss(animated: true) {
-                    self?.onSelect?(.saveAsCopy(deleteOriginal: true))
-                }
-            }
+        } else {
+            updateBlock()
         }
     }
 

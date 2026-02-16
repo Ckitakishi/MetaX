@@ -167,7 +167,7 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
         _ collectionView: UICollectionView,
         cellForItemAt indexPath: IndexPath
     ) -> UICollectionViewCell {
-        guard let asset = viewModel.asset(at: indexPath.item),
+        guard let cellModel = viewModel.cellModel(at: indexPath.item),
               let cell = collectionView.dequeueReusableCell(
                   withReuseIdentifier: String(describing: PhotoCollectionViewCell.self),
                   for: indexPath
@@ -176,23 +176,10 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
             return UICollectionViewCell()
         }
 
-        if asset.mediaSubtypes.contains(.photoLive) {
-            cell.livePhotoBadgeImage = PHLivePhotoView.livePhotoBadgeImage(options: .overContent)
-        } else {
-            cell.livePhotoBadgeImage = nil
-        }
-
-        cell.representedAssetIdentifier = asset.localIdentifier
-
-        // Request image using Swift 6 AsyncStream.
-        // We cancel the previous task to ensure no stale images are applied.
-        cell.imageLoadTask?.cancel()
-        cell.imageLoadTask = Task { @MainActor in
-            for await (image, _) in viewModel.requestImageStream(for: asset, targetSize: thumbnailSize) {
-                guard !Task.isCancelled else { break }
-                cell.thumbnailImage = image
-            }
-        }
+        cell.configure(
+            with: cellModel,
+            imageStream: viewModel.requestImageStream(for: cellModel.asset, targetSize: thumbnailSize)
+        )
 
         return cell
     }

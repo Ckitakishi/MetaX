@@ -40,11 +40,27 @@ final class DetailInfoViewModel: NSObject {
         }
     }
 
+    struct RowModel: Identifiable {
+        let id: String // Use raw key as ID
+        let type: RowType
+        let model: DetailCellModel
+
+        enum RowType {
+            case standard
+            case location(CLLocation)
+        }
+    }
+
+    struct SectionModel {
+        let section: MetadataSection
+        var rows: [RowModel]
+    }
+
     struct UIModel {
         var heroContent: HeroContent?
         var fileName: String = ""
         var currentLocation: CLLocation?
-        var tableViewDataSource: [(section: MetadataSection, rows: [DetailCellModel])] = []
+        var sections: [SectionModel] = []
     }
 
     // MARK: - Properties (Consolidated)
@@ -65,26 +81,12 @@ final class DetailInfoViewModel: NSObject {
     var heroContent: HeroContent? { ui.heroContent }
     var fileName: String { ui.fileName }
     var currentLocation: CLLocation? { ui.currentLocation }
-    var tableViewDataSource: [(section: MetadataSection, rows: [DetailCellModel])] { ui.tableViewDataSource }
+    var sections: [SectionModel] { ui.sections }
 
     var isLoading: Bool { state == .loading }
     var error: MetaXError? {
         if case let .failure(e) = state { return e }
         return actionError
-    }
-
-    var hasLocation: Bool {
-        currentLocation != nil
-    }
-
-    var hasTimeStamp: Bool {
-        let exif = metadata?.sourceProperties[MetadataKeys.exifDict] as? [String: Any]
-        return exif?[MetadataKeys.dateTimeOriginal] != nil
-    }
-
-    var timeStamp: String? {
-        let exif = metadata?.sourceProperties[MetadataKeys.exifDict] as? [String: Any]
-        return exif?[MetadataKeys.dateTimeOriginal] as? String
     }
 
     var isLivePhoto: Bool {
@@ -211,7 +213,6 @@ final class DetailInfoViewModel: NSObject {
         hasMetaXEdit = await withCheckedContinuation { continuation in
             let options = PHContentEditingInputRequestOptions()
             options.isNetworkAccessAllowed = false
-            // Without this, Photos never fills in adjustmentData on PHContentEditingInput.
             options.canHandleAdjustmentData = { adjustmentData in
                 adjustmentData.formatIdentifier == Bundle.main.bundleIdentifier
             }
@@ -231,10 +232,6 @@ final class DetailInfoViewModel: NSObject {
         saveMode: SaveWorkflowMode,
         confirm: ((SaveWarning) async -> Bool)? = nil
     ) async -> Bool {
-        // When the asset has a previous MetaX edit and we're updating in place, revert to the
-        // original first. This ensures the clear-all operation writes to the unrendered original
-        // rather than the previously-rendered JPEG, which prevents stale metadata from bleeding
-        // through CGImageDestinationAddImageFromSource's merge behaviour.
         if hasMetaXEdit, case .updateOriginal = saveMode, asset != nil {
             isSaving = true
             let revertResult = await photoLibraryService.revertAsset(asset!)
@@ -243,7 +240,6 @@ final class DetailInfoViewModel: NSObject {
                 actionError = error
                 return false
             }
-            // Leave isSaving = true; performSaveOperation sets it again immediately after.
         }
 
         guard let metadata = metadata else { return false }
@@ -309,9 +305,6 @@ final class DetailInfoViewModel: NSObject {
 
         switch result {
         case let .success(newAsset):
-            // PHContentEditingOutput only updates the rendered image file.
-            // PHAsset-level properties (creationDate, location) live in Photos' own
-            // database and must be synced separately for both save modes.
             await syncAssetProperties(from: properties, for: newAsset)
             self.asset = newAsset
 
@@ -331,14 +324,37 @@ final class DetailInfoViewModel: NSObject {
         return false
     }
 
-    /// Syncs PHAsset-level properties (creationDate, location) to match the saved
-    /// image metadata. Only triggers a Photos permission dialog if values actually differ.
+    /// Compares new metadata values with current PHAsset properties to decide if sync is needed.
+    /// Internal for unit testing without Mock PHAsset.
+    func calculateSyncNeeds(
+        newDate: Date?,
+        currentDate: Date?,
+        newLocation: CLLocation?,
+        currentLocation: CLLocation?
+    ) -> (dateChanged: Bool, locationChanged: Bool) {
+        let dateChanged: Bool = {
+            if let newDate, let current = currentDate {
+                return abs(newDate.timeIntervalSince(current)) > 1
+            }
+            return (newDate == nil) != (currentDate == nil)
+        }()
+
+        let locationChanged: Bool = {
+            if let newLoc = newLocation, let curLoc = currentLocation {
+                // Use coordinate comparison for stability in tests
+                return abs(newLoc.coordinate.latitude - curLoc.coordinate.latitude) > 0.00001
+                    || abs(newLoc.coordinate.longitude - curLoc.coordinate.longitude) > 0.00001
+            }
+            return (newLocation == nil) != (currentLocation == nil)
+        }()
+
+        return (dateChanged, locationChanged)
+    }
+
     private func syncAssetProperties(from properties: [String: Any], for asset: PHAsset) async {
         let exif = properties[MetadataKeys.exifDict] as? [String: Any]
         let gps = properties[MetadataKeys.gpsDict] as? [String: Any]
 
-        // Extract date from saved metadata.
-        // If missing (e.g. after 'clear all'), preserve current asset date to avoid sorting chaos.
         let newDate: Date?
         if let dateStr = exif?[MetadataKeys.dateTimeOriginal] as? String {
             newDate = DateFormatter(with: .yMdHms).getDate(from: dateStr)
@@ -346,7 +362,6 @@ final class DetailInfoViewModel: NSObject {
             newDate = asset.creationDate
         }
 
-        // Extract location from saved metadata
         let newLocation: CLLocation?
         if let gps,
            let lat = gps[MetadataKeys.gpsLatitude] as? Double,
@@ -361,36 +376,38 @@ final class DetailInfoViewModel: NSObject {
             newLocation = nil
         }
 
-        // Compare with current asset to avoid unnecessary permission dialogs
-        let dateChanged: Bool = {
-            if let newDate, let current = asset.creationDate {
-                return abs(newDate.timeIntervalSince(current)) > 1
-            }
-            return (newDate == nil) != (asset.creationDate == nil)
-        }()
+        let needs = calculateSyncNeeds(
+            newDate: newDate,
+            currentDate: asset.creationDate,
+            newLocation: newLocation,
+            currentLocation: asset.location
+        )
 
-        let locationChanged: Bool = {
-            if let newLoc = newLocation, let curLoc = asset.location {
-                return abs(newLoc.coordinate.latitude - curLoc.coordinate.latitude) > 0.00001
-                    || abs(newLoc.coordinate.longitude - curLoc.coordinate.longitude) > 0.00001
-            }
-            return (newLocation == nil) != (asset.location == nil)
-        }()
-
-        guard dateChanged || locationChanged else { return }
+        guard needs.dateChanged || needs.locationChanged else { return }
 
         _ = await photoLibraryService.updateAssetProperties(
             asset,
-            date: dateChanged ? newDate : nil,
-            location: locationChanged ? newLocation : asset.location
+            date: needs.dateChanged ? newDate : nil,
+            location: needs.locationChanged ? newLocation : asset.location
         )
     }
 
     private func updateDisplayData(from metadata: Metadata) {
         ui.currentLocation = metadata.rawGPS
-        ui.tableViewDataSource = metadata.metaProps.map { section, props in
-            (section: section, rows: props.map { DetailCellModel(propValue: $0) })
+        ui.sections = metadata.metaProps.map { section, props in
+            SectionModel(
+                section: section,
+                rows: props.map { propDict in
+                    let cellModel = DetailCellModel(propValue: propDict)
+                    let type: RowModel
+                        .RowType = (cellModel.rawKey == MetadataKeys.location && ui.currentLocation != nil)
+                        ? .location(ui.currentLocation!)
+                        : .standard
+                    return RowModel(id: cellModel.rawKey, type: type, model: cellModel)
+                }
+            )
         }
+
         if let location = ui.currentLocation {
             reverseGeocodeLocation(location)
         }
@@ -412,14 +429,14 @@ final class DetailInfoViewModel: NSObject {
     }
 
     private func updateLocationTextInDataSource(_ text: String) {
-        for (sIdx, entry) in ui.tableViewDataSource.enumerated() {
-            guard entry.section == .basicInfo else { continue }
+        for sIdx in ui.sections.indices {
+            guard ui.sections[sIdx].section == .basicInfo else { continue }
 
-            for (rIdx, model) in entry.rows.enumerated() {
-                if model.rawKey == MetadataKeys.location {
-                    var newRows = entry.rows
-                    newRows[rIdx] = DetailCellModel(prop: model.prop, value: text, rawKey: model.rawKey)
-                    ui.tableViewDataSource[sIdx] = (section: entry.section, rows: newRows)
+            for rIdx in ui.sections[sIdx].rows.indices {
+                let row = ui.sections[sIdx].rows[rIdx]
+                if row.id == MetadataKeys.location {
+                    let newModel = DetailCellModel(prop: row.model.prop, value: text, rawKey: row.model.rawKey)
+                    ui.sections[sIdx].rows[rIdx] = RowModel(id: row.id, type: row.type, model: newModel)
                     return
                 }
             }
@@ -459,8 +476,6 @@ extension DetailInfoViewModel: PHPhotoLibraryChangeObserver {
 
             if details.assetContentChanged {
                 await self.loadMetadata()
-                // The VC will need to reload the hero image.
-                // We'll expose a 'needsHeroReload' property or just let it observe the asset.
             }
         }
     }

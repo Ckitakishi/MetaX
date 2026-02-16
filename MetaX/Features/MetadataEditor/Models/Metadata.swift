@@ -46,7 +46,7 @@ public enum MetadataKeys {
     static let gpsLongitudeRef = kCGImagePropertyGPSLongitudeRef as String
 }
 
-public enum SaveWorkflowMode {
+public enum SaveWorkflowMode: Equatable {
     case updateOriginal
     case saveAsCopy(deleteOriginal: Bool)
 }
@@ -153,7 +153,7 @@ public struct Metadata {
 
 // MARK: - MetadataField
 
-public enum MetadataField: CaseIterable {
+public enum MetadataField: CaseIterable, Sendable {
     case make, model, lensMake, lensModel
     case aperture, shutter, iso, focalLength, focalLength35, exposureBias
     case exposureProgram, meteringMode, whiteBalance, flash

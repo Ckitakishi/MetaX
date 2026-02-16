@@ -6,6 +6,8 @@
 //  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
+import Photos
+import PhotosUI
 import UIKit
 
 class PhotoCollectionViewCell: UICollectionViewCell {
@@ -41,21 +43,8 @@ class PhotoCollectionViewCell: UICollectionViewCell {
 
     // MARK: - Properties
 
-    var representedAssetIdentifier: String!
-    var imageLoadTask: Task<Void, Never>?
-
-    var thumbnailImage: UIImage? {
-        didSet {
-            imageView.image = thumbnailImage
-        }
-    }
-
-    var livePhotoBadgeImage: UIImage? {
-        didSet {
-            livePhotoBadgeImageView.image = livePhotoBadgeImage
-            livePhotoBadgeImageView.isHidden = (livePhotoBadgeImage == nil)
-        }
-    }
+    private var representedAssetIdentifier: String?
+    private var imageLoadTask: Task<Void, Never>?
 
     override var isHighlighted: Bool {
         didSet {
@@ -111,6 +100,25 @@ class PhotoCollectionViewCell: UICollectionViewCell {
         ])
     }
 
+    /// Configures the cell and starts loading the thumbnail asynchronously.
+    func configure(
+        with model: PhotoGridViewModel.CellModel,
+        imageStream: AsyncStream<(UIImage?, Bool)>
+    ) {
+        representedAssetIdentifier = model.identifier
+        livePhotoBadgeImageView.image = model.isLivePhoto ? PHLivePhotoView
+            .livePhotoBadgeImage(options: .overContent) : nil
+        livePhotoBadgeImageView.isHidden = !model.isLivePhoto
+
+        imageLoadTask?.cancel()
+        imageLoadTask = Task { @MainActor in
+            for await (image, _) in imageStream {
+                guard !Task.isCancelled, self.representedAssetIdentifier == model.identifier else { break }
+                self.imageView.image = image
+            }
+        }
+    }
+
     override func prepareForReuse() {
         super.prepareForReuse()
         imageLoadTask?.cancel()
@@ -119,5 +127,4 @@ class PhotoCollectionViewCell: UICollectionViewCell {
         livePhotoBadgeImageView.image = nil
         representedAssetIdentifier = nil
     }
-
 }

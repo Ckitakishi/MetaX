@@ -13,6 +13,12 @@ import UIKit
 @Observable @MainActor
 final class PhotoGridViewModel: NSObject {
 
+    struct CellModel {
+        let asset: PHAsset
+        let identifier: String
+        let isLivePhoto: Bool
+    }
+
     // MARK: - Properties
 
     private(set) var fetchResult: PHFetchResult<PHAsset>?
@@ -65,6 +71,15 @@ final class PhotoGridViewModel: NSObject {
 
     var numberOfItems: Int {
         fetchResult?.count ?? 0
+    }
+
+    func cellModel(at index: Int) -> CellModel? {
+        guard let asset = asset(at: index) else { return nil }
+        return CellModel(
+            asset: asset,
+            identifier: asset.localIdentifier,
+            isLivePhoto: asset.mediaSubtypes.contains(.photoLive)
+        )
     }
 
     func asset(at index: Int) -> PHAsset? {

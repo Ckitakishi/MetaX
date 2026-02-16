@@ -158,7 +158,7 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
     }
 
     private func startEditFlow(for metadata: Metadata, from source: DetailInfoViewController) async {
-        let viewModel = MetadataEditViewModel()
+        let viewModel = MetadataEditViewModel(metadata: metadata)
         let vc = MetadataEditViewController(metadata: metadata, viewModel: viewModel)
         let nav = UINavigationController(rootViewController: vc)
 
@@ -175,7 +175,7 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
             guard let fields = await awaitEditorResult(on: vc, source: source) else { return }
             guard let mode = await pickSaveMode(on: nav) else { continue }
 
-            let success = await source.viewModel.applyMetadataFields(fields, saveMode: mode) { warning in
+            let success = await source.applyMetadataFields(fields, saveMode: mode) { warning in
                 await Alert.confirm(title: warning.title, message: warning.message, on: nav)
             }
 

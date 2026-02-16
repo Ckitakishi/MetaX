@@ -76,6 +76,10 @@
 		56E6F1D82F42D491002D0CAA /* MetadataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1882F42D491002D0CAA /* MetadataService.swift */; };
 		56E6F1D92F42D491002D0CAA /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1982F42D491002D0CAA /* SplashView.swift */; };
 		56E6F1DA2F42D491002D0CAA /* MetadataPlus.plist in Resources */ = {isa = PBXBuildFile; fileRef = 56E6F1602F42D491002D0CAA /* MetadataPlus.plist */; };
+		56E6F1DC2F42EA73002D0CAA /* SaveOptionsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1DB2F42EA73002D0CAA /* SaveOptionsViewModel.swift */; };
+		56E6F1DE2F42F0D9002D0CAA /* LocationSearchViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1DD2F42F0D9002D0CAA /* LocationSearchViewModelTests.swift */; };
+		56E6F1E12F42F0D9002D0CAA /* DetailInfoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1E02F42F0D9002D0CAA /* DetailInfoViewModelTests.swift */; };
+		56E6F1E32F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1E22F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift */; };
 		56EBC81D2F36FD08009AF511 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 56EBC81C2F36FD07009AF511 /* Localizable.xcstrings */; };
 		56EBC8212F36FD0D009AF511 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 56EBC8202F36FD0D009AF511 /* InfoPlist.xcstrings */; };
 		B1A53635B2CA4D0AAB1A8083 /* ExifEnumMappings.json in Resources */ = {isa = PBXBuildFile; fileRef = 646A635100A346878D8DF79D /* ExifEnumMappings.json */; };
@@ -164,6 +168,10 @@
 		56E6F1982F42D491002D0CAA /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		56E6F1992F42D491002D0CAA /* ZoomTransition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomTransition.swift; sourceTree = "<group>"; };
 		56E6F19B2F42D491002D0CAA /* Rational.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rational.swift; sourceTree = "<group>"; };
+		56E6F1DB2F42EA73002D0CAA /* SaveOptionsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveOptionsViewModel.swift; sourceTree = "<group>"; };
+		56E6F1DD2F42F0D9002D0CAA /* LocationSearchViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchViewModelTests.swift; sourceTree = "<group>"; };
+		56E6F1E02F42F0D9002D0CAA /* DetailInfoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailInfoViewModelTests.swift; sourceTree = "<group>"; };
+		56E6F1E22F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveOptionsViewModelTests.swift; sourceTree = "<group>"; };
 		56EBC81C2F36FD07009AF511 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		56EBC8202F36FD0D009AF511 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		646A635100A346878D8DF79D /* ExifEnumMappings.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ExifEnumMappings.json; sourceTree = "<group>"; };
@@ -232,7 +240,10 @@
 		11E84E08208CD56C003A8F88 /* MetaXTests */ = {
 			isa = PBXGroup;
 			children = (
+				56E6F1DD2F42F0D9002D0CAA /* LocationSearchViewModelTests.swift */,
 				11E84E09208CD56C003A8F88 /* MetadataEditTests.swift */,
+				56E6F1E02F42F0D9002D0CAA /* DetailInfoViewModelTests.swift */,
+				56E6F1E22F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift */,
 				11E84E0B208CD56C003A8F88 /* Info.plist */,
 			);
 			path = MetaXTests;
@@ -352,6 +363,7 @@
 		56E6F1642F42D491002D0CAA /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				56E6F1DB2F42EA73002D0CAA /* SaveOptionsViewModel.swift */,
 				56E6F1622F42D491002D0CAA /* DetailInfoViewModel.swift */,
 				56E6F1632F42D491002D0CAA /* MetadataEditViewModel.swift */,
 			);
@@ -691,6 +703,7 @@
 				56E6F1CA2F42D491002D0CAA /* AppConstants.swift in Sources */,
 				56E6F1CB2F42D491002D0CAA /* StringExtension.swift in Sources */,
 				56E6F1CC2F42D491002D0CAA /* SettingsTableViewCell.swift in Sources */,
+				56E6F1DC2F42EA73002D0CAA /* SaveOptionsViewModel.swift in Sources */,
 				56E6F1CD2F42D491002D0CAA /* LocationHistoryService.swift in Sources */,
 				56E6F1CE2F42D491002D0CAA /* SettingsService.swift in Sources */,
 				56E6F1CF2F42D491002D0CAA /* LocationSearchServiceProtocol.swift in Sources */,
@@ -714,6 +727,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				11E84E0A208CD56C003A8F88 /* MetadataEditTests.swift in Sources */,
+				56E6F1DE2F42F0D9002D0CAA /* LocationSearchViewModelTests.swift in Sources */,
+				56E6F1E12F42F0D9002D0CAA /* DetailInfoViewModelTests.swift in Sources */,
+				56E6F1E32F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -14,13 +14,35 @@ import Observation
 @Observable @MainActor
 final class LocationSearchViewModel: LocationSearchServiceDelegate {
 
-    // MARK: - Properties
+    enum RowType {
+        case history(HistoryLocation)
+        case result(MKLocalSearchCompletion)
+    }
 
-    private(set) var searchResults: [MKLocalSearchCompletion] = []
-    private(set) var history: [HistoryLocation] = []
-    private(set) var error: Error?
-    private(set) var selectedLocation: LocationModel?
+    struct Section {
+        let title: String?
+        let rows: [RowType]
+    }
 
+    // MARK: - Properties (Public State)
+
+    private(set) var sections: [Section] = []
+    var onError: ((Error) -> Void)?
+
+    var isEmpty: Bool {
+        sections.allSatisfy { $0.rows.isEmpty }
+    }
+
+    var searchText: String = "" {
+        didSet {
+            performSearch(query: searchText)
+        }
+    }
+
+    // MARK: - Internal State
+
+    private var searchResults: [MKLocalSearchCompletion] = []
+    private var history: [HistoryLocation] = []
     private let historyService: LocationHistoryServiceProtocol
     private var searchService: LocationSearchServiceProtocol
     private var searchTask: Task<Void, Never>?
@@ -31,94 +53,98 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
         self.historyService = historyService
         self.searchService = searchService
         history = historyService.fetchAll()
-
         self.searchService.delegate = self
+        updateSections()
     }
 
     // MARK: - Public Methods
 
-    func search(query: String) {
+    func deleteHistory(at index: Int) {
+        historyService.delete(at: index)
+        history = historyService.fetchAll()
+        updateSections()
+    }
+
+    func selectItem(at indexPath: IndexPath) async -> LocationModel? {
+        guard indexPath.section < sections.count,
+              indexPath.row < sections[indexPath.section].rows.count else { return nil }
+
+        let row = sections[indexPath.section].rows[indexPath.row]
+
+        switch row {
+        case let .history(item):
+            var model = LocationModel(title: item.title, subtitle: item.subtitle)
+            model.coordinate = CLLocationCoordinate2D(latitude: item.latitude, longitude: item.longitude)
+            model.country = item.country
+            model.countryCode = item.countryCode
+            model.state = item.state
+            model.city = item.city
+            model.street = item.street
+            model.houseNumber = item.houseNumber
+
+            // Move to top
+            historyService.save(item)
+            history = historyService.fetchAll()
+            updateSections()
+            return model
+
+        case let .result(completion):
+            do {
+                let locationModel = try await searchService.resolve(completion: completion)
+                if let coord = locationModel.coordinate {
+                    let historyItem = HistoryLocation(
+                        title: locationModel.name,
+                        subtitle: locationModel.shortPlacemark,
+                        latitude: coord.latitude,
+                        longitude: coord.longitude,
+                        country: locationModel.country,
+                        countryCode: locationModel.countryCode,
+                        state: locationModel.state,
+                        city: locationModel.city,
+                        street: locationModel.street,
+                        houseNumber: locationModel.houseNumber
+                    )
+                    historyService.save(historyItem)
+                    history = historyService.fetchAll()
+                    // No need to call updateSections here as resolving a location usually leads to dismissal
+                }
+                return locationModel
+            } catch {
+                onError?(error)
+                return nil
+            }
+        }
+    }
+
+    // MARK: - Private Methods
+
+    private func performSearch(query: String) {
         searchTask?.cancel()
 
         if query.isEmpty {
             searchResults = []
-            refreshHistory()
+            updateSections()
             return
         }
 
         searchTask = Task {
-            // Debounce for 300ms
             try? await Task.sleep(nanoseconds: 300 * 1_000_000)
             if Task.isCancelled { return }
-
             searchService.search(query: query)
         }
     }
 
-    func refreshHistory() {
-        history = historyService.fetchAll()
-    }
-
-    func deleteHistory(at index: Int) {
-        historyService.delete(at: index)
-        refreshHistory()
-    }
-
-    func clearResults() {
-        searchResults = []
-    }
-
-    func selectLocation(at index: Int) async -> LocationModel? {
-        guard index < searchResults.count else { return nil }
-
-        let selected = searchResults[index]
-
-        do {
-            let locationModel = try await searchService.resolve(completion: selected)
-            selectedLocation = locationModel
-
-            if let coord = locationModel.coordinate {
-                let historyItem = HistoryLocation(
-                    title: locationModel.name,
-                    subtitle: locationModel.shortPlacemark,
-                    latitude: coord.latitude,
-                    longitude: coord.longitude,
-                    country: locationModel.country,
-                    countryCode: locationModel.countryCode,
-                    state: locationModel.state,
-                    city: locationModel.city,
-                    street: locationModel.street,
-                    houseNumber: locationModel.houseNumber
-                )
-                historyService.save(historyItem)
-                refreshHistory()
-            }
-            return locationModel
-        } catch {
-            self.error = error
-            return nil
+    private func updateSections() {
+        if searchText.isEmpty {
+            let rows = history.map { RowType.history($0) }
+            sections = rows.isEmpty ? [] : [Section(
+                title: String(localized: .viewRecentHistory).uppercased(),
+                rows: rows
+            )]
+        } else {
+            let rows = searchResults.map { RowType.result($0) }
+            sections = [Section(title: nil, rows: rows)]
         }
-    }
-
-    func selectHistory(at index: Int) -> LocationModel? {
-        guard index < history.count else { return nil }
-        let item = history[index]
-        var model = LocationModel(title: item.title, subtitle: item.subtitle)
-        model.coordinate = CLLocationCoordinate2D(latitude: item.latitude, longitude: item.longitude)
-
-        // Restore rich data
-        model.country = item.country
-        model.countryCode = item.countryCode
-        model.state = item.state
-        model.city = item.city
-        model.street = item.street
-        model.houseNumber = item.houseNumber
-
-        // Move to top of history
-        historyService.save(item)
-        refreshHistory()
-
-        return model
     }
 
     // MARK: - LocationSearchServiceDelegate
@@ -126,12 +152,13 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
     nonisolated func didUpdate(results: [MKLocalSearchCompletion]) {
         Task { @MainActor in
             self.searchResults = results
+            self.updateSections()
         }
     }
 
     nonisolated func didFail(with error: Error) {
         Task { @MainActor in
-            self.error = error
+            self.onError?(error)
         }
     }
 }

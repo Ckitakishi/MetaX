@@ -26,7 +26,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     // MARK: - Dependencies
 
-    let viewModel: DetailInfoViewModel
+    private let viewModel: DetailInfoViewModel
 
     // MARK: - Intent Closures
 
@@ -176,7 +176,6 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     private func setupUI() {
         view.backgroundColor = Theme.Colors.mainBackground
-        moreMenuButton.menu = buildMoreMenu()
         navigationItem.rightBarButtonItem = moreMenuButton
 
         // TableView setup
@@ -385,13 +384,8 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
             }
         }
 
-        observe(viewModel: viewModel, property: { $0.tableViewDataSource }) { [weak self] _ in
+        observe(viewModel: viewModel, property: { $0.sections }) { [weak self] _ in
             self?.tableView.reloadData()
-        }
-
-        observe(viewModel: viewModel, property: { $0.timeStamp }) { [weak self] _ in
-            guard let self = self, self.isViewLoaded, self.view.window != nil else { return }
-            self.tableView.reloadData()
         }
 
         observe(viewModel: viewModel, property: { $0.fileName }) { [weak self] fileName in
@@ -413,7 +407,6 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
         observe(viewModel: viewModel, property: { $0.asset }) { [weak self] _ in
             guard let self = self, self.isViewLoaded, self.view.window != nil else { return }
-            // Re-load hero image if asset changes (e.g. content edit)
             self.viewModel.loadHeroContent(targetSize: self.targetSize)
         }
     }
@@ -434,6 +427,14 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         guard let metadata = viewModel.metadata else { return }
         onRequestEdit?(metadata)
     }
+
+    func applyMetadataFields(
+        _ fields: [MetadataField: Any],
+        saveMode: SaveWorkflowMode,
+        confirm: ((SaveWarning) async -> Bool)? = nil
+    ) async -> Bool {
+        await viewModel.applyMetadataFields(fields, saveMode: saveMode, confirm: confirm)
+    }
 }
 
 // MARK: - UITableViewDataSource & Delegate
@@ -441,46 +442,46 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
 
     func numberOfSections(in tableView: UITableView) -> Int {
-        return viewModel.tableViewDataSource.count
+        return viewModel.sections.count
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.tableViewDataSource[section].rows.count
+        return viewModel.sections[section].rows.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let sectionData = viewModel.tableViewDataSource[indexPath.section]
-        let rowData = sectionData.rows[indexPath.row]
+        let sectionData = viewModel.sections[indexPath.section]
+        let row = sectionData.rows[indexPath.row]
         let isFirst = indexPath.row == 0
         let isLast = indexPath.row == sectionData.rows.count - 1
 
-        if rowData.prop == String(localized: .viewAddLocation),
-           let location = viewModel.currentLocation {
+        switch row.type {
+        case let .location(location):
             guard let cell = tableView.dequeueReusableCell(
                 withIdentifier: String(describing: DetailLocationCell.self),
                 for: indexPath
             ) as? DetailLocationCell else {
                 return UITableViewCell()
             }
-            cell.configure(model: rowData, location: location, isFirst: isFirst, isLast: isLast)
+            cell.configure(model: row.model, location: location, isFirst: isFirst, isLast: isLast)
+            return cell
+
+        case .standard:
+            guard let cell = tableView.dequeueReusableCell(
+                withIdentifier: String(describing: DetailTableViewCell.self),
+                for: indexPath
+            ) as? DetailTableViewCell else {
+                return UITableViewCell()
+            }
+            cell.cellDataSource = row.model
+            cell.applyCardBorders(isFirst: isFirst, isLast: isLast)
             return cell
         }
-
-        guard let cell = tableView.dequeueReusableCell(
-            withIdentifier: String(describing: DetailTableViewCell.self),
-            for: indexPath
-        ) as? DetailTableViewCell else {
-            return UITableViewCell()
-        }
-
-        cell.cellDataSource = rowData
-        cell.applyCardBorders(isFirst: isFirst, isLast: isLast)
-        return cell
     }
 
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let headerView = DetailSectionHeaderView()
-        headerView.headerTitle = viewModel.tableViewDataSource[section].section.localizedTitle
+        headerView.headerTitle = viewModel.sections[section].section.localizedTitle
         return headerView
     }
 
@@ -491,7 +492,8 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
 
-        if let cell = tableView.cellForRow(at: indexPath) as? DetailLocationCell, let location = cell.currentLocation {
+        let row = viewModel.sections[indexPath.section].rows[indexPath.row]
+        if case let .location(location) = row.type {
             onRequestLocationMap?(location)
         }
     }

@@ -5,6 +5,7 @@
 //  Created by Yuhan Chen on 2026/02/15.
 //
 
+import Observation
 import Photos
 import UIKit
 
@@ -24,7 +25,8 @@ enum SettingsSection: CaseIterable {
     }
 }
 
-struct SettingsItem {
+struct SettingsItem: Identifiable {
+    let id = UUID()
     let type: ItemType
     let icon: String
     let iconColor: UIColor
@@ -44,7 +46,26 @@ struct SettingsItem {
     }
 }
 
+struct SettingsSectionModel {
+    let section: SettingsSection
+    let color: UIColor
+    let items: [SettingsItem]
+}
+
+@Observable @MainActor
 final class SettingsViewModel {
+
+    // MARK: - Public State
+
+    private(set) var sectionModels: [SettingsSectionModel] = []
+
+    let appearanceOptions: [(title: String, icon: String, style: UIUserInterfaceStyle)] = [
+        (String(localized: .settingsAppearanceSystem), "circle.lefthalf.filled", .unspecified),
+        (String(localized: .settingsAppearanceLight), "sun.max", .light),
+        (String(localized: .settingsAppearanceDark), "moon", .dark),
+    ]
+
+    // MARK: - Dependencies
 
     private let photoLibraryService: PhotoLibraryServiceProtocol
     private var settingsService: SettingsServiceProtocol
@@ -52,12 +73,55 @@ final class SettingsViewModel {
     init(photoLibraryService: PhotoLibraryServiceProtocol, settingsService: SettingsServiceProtocol) {
         self.photoLibraryService = photoLibraryService
         self.settingsService = settingsService
+        refresh()
     }
 
-    func items(for section: SettingsSection) -> [SettingsItem] {
-        switch section {
-        case .preferences:
-            return [
+    // MARK: - Public Methods
+
+    func refresh() {
+        sectionModels = [
+            buildPreferencesSection(),
+            buildGeneralSection(),
+            buildSupportSection(),
+            buildAboutSection(),
+        ]
+    }
+
+    func updateAppearance(_ style: UIUserInterfaceStyle) {
+        settingsService.userInterfaceStyle = style
+        refresh()
+    }
+
+    func performAction(for item: SettingsItem) {
+        switch item.type {
+        case .appearance, .version:
+            break
+        case .language, .photoPermissions:
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        case .writeReview:
+            if let url = AppConstants.writeReviewURL {
+                UIApplication.shared.open(url)
+            }
+        case .sendFeedback:
+            if let url = AppConstants.feedbackEmailURL {
+                UIApplication.shared.open(url)
+            }
+        case .termsOfService:
+            UIApplication.shared.open(AppConstants.termsOfServiceURL)
+        case .privacyPolicy:
+            UIApplication.shared.open(AppConstants.privacyPolicyURL)
+        }
+    }
+
+    // MARK: - Private Builders
+
+    private func buildPreferencesSection() -> SettingsSectionModel {
+        SettingsSectionModel(
+            section: .preferences,
+            color: Theme.Colors.settingsAppearance,
+            items: [
                 SettingsItem(
                     type: .appearance,
                     icon: "paintbrush",
@@ -66,9 +130,15 @@ final class SettingsViewModel {
                     value: currentAppearanceName
                 ),
             ]
-        case .general:
-            let blue = Theme.Colors.settingsGeneral
-            return [
+        )
+    }
+
+    private func buildGeneralSection() -> SettingsSectionModel {
+        let blue = Theme.Colors.settingsGeneral
+        return SettingsSectionModel(
+            section: .general,
+            color: blue,
+            items: [
                 SettingsItem(
                     type: .photoPermissions,
                     icon: "photo",
@@ -85,9 +155,15 @@ final class SettingsViewModel {
                     isExternal: true
                 ),
             ]
-        case .support:
-            let green = Theme.Colors.settingsSupport
-            return [
+        )
+    }
+
+    private func buildSupportSection() -> SettingsSectionModel {
+        let green = Theme.Colors.settingsSupport
+        return SettingsSectionModel(
+            section: .support,
+            color: green,
+            items: [
                 SettingsItem(
                     type: .writeReview,
                     icon: "star",
@@ -103,9 +179,15 @@ final class SettingsViewModel {
                     isExternal: true
                 ),
             ]
-        case .about:
-            let gray = Theme.Colors.settingsAbout
-            return [
+        )
+    }
+
+    private func buildAboutSection() -> SettingsSectionModel {
+        let gray = Theme.Colors.settingsAbout
+        return SettingsSectionModel(
+            section: .about,
+            color: gray,
+            items: [
                 SettingsItem(
                     type: .termsOfService,
                     icon: "doc.text",
@@ -128,20 +210,7 @@ final class SettingsViewModel {
                     value: Bundle.main.appVersion
                 ),
             ]
-        }
-    }
-
-    func color(for section: SettingsSection) -> UIColor {
-        switch section {
-        case .preferences:
-            return Theme.Colors.settingsAppearance
-        case .general:
-            return Theme.Colors.settingsGeneral
-        case .support:
-            return Theme.Colors.settingsSupport
-        case .about:
-            return Theme.Colors.settingsAbout
-        }
+        )
     }
 
     private var photoPermissionStatus: String {
@@ -164,35 +233,6 @@ final class SettingsViewModel {
         case .light: return String(localized: .settingsAppearanceLight)
         case .dark: return String(localized: .settingsAppearanceDark)
         default: return String(localized: .settingsAppearanceSystem)
-        }
-    }
-
-    func updateAppearance(_ style: UIUserInterfaceStyle) {
-        settingsService.userInterfaceStyle = style
-    }
-
-    func performAction(for item: SettingsItem, from vc: UIViewController) {
-        switch item.type {
-        case .appearance:
-            break
-        case .language, .photoPermissions:
-            if let url = URL(string: UIApplication.openSettingsURLString) {
-                UIApplication.shared.open(url)
-            }
-        case .writeReview:
-            if let url = AppConstants.writeReviewURL {
-                UIApplication.shared.open(url)
-            }
-        case .sendFeedback:
-            if let url = AppConstants.feedbackEmailURL {
-                UIApplication.shared.open(url)
-            }
-        case .termsOfService:
-            UIApplication.shared.open(AppConstants.termsOfServiceURL)
-        case .privacyPolicy:
-            UIApplication.shared.open(AppConstants.privacyPolicyURL)
-        case .version:
-            break
         }
     }
 }

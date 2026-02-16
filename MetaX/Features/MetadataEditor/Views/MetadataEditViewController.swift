@@ -11,7 +11,7 @@ import MapKit
 import UIKit
 
 final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
-    UIAdaptivePresentationControllerDelegate {
+    UIAdaptivePresentationControllerDelegate, ViewModelObserving {
 
     var onSave: (([MetadataField: Any]) -> Void)?
     var onCancel: (() -> Void)?
@@ -20,11 +20,7 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
     private let currentMetadata: Metadata
     private let viewModel: MetadataEditViewModel
 
-    private var selectedLocation: CLLocation?
-    private let geocoder = CLGeocoder()
-    private var geocodingTask: Task<Void, Never>?
     private var keyboardObserver: KeyboardObserver?
-    private var initialFields: MetadataEditViewModel.RawFields?
 
     // Strongly-typed field management
     private var fieldViews: [MetadataField: UIView] = [:]
@@ -107,19 +103,15 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
         super.viewDidLoad()
         setupUI()
         setupAccessoryViews()
-        prefillData()
         setupDelegates()
-        setupChangeTracking()
+        setupBindings()
 
         keyboardObserver = KeyboardObserver(scrollView: scrollView)
         keyboardObserver?.startObserving()
-
-        updateSaveButtonState()
     }
 
     deinit {
         keyboardObserver?.stopObserving()
-        geocodingTask?.cancel()
     }
 
     private func setupUI() {
@@ -140,7 +132,6 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
         )
         saveButton.tintColor = Theme.Colors.accent
         navigationItem.rightBarButtonItem = saveButton
-        navigationItem.rightBarButtonItem?.isEnabled = false // Disabled by default
 
         view.addSubview(scrollView)
         scrollView.addSubview(stackView)
@@ -214,50 +205,77 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
         view.addGestureRecognizer(tap)
     }
 
-    private func setupChangeTracking() {
-        for view in fieldViews.values {
-            if let tf = view as? FormTextField {
-                tf.textField.addTarget(self, action: #selector(fieldDidChange), for: .editingChanged)
-            } else if let pf = view as? FormPickerField {
-                pf.onValueChanged = { [weak self] in self?.updateSaveButtonState() }
+    private func setupBindings() {
+        let tf = { (field: MetadataField) -> UITextField? in (self.fieldViews[field] as? FormTextField)?.textField }
+        let pf = { (field: MetadataField) -> FormPickerField? in (self.fieldViews[field] as? FormPickerField) }
+
+        // 1. Observe nested Fields struct properties
+        observe(viewModel: viewModel, property: { $0.fields.dateTimeOriginal }) { [weak self] in
+            self?.datePicker.date = $0
+        }
+        observe(viewModel: viewModel, property: { $0.locationAddress }) { [weak self] addr in
+            guard let self, let loc = viewModel.fields.location else { return }
+            (fieldViews[.location] as? LocationCardField)?.setLocation(loc, title: addr)
+        }
+
+        observe(viewModel: viewModel, property: { $0.fields.make }) { tf(.make)?.text = $0 }
+        observe(viewModel: viewModel, property: { $0.fields.model }) { tf(.model)?.text = $0 }
+        observe(viewModel: viewModel, property: { $0.fields.lensMake }) { tf(.lensMake)?.text = $0 }
+        observe(viewModel: viewModel, property: { $0.fields.lensModel }) { tf(.lensModel)?.text = $0 }
+        observe(viewModel: viewModel, property: { $0.fields.aperture }) { tf(.aperture)?.text = $0 }
+        observe(viewModel: viewModel, property: { $0.fields.shutter }) { tf(.shutter)?.text = $0 }
+        observe(viewModel: viewModel, property: { $0.fields.iso }) { tf(.iso)?.text = $0 }
+        observe(viewModel: viewModel, property: { $0.fields.focalLength }) { tf(.focalLength)?.text = $0 }
+        observe(viewModel: viewModel, property: { $0.fields.exposureBias }) { tf(.exposureBias)?.text = $0 }
+        observe(viewModel: viewModel, property: { $0.fields.focalLength35 }) { tf(.focalLength35)?.text = $0 }
+
+        observe(viewModel: viewModel, property: { $0.fields.exposureProgram }) {
+            if let v = $0 { pf(.exposureProgram)?.select(rawValue: v) }
+        }
+        observe(viewModel: viewModel, property: { $0.fields.meteringMode }) {
+            if let v = $0 { pf(.meteringMode)?.select(rawValue: v) }
+        }
+        observe(viewModel: viewModel, property: { $0.fields.whiteBalance }) {
+            if let v = $0 { pf(.whiteBalance)?.select(rawValue: v) }
+        }
+        observe(viewModel: viewModel, property: { $0.fields.flash }) {
+            if let v = $0 { pf(.flash)?.select(rawValue: v) }
+        }
+
+        observe(viewModel: viewModel, property: { $0.fields.artist }) { tf(.artist)?.text = $0 }
+        observe(viewModel: viewModel, property: { $0.fields.copyright }) { tf(.copyright)?.text = $0 }
+
+        // 2. Read-only display fields
+        tf(.pixelWidth)?.text = viewModel.pixelWidth
+        tf(.pixelHeight)?.text = viewModel.pixelHeight
+        tf(.profileName)?.text = viewModel.profileName
+
+        // 3. UI State
+        observe(viewModel: viewModel, property: { $0.isModified }) { [weak self] in
+            self?.navigationItem.rightBarButtonItem?.isEnabled = $0
+        }
+
+        // 4. Centralized User Action Handling
+        datePicker.addTarget(self, action: #selector(dateChanged), for: .valueChanged)
+
+        for (field, view) in fieldViews {
+            if let tfView = view as? FormTextField {
+                tfView.textField.addTarget(self, action: #selector(textFieldDidChange(_:)), for: .editingChanged)
+            } else if let pfView = view as? FormPickerField {
+                pfView.onValueChanged = { [weak self] in
+                    self?.viewModel.updateValue(pfView.selectedRawValue, for: field)
+                }
             }
         }
-        datePicker.addTarget(self, action: #selector(fieldDidChange), for: .valueChanged)
     }
 
-    @objc private func fieldDidChange() {
-        updateSaveButtonState()
+    @objc private func dateChanged() {
+        viewModel.updateValue(datePicker.date, for: .dateTimeOriginal)
     }
 
-    private func updateSaveButtonState() {
-        let current = captureCurrentFields()
-        navigationItem.rightBarButtonItem?.isEnabled = current != initialFields
-    }
-
-    private func captureCurrentFields() -> MetadataEditViewModel.RawFields {
-        let f = { (field: MetadataField) -> String? in (self.fieldViews[field] as? FormTextField)?.textField.text }
-        let p = { (field: MetadataField) -> Int? in (self.fieldViews[field] as? FormPickerField)?.selectedRawValue }
-
-        return MetadataEditViewModel.RawFields(
-            make: f(.make),
-            model: f(.model),
-            lensMake: f(.lensMake),
-            lensModel: f(.lensModel),
-            aperture: f(.aperture),
-            shutter: f(.shutter),
-            iso: f(.iso),
-            focalLength: f(.focalLength),
-            exposureBias: f(.exposureBias),
-            focalLength35: f(.focalLength35),
-            exposureProgram: p(.exposureProgram),
-            meteringMode: p(.meteringMode),
-            whiteBalance: p(.whiteBalance),
-            flash: p(.flash),
-            dateTimeOriginal: datePicker.date,
-            location: selectedLocation,
-            artist: f(.artist),
-            copyright: f(.copyright)
-        )
+    @objc private func textFieldDidChange(_ textField: UITextField) {
+        guard let field = textFieldToField[textField] else { return }
+        viewModel.updateValue(textField.text, for: field)
     }
 
     private func setupAccessoryViews() {
@@ -312,7 +330,9 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
     }
 
     @objc private func insertSlash() {
-        (fieldViews[.shutter] as? FormTextField)?.textField.insertText("/")
+        guard let tf = (fieldViews[.shutter] as? FormTextField)?.textField else { return }
+        tf.insertText("/")
+        viewModel.updateValue(tf.text, for: .shutter)
     }
 
     @objc private func togglePositive() {
@@ -325,7 +345,7 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
         } else {
             tf.text = "+"
         }
-        updateSaveButtonState()
+        viewModel.updateValue(tf.text, for: .exposureBias)
     }
 
     @objc private func toggleNegative() {
@@ -338,7 +358,7 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
         } else {
             tf.text = "-"
         }
-        updateSaveButtonState()
+        viewModel.updateValue(tf.text, for: .exposureBias)
     }
 
     @objc private func doneEditing() {
@@ -412,118 +432,10 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
         return container
     }
 
-    private func prefillData() {
-        datePicker.maximumDate = Date()
-        let props = currentMetadata.sourceProperties
-        let exif = props[MetadataKeys.exifDict] as? [String: Any] ?? [:]
-        let tiff = props[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
-
-        let f = fieldViews
-        let setTf = { (field: MetadataField, val: Any?) in
-            (f[field] as? FormTextField)?.textField.text = val as? String
-        }
-        let setPicker = { (field: MetadataField, val: Int?) in
-            if let v = val { (f[field] as? FormPickerField)?.select(rawValue: v) }
-        }
-
-        setTf(.make, tiff[MetadataKeys.make])
-        setTf(.model, tiff[MetadataKeys.model])
-        setTf(.lensMake, exif[MetadataKeys.lensMake])
-        setTf(.lensModel, exif[MetadataKeys.lensModel])
-
-        if let val = exif[MetadataKeys.fNumber] as? Double { setTf(.aperture, formatValue(val)) }
-        if let val = exif[MetadataKeys.exposureTime] as? Double {
-            let rational = Rational(approximationOf: val)
-            setTf(.shutter, rational.num < rational.den ? "\(rational.num)/\(rational.den)" : formatValue(val))
-        }
-        if let iso = (exif[MetadataKeys.isoSpeedRatings] as? [Int])?.first {
-            setTf(.iso, "\(iso)")
-        } else if let iso = exif[MetadataKeys.isoSpeedRatings] as? Int {
-            setTf(.iso, "\(iso)")
-        }
-        if let val = exif[MetadataKeys.focalLength] as? Double { setTf(.focalLength, formatValue(val)) }
-        if let val = exif[MetadataKeys.exposureBiasValue] as? Double {
-            setTf(.exposureBias, val > 0 ? "+" + formatValue(val) : formatValue(val))
-        }
-        if let val = exif[MetadataKeys.focalLenIn35mmFilm] as? Int {
-            setTf(.focalLength35, "\(val)")
-        } else if let val = exif[MetadataKeys.focalLenIn35mmFilm] as? Double {
-            setTf(.focalLength35, "\(Int(val))")
-        }
-
-        setPicker(.exposureProgram, exif[MetadataKeys.exposureProgram] as? Int)
-        setPicker(.meteringMode, exif[MetadataKeys.meteringMode] as? Int)
-        setPicker(.whiteBalance, exif[MetadataKeys.whiteBalance] as? Int)
-        setPicker(.flash, exif[MetadataKeys.flash] as? Int)
-
-        if let val = props["PixelWidth"] as? Int { setTf(.pixelWidth, "\(val)") }
-        if let val = props["PixelHeight"] as? Int { setTf(.pixelHeight, "\(val)") }
-        setTf(.profileName, props["ProfileName"])
-
-        setTf(.artist, tiff[MetadataKeys.artist])
-        setTf(.copyright, tiff[MetadataKeys.copyright])
-
-        if let dateStr = exif[MetadataKeys.dateTimeOriginal] as? String,
-           let date = DateFormatter(with: .yMdHms).getDate(from: dateStr) {
-            datePicker.date = min(date, Date())
-        }
-
-        if let loc = currentMetadata.rawGPS {
-            updateLocationInField(with: loc, name: nil)
-        }
-
-        initialFields = captureCurrentFields()
-    }
-
-    private func formatValue(_ value: Double) -> String {
-        return value.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", value) : String(
-            format: "%.1f",
-            value
-        )
-    }
-
     func updateLocation(from model: LocationModel) {
         guard let coord = model.coordinate else { return }
         let location = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
-        let fullAddress = model.name + (model.shortPlacemark.isEmpty ? "" : ", " + model.shortPlacemark)
-        updateLocationInField(with: location, name: fullAddress)
-    }
-
-    private func updateLocationInField(with location: CLLocation, name: String?) {
-        selectedLocation = location
-        updateSaveButtonState()
-
-        guard let field = fieldViews[.location] as? LocationCardField else { return }
-
-        if let name = name {
-            field.setLocation(location, title: name)
-            return
-        }
-
-        field.setLocation(location, title: "...")
-        geocodingTask?.cancel()
-        geocodingTask = Task { [weak self] in
-            guard let self else { return }
-            do {
-                let placemarks = try await geocoder.reverseGeocodeLocation(location)
-                guard !Task.isCancelled else { return }
-                let address: String
-                if let p = placemarks.first {
-                    let infos = [p.thoroughfare, p.locality, p.administrativeArea, p.country]
-                    address = infos.compactMap { $0 }.joined(separator: ", ")
-                } else {
-                    address = Self.coordinateFallback(for: location)
-                }
-                field.setLocation(location, title: address.isEmpty ? nil : address)
-            } catch {
-                guard !Task.isCancelled else { return }
-                field.setLocation(location, title: Self.coordinateFallback(for: location))
-            }
-        }
-    }
-
-    private static func coordinateFallback(for location: CLLocation) -> String {
-        String(format: "%.4f, %.4f", location.coordinate.latitude, location.coordinate.longitude)
+        viewModel.reverseGeocode(location)
     }
 
     func textField(
@@ -540,8 +452,9 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
                let firstScalar = string.unicodeScalars.first,
                CharacterSet.decimalDigits.contains(firstScalar),
                string != "0" {
-                textField.text = "+" + string
-                updateSaveButtonState()
+                let newText = "+" + string
+                textField.text = newText
+                viewModel.updateValue(newText, for: field)
                 return false
             }
         }
@@ -568,8 +481,7 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
     }
 
     @objc private func save() {
-        let fields = viewModel.prepareFields(from: captureCurrentFields())
-        // Don't dismiss yet, wait for save options to be presented on top
+        let fields = viewModel.getPreparedFields()
         onSave?(fields)
     }
 }

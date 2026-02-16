@@ -7,7 +7,7 @@
 
 import UIKit
 
-final class SettingsViewController: UIViewController {
+final class SettingsViewController: UIViewController, ViewModelObserving {
 
     // MARK: - ViewModel
 
@@ -40,6 +40,12 @@ final class SettingsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        setupBindings()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        viewModel.refresh()
     }
 
     // MARK: - UI Setup
@@ -71,6 +77,12 @@ final class SettingsViewController: UIViewController {
         )
     }
 
+    private func setupBindings() {
+        observe(viewModel: viewModel, property: { $0.sectionModels }) { [weak self] _ in
+            self?.tableView.reloadData()
+        }
+    }
+
     @objc private func didTapClose() {
         dismiss(animated: true)
     }
@@ -81,31 +93,24 @@ final class SettingsViewController: UIViewController {
 extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
 
     func numberOfSections(in tableView: UITableView) -> Int {
-        return SettingsSection.allCases.count
+        return viewModel.sectionModels.count
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        let settingsSection = SettingsSection.allCases[section]
-        return viewModel.items(for: settingsSection).count
+        return viewModel.sectionModels[section].items.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(
+        guard let cell = tableView.dequeueReusableCell(
             withIdentifier: String(describing: SettingsTableViewCell.self),
             for: indexPath
-        ) as? SettingsTableViewCell
-        let settingsCell = cell ?? SettingsTableViewCell(
-            style: .default,
-            reuseIdentifier: String(describing: SettingsTableViewCell.self)
-        )
-
-        let section = SettingsSection.allCases[indexPath.section]
-        let items = viewModel.items(for: section)
-        if indexPath.row < items.count {
-            settingsCell.configure(with: items[indexPath.row])
+        ) as? SettingsTableViewCell else {
+            return UITableViewCell()
         }
 
-        return settingsCell
+        let item = viewModel.sectionModels[indexPath.section].items[indexPath.row]
+        cell.configure(with: item)
+        return cell
     }
 
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
@@ -119,9 +124,9 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let headerView = DetailSectionHeaderView()
-        let settingsSection = SettingsSection.allCases[section]
-        headerView.headerTitle = settingsSection.title
-        headerView.indicatorColor = viewModel.color(for: settingsSection)
+        let model = viewModel.sectionModels[section]
+        headerView.headerTitle = model.section.title
+        headerView.indicatorColor = model.color
         return headerView
     }
 
@@ -131,34 +136,23 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let section = SettingsSection.allCases[indexPath.section]
-        let items = viewModel.items(for: section)
-
-        guard indexPath.row < items.count else { return }
-        let item = items[indexPath.row]
+        let item = viewModel.sectionModels[indexPath.section].items[indexPath.row]
 
         if item.type == .appearance {
             showAppearanceMenu(at: indexPath)
         } else {
-            viewModel.performAction(for: item, from: self)
+            viewModel.performAction(for: item)
         }
     }
 
     private func showAppearanceMenu(at indexPath: IndexPath) {
-        let options: [(String, String, UIUserInterfaceStyle)] = [
-            (String(localized: .settingsAppearanceSystem), "circle.lefthalf.filled", .unspecified),
-            (String(localized: .settingsAppearanceLight), "sun.max", .light),
-            (String(localized: .settingsAppearanceDark), "moon", .dark),
-        ]
-
         let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
 
-        for (name, icon, style) in options {
-            let action = UIAlertAction(title: name, style: .default) { [weak self] _ in
-                self?.viewModel.updateAppearance(style)
-                self?.tableView.reloadRows(at: [indexPath], with: .none)
+        for option in viewModel.appearanceOptions {
+            let action = UIAlertAction(title: option.title, style: .default) { [weak self] _ in
+                self?.viewModel.updateAppearance(option.style)
             }
-            if let image = UIImage(systemName: icon) {
+            if let image = UIImage(systemName: option.icon) {
                 action.setValue(image, forKey: "image")
             }
             alert.addAction(action)

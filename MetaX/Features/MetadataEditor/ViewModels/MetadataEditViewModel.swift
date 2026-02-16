@@ -7,11 +7,14 @@
 //
 
 import CoreLocation
+import Observation
 import UIKit
 
-struct MetadataEditViewModel {
+@Observable @MainActor
+final class MetadataEditViewModel {
 
-    struct RawFields: Equatable {
+    /// A consolidated structure representing all editable fields.
+    struct Fields: Equatable {
         var make: String?
         var model: String?
         var lensMake: String?
@@ -26,12 +29,12 @@ struct MetadataEditViewModel {
         var meteringMode: Int?
         var whiteBalance: Int?
         var flash: Int?
-        var dateTimeOriginal: Date?
+        var dateTimeOriginal: Date = .init()
         var location: CLLocation?
         var artist: String?
         var copyright: String?
 
-        static func == (lhs: RawFields, rhs: RawFields) -> Bool {
+        static func == (lhs: Fields, rhs: Fields) -> Bool {
             return lhs.make == rhs.make &&
                 lhs.model == rhs.model &&
                 lhs.lensMake == rhs.lensMake &&
@@ -61,20 +64,188 @@ struct MetadataEditViewModel {
         }
     }
 
-    /// Converts raw UI inputs into a metadata fields dictionary.
-    func prepareFields(from raw: RawFields) -> [MetadataField: Any] {
-        var fields: [MetadataField: Any] = [:]
+    /// Single source of truth for the form data
+    var fields: Fields
 
-        fields[.make] = (raw.make?.isEmpty ?? true) ? NSNull() : raw.make
-        fields[.model] = (raw.model?.isEmpty ?? true) ? NSNull() : raw.model
-        fields[.lensMake] = (raw.lensMake?.isEmpty ?? true) ? NSNull() : raw.lensMake
-        fields[.lensModel] = (raw.lensModel?.isEmpty ?? true) ? NSNull() : raw.lensModel
+    // Read-only display fields (not part of editable state)
+    let pixelWidth: String?
+    let pixelHeight: String?
+    let profileName: String?
+
+    // UI state
+    var locationAddress: String?
+    private(set) var isGeocoding = false
+
+    private let initialFields: Fields
+    private let geocoder = CLGeocoder()
+
+    init(metadata: Metadata) {
+        let props = metadata.sourceProperties
+        let exif = props[MetadataKeys.exifDict] as? [String: Any] ?? [:]
+        let tiff = props[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
+
+        pixelWidth = (props[MetadataField.pixelWidth.key] as? Int).map { "\($0)" }
+        pixelHeight = (props[MetadataField.pixelHeight.key] as? Int).map { "\($0)" }
+        profileName = props[MetadataField.profileName.key] as? String
+
+        // Temporary variables for construction
+        let make = tiff[MetadataKeys.make] as? String
+        let model = tiff[MetadataKeys.model] as? String
+        let lensMake = exif[MetadataKeys.lensMake] as? String
+        let lensModel = exif[MetadataKeys.lensModel] as? String
+
+        var aperture: String?
+        if let val = exif[MetadataKeys.fNumber] as? Double {
+            aperture = Self.formatValue(val)
+        }
+
+        var shutter: String?
+        if let val = exif[MetadataKeys.exposureTime] as? Double {
+            let rational = Rational(approximationOf: val)
+            shutter = rational.num < rational.den ? "\(rational.num)/\(rational.den)" : Self.formatValue(val)
+        }
+
+        var iso: String?
+        if let isoRatings = exif[MetadataKeys.isoSpeedRatings] as? [Int], let firstIso = isoRatings.first {
+            iso = "\(firstIso)"
+        } else if let isoInt = exif[MetadataKeys.isoSpeedRatings] as? Int {
+            iso = "\(isoInt)"
+        }
+
+        var focalLength: String?
+        if let val = exif[MetadataKeys.focalLength] as? Double {
+            focalLength = Self.formatValue(val)
+        }
+
+        var exposureBias: String?
+        if let val = exif[MetadataKeys.exposureBiasValue] as? Double {
+            exposureBias = val > 0 ? "+" + Self.formatValue(val) : Self.formatValue(val)
+        }
+
+        var focalLength35: String?
+        if let val = exif[MetadataKeys.focalLenIn35mmFilm] as? Int {
+            focalLength35 = "\(val)"
+        } else if let val = exif[MetadataKeys.focalLenIn35mmFilm] as? Double {
+            focalLength35 = "\(Int(val))"
+        }
+
+        let dateTimeOriginal: Date
+        if let dateStr = exif[MetadataKeys.dateTimeOriginal] as? String,
+           let date = DateFormatter(with: .yMdHms).getDate(from: dateStr) {
+            dateTimeOriginal = min(date, Date())
+        } else {
+            dateTimeOriginal = Date()
+        }
+
+        let parsedFields = Fields(
+            make: make,
+            model: model,
+            lensMake: lensMake,
+            lensModel: lensModel,
+            aperture: aperture,
+            shutter: shutter,
+            iso: iso,
+            focalLength: focalLength,
+            exposureBias: exposureBias,
+            focalLength35: focalLength35,
+            exposureProgram: exif[MetadataKeys.exposureProgram] as? Int,
+            meteringMode: exif[MetadataKeys.meteringMode] as? Int,
+            whiteBalance: exif[MetadataKeys.whiteBalance] as? Int,
+            flash: exif[MetadataKeys.flash] as? Int,
+            dateTimeOriginal: dateTimeOriginal,
+            location: metadata.rawGPS,
+            artist: tiff[MetadataKeys.artist] as? String,
+            copyright: tiff[MetadataKeys.copyright] as? String
+        )
+
+        fields = parsedFields
+        initialFields = parsedFields
+
+        if let loc = parsedFields.location {
+            reverseGeocode(loc)
+        }
+    }
+
+    var isModified: Bool {
+        return fields != initialFields
+    }
+
+    /// Centralized update method to avoid switch-cases in the ViewController.
+    func updateValue(_ value: Any?, for field: MetadataField) {
+        switch field {
+        case .make: fields.make = value as? String
+        case .model: fields.model = value as? String
+        case .lensMake: fields.lensMake = value as? String
+        case .lensModel: fields.lensModel = value as? String
+        case .aperture: fields.aperture = value as? String
+        case .shutter: fields.shutter = value as? String
+        case .iso: fields.iso = value as? String
+        case .focalLength: fields.focalLength = value as? String
+        case .exposureBias: fields.exposureBias = value as? String
+        case .focalLength35: fields.focalLength35 = value as? String
+        case .exposureProgram: fields.exposureProgram = value as? Int
+        case .meteringMode: fields.meteringMode = value as? Int
+        case .whiteBalance: fields.whiteBalance = value as? Int
+        case .flash: fields.flash = value as? Int
+        case .artist: fields.artist = value as? String
+        case .copyright: fields.copyright = value as? String
+        case .dateTimeOriginal: if let d = value as? Date { fields.dateTimeOriginal = d }
+        case .location: if let l = value as? CLLocation { fields.location = l }
+        default: break
+        }
+    }
+
+    func reverseGeocode(_ loc: CLLocation) {
+        fields.location = loc
+        isGeocoding = true
+        locationAddress = "..."
+
+        Task {
+            do {
+                let placemarks = try await geocoder.reverseGeocodeLocation(loc)
+                isGeocoding = false
+                if let p = placemarks.first {
+                    let infos = [p.thoroughfare, p.locality, p.administrativeArea, p.country]
+                    locationAddress = infos.compactMap { $0 }.joined(separator: ", ")
+                } else {
+                    locationAddress = Self.coordinateFallback(for: loc)
+                }
+            } catch {
+                isGeocoding = false
+                locationAddress = Self.coordinateFallback(for: loc)
+            }
+        }
+    }
+
+    private static func coordinateFallback(for location: CLLocation) -> String {
+        String(format: "%.4f, %.4f", location.coordinate.latitude, location.coordinate.longitude)
+    }
+
+    private static func formatValue(_ value: Double) -> String {
+        return value.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", value) : String(
+            format: "%.1f",
+            value
+        )
+    }
+
+    func getPreparedFields() -> [MetadataField: Any] {
+        return prepareFields(from: fields)
+    }
+
+    /// Converts raw UI inputs into a metadata fields dictionary.
+    private func prepareFields(from raw: Fields) -> [MetadataField: Any] {
+        var fieldsDict: [MetadataField: Any] = [:]
+
+        fieldsDict[.make] = (raw.make?.isEmpty ?? true) ? NSNull() : raw.make
+        fieldsDict[.model] = (raw.model?.isEmpty ?? true) ? NSNull() : raw.model
+        fieldsDict[.lensMake] = (raw.lensMake?.isEmpty ?? true) ? NSNull() : raw.lensMake
+        fieldsDict[.lensModel] = (raw.lensModel?.isEmpty ?? true) ? NSNull() : raw.lensModel
 
         // Aperture
         if let val = raw.aperture, let d = Double(val) {
-            fields[.aperture] = d
+            fieldsDict[.aperture] = d
         } else {
-            fields[.aperture] = NSNull()
+            fieldsDict[.aperture] = NSNull()
         }
 
         // Shutter Speed
@@ -82,67 +253,67 @@ struct MetadataEditViewModel {
             if val.contains("/") {
                 let parts = val.components(separatedBy: "/")
                 if parts.count == 2, let n = Double(parts[0]), let d = Double(parts[1]), d != 0 {
-                    fields[.shutter] = n / d
+                    fieldsDict[.shutter] = n / d
                 } else {
-                    fields[.shutter] = NSNull()
+                    fieldsDict[.shutter] = NSNull()
                 }
             } else if let d = Double(val) {
-                fields[.shutter] = d
+                fieldsDict[.shutter] = d
             } else {
-                fields[.shutter] = NSNull()
+                fieldsDict[.shutter] = NSNull()
             }
         } else {
-            fields[.shutter] = NSNull()
+            fieldsDict[.shutter] = NSNull()
         }
 
         // ISO
         if let val = raw.iso, let i = Int(val) {
-            fields[.iso] = [i]
+            fieldsDict[.iso] = [i]
         } else {
-            fields[.iso] = NSNull()
+            fieldsDict[.iso] = NSNull()
         }
 
         // Focal Length
         if let val = raw.focalLength, let d = Double(val) {
-            fields[.focalLength] = d
+            fieldsDict[.focalLength] = d
         } else {
-            fields[.focalLength] = NSNull()
+            fieldsDict[.focalLength] = NSNull()
         }
 
         // Exposure Bias
         if let val = raw.exposureBias, !val.isEmpty {
             let cleanVal = val.replacingOccurrences(of: "+", with: "")
             if let d = Double(cleanVal) {
-                fields[.exposureBias] = d
+                fieldsDict[.exposureBias] = d
             } else {
-                fields[.exposureBias] = NSNull()
+                fieldsDict[.exposureBias] = NSNull()
             }
         } else {
-            fields[.exposureBias] = NSNull()
+            fieldsDict[.exposureBias] = NSNull()
         }
 
         // Focal Length In 35mm
         if let val = raw.focalLength35, let i = Int(val) {
-            fields[.focalLength35] = i
+            fieldsDict[.focalLength35] = i
         } else {
-            fields[.focalLength35] = NSNull()
+            fieldsDict[.focalLength35] = NSNull()
         }
 
         // Pickers
-        fields[.exposureProgram] = raw.exposureProgram ?? NSNull()
-        fields[.meteringMode] = raw.meteringMode ?? NSNull()
-        fields[.whiteBalance] = raw.whiteBalance ?? NSNull()
-        fields[.flash] = raw.flash ?? NSNull()
+        fieldsDict[.exposureProgram] = raw.exposureProgram ?? NSNull()
+        fieldsDict[.meteringMode] = raw.meteringMode ?? NSNull()
+        fieldsDict[.whiteBalance] = raw.whiteBalance ?? NSNull()
+        fieldsDict[.flash] = raw.flash ?? NSNull()
 
         // Date and Location
-        fields[.dateTimeOriginal] = raw.dateTimeOriginal ?? NSNull()
-        fields[.location] = raw.location ?? NSNull()
+        fieldsDict[.dateTimeOriginal] = raw.dateTimeOriginal
+        fieldsDict[.location] = raw.location ?? NSNull()
 
         // Copyright
-        fields[.artist] = (raw.artist?.isEmpty ?? true) ? NSNull() : raw.artist
-        fields[.copyright] = (raw.copyright?.isEmpty ?? true) ? NSNull() : raw.copyright
+        fieldsDict[.artist] = (raw.artist?.isEmpty ?? true) ? NSNull() : raw.artist
+        fieldsDict[.copyright] = (raw.copyright?.isEmpty ?? true) ? NSNull() : raw.copyright
 
-        return fields
+        return fieldsDict
     }
 
     /// Pure logic to validate if a string change should be allowed for a specific field.
