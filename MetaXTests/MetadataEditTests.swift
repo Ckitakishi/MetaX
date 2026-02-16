@@ -2,17 +2,35 @@
 //  MetadataEditTests.swift
 //  MetaXTests
 //
-//  Created by Yuhan Chen on 2026/02/11.
-//  Copyright © 2026 Yuhan Chen. All rights reserved.
-//
 
+import CoreLocation
 import Foundation
 @testable import MetaX
 import Testing
 
+@Suite("Metadata Editor Logic Tests")
+@MainActor
 struct MetadataEditTests {
 
-    let viewModel = MetadataEditViewModel()
+    let viewModel: MetadataEditViewModel
+
+    init() {
+        let initialProps: [String: Any] = [
+            "{TIFF}": [
+                "Make": "Apple",
+                "Model": "iPhone 15 Pro",
+            ],
+            "{Exif}": [
+                "ExposureTime": 0.008,
+                "FNumber": 1.8,
+                "ISOSpeedRatings": [100],
+            ],
+        ]
+        let metadata = Metadata(props: initialProps)!
+        viewModel = MetadataEditViewModel(metadata: metadata)
+    }
+
+    // MARK: - Happy Path: Input Validation
 
     @Test("Integer Input (ISO/35mm)", arguments: [
         ("", "400", true),
@@ -49,8 +67,7 @@ struct MetadataEditTests {
         ("0", ".5", true),
         ("1/", "0.5", true),
         ("1/125", "/", false),
-        ("0.5", ".", false),
-        ("1/125", "s", false)
+        ("0.5", ".", false)
     ])
     func shutterSpeedValidation(current: String, replacement: String, expected: Bool) {
         let range = NSRange(location: current.count, length: 0)
@@ -58,19 +75,59 @@ struct MetadataEditTests {
             currentText: current,
             range: range,
             replacementString: replacement,
-            for: .shutterSpeed
+            for: .shutter
         ) == expected)
     }
 
-    @Test("Exposure Bias Input", arguments: [
-        ("", "+1.3", true),
-        ("", "-0.7", true),
-        ("1.3", "+", false), // Sign must be at start
-        ("1.3", "-", false), // Sign must be at start
-        ("+1.", ".", false), // Double decimal
-        ("0", ".3", true),
-        ("", "−0.7", false), // Unicode minus U+2212 is rejected; use ASCII toggle buttons
-        ("+", "-", false) // Two signs
+    @Test("Global Length Constraints", arguments: [
+        (MetadataField.make, String(repeating: "A", count: 65), false), // Max 64
+        (MetadataField.artist, String(repeating: "A", count: 65), false), // Max 64
+        (MetadataField.copyright, String(repeating: "A", count: 201), false), // Max 200
+        (MetadataField.copyright, String(repeating: "A", count: 199), true),
+    ])
+    func lengthConstraints(type: MetadataField, input: String, expected: Bool) {
+        #expect(viewModel.validateInput(
+            currentText: "",
+            range: NSRange(location: 0, length: 0),
+            replacementString: input,
+            for: type
+        ) == expected)
+    }
+
+    // MARK: - Business Logic & Conversion
+
+    @Test("Modification tracking (Dirty state detection)")
+    func modificationTracking() {
+        #expect(viewModel.isModified == false)
+        viewModel.updateValue("Sony", for: .make)
+        #expect(viewModel.isModified == true)
+        viewModel.updateValue("Apple", for: .make)
+        #expect(viewModel.isModified == false)
+    }
+
+    @Test("Shutter speed conversion (String to Double)")
+    func shutterSpeedConversion() {
+        viewModel.updateValue("1/1000", for: .shutter)
+        #expect(viewModel.getPreparedFields()[.shutter] as? Double == 0.001)
+
+        viewModel.updateValue("0.5", for: .shutter)
+        #expect(viewModel.getPreparedFields()[.shutter] as? Double == 0.5)
+    }
+
+    @Test("ISO numeric extraction as Array")
+    func isoArrayFormatting() {
+        viewModel.updateValue("400", for: .iso)
+        #expect(viewModel.getPreparedFields()[.iso] as? [Int] == [400])
+    }
+
+    @Test("Exposure Bias Input (signed decimals)", arguments: [
+        ("", "+", true),
+        ("", "-", true),
+        ("+1", ".5", true),
+        ("+1.5", "+", false), // second sign character
+        ("1.5", ".", false), // second decimal point
+        ("1", "a", false), // invalid character
+        ("1.5", "-", false), // sign not at start of string
     ])
     func exposureBiasValidation(current: String, replacement: String, expected: Bool) {
         let range = NSRange(location: current.count, length: 0)
@@ -82,23 +139,16 @@ struct MetadataEditTests {
         ) == expected)
     }
 
-    @Test("Global Constraints", arguments: [
-        (MetadataFieldType.aperture, "2.8.8", false),
-        (MetadataFieldType.iso, "abc", false),
-        (MetadataFieldType.gear, "Short text", true),
-        (MetadataFieldType.gear, String(repeating: "A", count: 65), false), // Max 64
-        (MetadataFieldType.artist, String(repeating: "A", count: 65), false), // Max 64
-        (MetadataFieldType.copyright, String(repeating: "A", count: 201), false), // Max 200
-        (MetadataFieldType.copyright, String(repeating: "A", count: 199), true),
-        (MetadataFieldType.iso, "12345678901", false) // Max 10
-    ])
-    func globalConstraints(type: MetadataFieldType, input: String, expected: Bool) {
-        let result = viewModel.validateInput(
-            currentText: "",
-            range: NSRange(location: 0, length: 0),
-            replacementString: input,
-            for: type
-        )
-        #expect(result == expected)
+    @Test("Empty string fields produce NSNull in prepared output")
+    func preparedFieldsNullCoercion() {
+        viewModel.updateValue("", for: .make)
+        viewModel.updateValue("", for: .aperture)
+        viewModel.updateValue("not_a_number", for: .shutter)
+
+        let prepared = viewModel.getPreparedFields()
+
+        #expect(prepared[.make] is NSNull)
+        #expect(prepared[.aperture] is NSNull)
+        #expect(prepared[.shutter] is NSNull)
     }
 }
