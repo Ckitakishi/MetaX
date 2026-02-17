@@ -7,6 +7,7 @@
 
 import UIKit
 
+@MainActor
 class SettingsTableViewCell: UITableViewCell {
 
     // MARK: - UI Components

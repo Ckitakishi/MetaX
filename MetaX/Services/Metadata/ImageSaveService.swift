@@ -7,25 +7,27 @@
 //
 
 import CoreImage
-import Photos
+@preconcurrency import Photos
 import UniformTypeIdentifiers
 
 /// Protocol defining image save operations
-protocol ImageSaveServiceProtocol {
+/// Methods are @MainActor because `[String: Any]` parameters are not Sendable.
+protocol ImageSaveServiceProtocol: Sendable {
     /// Create a new asset with modified metadata
-    func saveImageAsNewAsset(
+    @MainActor func saveImageAsNewAsset(
         asset: PHAsset,
         newProperties: [String: Any]
     ) async -> Result<PHAsset, MetaXError>
 
     /// Edit existing asset metadata using non-destructive editing
-    func editAssetMetadata(
+    @MainActor func editAssetMetadata(
         asset: PHAsset,
         newProperties: [String: Any]
     ) async -> Result<PHAsset, MetaXError>
 }
 
 /// Service for saving images with modified metadata
+@MainActor
 final class ImageSaveService: ImageSaveServiceProtocol {
 
     // MARK: - Dependencies
@@ -181,7 +183,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         }
     }
 
-    private static func makeAdjustmentData() -> PHAdjustmentData {
+    private nonisolated static func makeAdjustmentData() -> PHAdjustmentData {
         let dataPayload = ["app": "MetaX", "edit": "metadata", "date": Date()] as [String: Any]
         let archivedData = try? NSKeyedArchiver.archivedData(withRootObject: dataPayload, requiringSecureCoding: false)
         return PHAdjustmentData(
@@ -238,7 +240,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         }
     }
 
-    private func writeModifiedImage(
+    private nonisolated func writeModifiedImage(
         sourceURL: URL,
         destinationURL: URL,
         newProperties: [String: Any]
@@ -325,7 +327,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         }
     }
 
-    private func createAssetInMetaXAlbum(from tempURL: URL) async -> Result<PHAsset, MetaXError> {
+    private nonisolated func createAssetInMetaXAlbum(from tempURL: URL) async -> Result<PHAsset, MetaXError> {
         var localId = ""
 
         do {

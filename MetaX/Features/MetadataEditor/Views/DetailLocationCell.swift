@@ -9,6 +9,7 @@
 import MapKit
 import UIKit
 
+@MainActor
 final class DetailLocationCell: UITableViewCell {
 
     private(set) var currentLocation: CLLocation?

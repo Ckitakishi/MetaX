@@ -9,6 +9,7 @@
 import MapKit
 import UIKit
 
+@MainActor
 class LocationSearchViewController: UIViewController, ViewModelObserving, UITextFieldDelegate {
 
     // MARK: - ViewModel
@@ -216,8 +217,8 @@ extension LocationSearchViewController: UITableViewDataSource {
         switch row {
         case let .history(item):
             cell.cellDataSource = LocationModel(title: item.title, subtitle: item.subtitle)
-        case let .result(completion):
-            cell.cellDataSource = completion
+        case let .result(result):
+            cell.cellDataSource = LocationModel(title: result.title, subtitle: result.subtitle)
         }
         return cell
     }

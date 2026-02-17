@@ -10,10 +10,11 @@ import CoreLocation
 import MapKit
 import UIKit
 
+@MainActor
 final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
     UIAdaptivePresentationControllerDelegate, ViewModelObserving {
 
-    var onSave: (([MetadataField: Any]) -> Void)?
+    var onSave: (([MetadataField: MetadataFieldValue]) -> Void)?
     var onCancel: (() -> Void)?
     var onRequestLocationSearch: (() -> Void)?
 
@@ -108,10 +109,6 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
 
         keyboardObserver = KeyboardObserver(scrollView: scrollView)
         keyboardObserver?.startObserving()
-    }
-
-    deinit {
-        keyboardObserver?.stopObserving()
     }
 
     private func setupUI() {

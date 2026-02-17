@@ -39,13 +39,15 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
     func start() {
         navigate(to: .albumList)
 
-        // Default to All Photos grid on startup
-        let fetchResult = container.photoLibraryService.fetchAllPhotos()
-        navigate(to: .photoGrid(
-            fetchResult: fetchResult,
-            collection: nil,
-            title: String(localized: .viewAllPhotos)
-        ))
+        // On iPad, default to All Photos grid in the secondary column on startup
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            let fetchResult = container.photoLibraryService.fetchAllPhotos()
+            navigate(to: .photoGrid(
+                fetchResult: fetchResult,
+                collection: nil,
+                title: String(localized: .viewAllPhotos)
+            ))
+        }
     }
 
     /// The single entry point for all navigation within this flow.
@@ -233,7 +235,7 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
     private func awaitEditorResult(
         on vc: MetadataEditViewController,
         source: UIViewController
-    ) async -> [MetadataField: Any]? {
+    ) async -> [MetadataField: MetadataFieldValue]? {
         await withCheckedContinuation { continuation in
             var isResumed = false
             vc.onSave = { fields in

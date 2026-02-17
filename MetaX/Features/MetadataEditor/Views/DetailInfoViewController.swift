@@ -11,6 +11,7 @@ import Photos
 import PhotosUI
 import UIKit
 
+@MainActor
 class DetailInfoViewController: UIViewController, ViewModelObserving {
 
     private enum HeroLayout {
@@ -453,7 +454,7 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
     }
 
     func applyMetadataFields(
-        _ fields: [MetadataField: Any],
+        _ fields: [MetadataField: MetadataFieldValue],
         saveMode: SaveWorkflowMode,
         confirm: ((SaveWarning) async -> Bool)? = nil
     ) async -> Bool {

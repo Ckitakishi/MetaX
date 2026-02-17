@@ -28,10 +28,10 @@ extension ViewModelObserving where Self: UIViewController {
     ///              All properties accessed here will be tracked for changes.
     ///   - update: A closure that performs UI updates with the observed value.
     ///            Use `[weak self]` if referencing the ViewController.
-    func observe<VM: AnyObject, T>(
+    func observe<VM: Sendable & AnyObject, T: Sendable>(
         viewModel: VM,
-        property: @escaping (VM) -> T,
-        update: @escaping (T) -> Void
+        property: @escaping @MainActor (VM) -> T,
+        update: @escaping @MainActor (T) -> Void
     ) {
         // Read the property inside withObservationTracking to register dependencies,
         // then call update() OUTSIDE the tracking scope. This ensures only the

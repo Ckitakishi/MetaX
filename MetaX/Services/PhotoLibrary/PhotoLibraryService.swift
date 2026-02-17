@@ -10,7 +10,8 @@ import Photos
 import UIKit
 
 /// Service for photo library operations
-final class PhotoLibraryService: PhotoLibraryServiceProtocol {
+/// @unchecked Sendable: only holds `let imageManager` (PHCachingImageManager is thread-safe).
+final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendable {
 
     // MARK: - Properties
 
@@ -44,7 +45,7 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol {
         }
     }
 
-    func guideToSettings() {
+    @MainActor func guideToSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
     }

@@ -249,17 +249,17 @@ final class AlbumViewModel: NSObject {
                     .requestThumbnail(for: cover, targetSize: thumbnailSize) { [weak self] image, isDegraded in
                         Task { @MainActor in
                             guard let self, self.cacheGeneration == generation else { return }
-                            if isDegraded, image != nil {
-                                for cb in pendingCallbacks {
-                                    cb(count, image)
-                                }
-                                return
-                            }
-                            guard self.pendingLoads.contains(id) else { return }
-                            self.pendingLoads.remove(id)
-                            self.pendingLoadsCount -= 1
+
+                            // Update cell UI with what we have
                             for cb in pendingCallbacks {
                                 cb(count, image)
+                            }
+
+                            // Only decrement and clean up when we have the final result
+                            if !isDegraded || image == nil {
+                                guard self.pendingLoads.contains(id) else { return }
+                                self.pendingLoads.remove(id)
+                                self.pendingLoadsCount -= 1
                             }
                         }
                     }

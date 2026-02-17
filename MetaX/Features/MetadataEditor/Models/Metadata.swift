@@ -46,12 +46,12 @@ public enum MetadataKeys {
     static let gpsLongitudeRef = kCGImagePropertyGPSLongitudeRef as String
 }
 
-public enum SaveWorkflowMode: Equatable {
+public enum SaveWorkflowMode: Equatable, Sendable {
     case updateOriginal
     case saveAsCopy(deleteOriginal: Bool)
 }
 
-public enum MetadataSection: String {
+public enum MetadataSection: String, Sendable {
     case basicInfo = "BASIC INFO"
     case gear = "GEAR"
     case exposure = "EXPOSURE"
@@ -148,6 +148,31 @@ public struct Metadata {
 
     var timeStampKey: String {
         MetadataKeys.dateTimeOriginal
+    }
+}
+
+// MARK: - MetadataFieldValue
+
+public enum MetadataFieldValue: Sendable {
+    case null
+    case string(String)
+    case double(Double)
+    case int(Int)
+    case intArray([Int])
+    case date(Date)
+    case location(CLLocation)
+
+    /// Converts back to `Any` for the metadata service layer.
+    var rawValue: Any {
+        switch self {
+        case .null: return NSNull()
+        case let .string(s): return s
+        case let .double(d): return d
+        case let .int(i): return i
+        case let .intArray(a): return a
+        case let .date(d): return d
+        case let .location(l): return l
+        }
     }
 }
 

@@ -63,6 +63,7 @@ enum Theme {
 
     // MARK: - Shadows
 
+    @MainActor
     enum Shadows {
         static let layerOffset: CGFloat = 4
         static let pressedTranslation: CGFloat = 4

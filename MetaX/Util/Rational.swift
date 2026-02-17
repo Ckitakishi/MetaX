@@ -6,7 +6,7 @@
 //  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
-struct Rational {
+struct Rational: Sendable {
 
     var num: Int
     var den: Int

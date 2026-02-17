@@ -10,6 +10,7 @@ import Photos
 import PhotosUI
 import UIKit
 
+@MainActor
 class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     // MARK: - Intent Closures

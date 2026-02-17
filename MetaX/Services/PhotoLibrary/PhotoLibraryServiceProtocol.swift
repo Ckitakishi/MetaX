@@ -10,14 +10,14 @@ import Photos
 import UIKit
 
 /// Protocol defining photo library operations
-protocol PhotoLibraryServiceProtocol {
+protocol PhotoLibraryServiceProtocol: Sendable {
     // MARK: - Authorization
 
     /// Check current authorization status and request if needed
     func checkAuthorization() async -> Result<Void, MetaXError>
 
     /// Guide user to Settings app to enable photo access
-    func guideToSettings()
+    @MainActor func guideToSettings()
 
     // MARK: - Fetch Operations
 

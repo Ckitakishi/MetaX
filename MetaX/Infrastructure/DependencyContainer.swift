@@ -10,6 +10,7 @@ import Foundation
 
 /// Central dependency injection container
 /// Manages lifecycle of all services used throughout the app
+@MainActor
 final class DependencyContainer {
 
     // MARK: - Services

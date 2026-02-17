@@ -10,7 +10,7 @@ import CoreLocation
 import Photos
 
 /// Protocol defining metadata operations
-protocol MetadataServiceProtocol {
+protocol MetadataServiceProtocol: Sendable {
     // MARK: - Load Metadata
 
     /// Load metadata from a PHAsset

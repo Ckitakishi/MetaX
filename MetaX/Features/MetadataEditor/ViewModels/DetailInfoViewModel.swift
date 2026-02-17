@@ -51,7 +51,7 @@ final class DetailInfoViewModel: NSObject {
         }
     }
 
-    struct SectionModel {
+    struct SectionModel: Sendable {
         let section: MetadataSection
         var rows: [RowModel]
     }
@@ -249,12 +249,12 @@ final class DetailInfoViewModel: NSObject {
 
     @discardableResult
     func applyMetadataFields(
-        _ fields: [MetadataField: Any],
+        _ fields: [MetadataField: MetadataFieldValue],
         saveMode: SaveWorkflowMode,
         confirm: ((SaveWarning) async -> Bool)? = nil
     ) async -> Bool {
         guard let metadata = metadata else { return false }
-        let batch = Dictionary(uniqueKeysWithValues: fields.map { ($0.key, $1) })
+        let batch = Dictionary(uniqueKeysWithValues: fields.map { ($0.key.key, $0.value.rawValue) })
         let newProps = metadataService.updateMetadata(with: batch, in: metadata)
         return await performSaveOperation(properties: newProps, mode: saveMode, confirm: confirm)
     }

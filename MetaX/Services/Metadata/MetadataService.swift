@@ -11,7 +11,8 @@ import CoreLocation
 import Photos
 
 /// Service for metadata operations
-final class MetadataService: MetadataServiceProtocol {
+/// @unchecked Sendable: stateless service, all methods operate on their inputs only.
+final class MetadataService: MetadataServiceProtocol, @unchecked Sendable {
 
     // MARK: - Initialization
 

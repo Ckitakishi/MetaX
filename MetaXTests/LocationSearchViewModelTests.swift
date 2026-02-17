@@ -32,7 +32,7 @@ class MockHistoryService: LocationHistoryServiceProtocol {
 class MockSearchService: LocationSearchServiceProtocol {
     var delegate: LocationSearchServiceDelegate?
     func search(query: String) {}
-    func resolve(completion: MKLocalSearchCompletion) async throws -> LocationModel {
+    @MainActor func resolve(at index: Int) async throws -> LocationModel {
         throw NSError(domain: "test", code: 0)
     }
 }

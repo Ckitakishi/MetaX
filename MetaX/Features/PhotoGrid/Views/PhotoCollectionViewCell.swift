@@ -10,6 +10,7 @@ import Photos
 import PhotosUI
 import UIKit
 
+@MainActor
 class PhotoCollectionViewCell: UICollectionViewCell {
 
     // MARK: - UI Components

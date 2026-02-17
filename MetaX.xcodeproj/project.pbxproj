@@ -528,10 +528,8 @@
 				56E6F1932F42D491002D0CAA /* FormPickerField.swift */,
 				56E6F1942F42D491002D0CAA /* FormTextField.swift */,
 				56E6F1952F42D491002D0CAA /* HUD.swift */,
-				56E6F1962F42D491002D0CAA /* KeyboardObserver.swift */,
 				56E6F1972F42D491002D0CAA /* NeoBrutalistContainerView.swift */,
 				56E6F1982F42D491002D0CAA /* SplashView.swift */,
-				56E6F1992F42D491002D0CAA /* ZoomTransition.swift */,
 			);
 			path = UIComponents;
 			sourceTree = "<group>";
@@ -539,6 +537,8 @@
 		56E6F19C2F42D491002D0CAA /* Util */ = {
 			isa = PBXGroup;
 			children = (
+				56E6F1962F42D491002D0CAA /* KeyboardObserver.swift */,
+				56E6F1992F42D491002D0CAA /* ZoomTransition.swift */,
 				56E6F19B2F42D491002D0CAA /* Rational.swift */,
 			);
 			path = Util;
@@ -892,7 +892,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ckitakishi.com.MetaX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
@@ -903,7 +903,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -929,7 +929,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ckitakishi.com.MetaX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
@@ -939,7 +939,7 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;

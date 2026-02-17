@@ -8,6 +8,7 @@
 
 import UIKit
 
+@MainActor
 final class SaveOptionsViewController: UIViewController, ViewModelObserving {
     var onSelect: ((SaveWorkflowMode) -> Void)?
     var onCancel: (() -> Void)?

@@ -11,12 +11,13 @@ import MapKit
 import Observation
 
 /// ViewModel for LocationSearchViewController
-@Observable @MainActor
+@MainActor
+@Observable
 final class LocationSearchViewModel: LocationSearchServiceDelegate {
 
     enum RowType {
         case history(HistoryLocation)
-        case result(MKLocalSearchCompletion)
+        case result(SearchCompletion)
     }
 
     struct Section {
@@ -41,7 +42,7 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
 
     // MARK: - Internal State
 
-    private var searchResults: [MKLocalSearchCompletion] = []
+    private var searchResults: [SearchCompletion] = []
     private var history: [HistoryLocation] = []
     private let historyService: LocationHistoryServiceProtocol
     private var searchService: LocationSearchServiceProtocol
@@ -88,9 +89,9 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
             updateSections()
             return model
 
-        case let .result(completion):
+        case let .result(result):
             do {
-                let locationModel = try await searchService.resolve(completion: completion)
+                let locationModel = try await searchService.resolve(at: result.index)
                 if let coord = locationModel.coordinate {
                     let historyItem = HistoryLocation(
                         title: locationModel.name,
@@ -149,16 +150,18 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
 
     // MARK: - LocationSearchServiceDelegate
 
-    nonisolated func didUpdate(results: [MKLocalSearchCompletion]) {
-        Task { @MainActor in
-            self.searchResults = results
-            self.updateSections()
+    /// nonisolated to satisfy the nonisolated protocol requirement.
+    /// Dispatches to @MainActor via Task to safely update state regardless of calling thread.
+    nonisolated func didUpdate(results: [SearchCompletion]) {
+        Task { @MainActor [weak self] in
+            self?.searchResults = results
+            self?.updateSections()
         }
     }
 
     nonisolated func didFail(with error: Error) {
-        Task { @MainActor in
-            self.onError?(error)
+        Task { @MainActor [weak self] in
+            self?.onError?(error)
         }
     }
 }

@@ -8,7 +8,7 @@
 import Foundation
 import MapKit
 
-struct HistoryLocation: Codable, Equatable {
+struct HistoryLocation: Codable, Equatable, Sendable {
     let title: String
     let subtitle: String
     let latitude: Double

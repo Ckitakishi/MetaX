@@ -8,6 +8,7 @@
 
 import UIKit
 
+@MainActor
 class ZoomTransition: NSObject, UIViewControllerAnimatedTransitioning {
 
     let duration = 0.5

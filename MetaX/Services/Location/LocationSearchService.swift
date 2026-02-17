@@ -5,7 +5,7 @@
 //  Created by Yuhan Chen on 2026/02/09.
 //
 
-@preconcurrency import MapKit
+import MapKit
 
 final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
 
@@ -25,7 +25,13 @@ final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
         }
     }
 
-    func resolve(completion: MKLocalSearchCompletion) async throws -> LocationModel {
+    @MainActor func resolve(at index: Int) async throws -> LocationModel {
+        guard index < completer.results.count else {
+            throw MetaXError.unknown(underlying: nil)
+        }
+        let completion = completer.results[index]
+        // Pre-capture as a value type before search.start, whose callback runs on a background queue
+        let fallback = LocationModel(title: completion.title, subtitle: completion.subtitle)
         let searchRequest = MKLocalSearch.Request(completion: completion)
         let search = MKLocalSearch(request: searchRequest)
 
@@ -37,11 +43,9 @@ final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
                 }
 
                 if let mapItem = response?.mapItems.first {
-                    let locationModel = LocationModel(with: mapItem)
-                    continuation.resume(returning: locationModel)
+                    continuation.resume(returning: LocationModel(with: mapItem))
                 } else {
-                    // Fallback to basic model if no map item found
-                    continuation.resume(returning: LocationModel(with: completion))
+                    continuation.resume(returning: fallback)
                 }
             }
         }
@@ -53,7 +57,12 @@ final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
 extension LocationSearchService: MKLocalSearchCompleterDelegate {
 
     func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
-        delegate?.didUpdate(results: completer.results)
+        let completions = completer.results.enumerated().map { SearchCompletion(
+            title: $1.title,
+            subtitle: $1.subtitle,
+            index: $0
+        ) }
+        delegate?.didUpdate(results: completions)
     }
 
     func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {

@@ -108,16 +108,16 @@ struct MetadataEditTests {
     @Test("Shutter speed conversion (String to Double)")
     func shutterSpeedConversion() {
         viewModel.updateValue("1/1000", for: .shutter)
-        #expect(viewModel.getPreparedFields()[.shutter] as? Double == 0.001)
+        #expect(viewModel.getPreparedFields()[.shutter]?.rawValue as? Double == 0.001)
 
         viewModel.updateValue("0.5", for: .shutter)
-        #expect(viewModel.getPreparedFields()[.shutter] as? Double == 0.5)
+        #expect(viewModel.getPreparedFields()[.shutter]?.rawValue as? Double == 0.5)
     }
 
     @Test("ISO numeric extraction as Array")
     func isoArrayFormatting() {
         viewModel.updateValue("400", for: .iso)
-        #expect(viewModel.getPreparedFields()[.iso] as? [Int] == [400])
+        #expect(viewModel.getPreparedFields()[.iso]?.rawValue as? [Int] == [400])
     }
 
     @Test("Exposure Bias Input (signed decimals)", arguments: [
@@ -147,8 +147,8 @@ struct MetadataEditTests {
 
         let prepared = viewModel.getPreparedFields()
 
-        #expect(prepared[.make] is NSNull)
-        #expect(prepared[.aperture] is NSNull)
-        #expect(prepared[.shutter] is NSNull)
+        #expect(prepared[.make]?.rawValue is NSNull)
+        #expect(prepared[.aperture]?.rawValue is NSNull)
+        #expect(prepared[.shutter]?.rawValue is NSNull)
     }
 }

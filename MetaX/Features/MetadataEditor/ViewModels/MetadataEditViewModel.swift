@@ -228,24 +228,24 @@ final class MetadataEditViewModel {
         )
     }
 
-    func getPreparedFields() -> [MetadataField: Any] {
+    func getPreparedFields() -> [MetadataField: MetadataFieldValue] {
         return prepareFields(from: fields)
     }
 
     /// Converts raw UI inputs into a metadata fields dictionary.
-    private func prepareFields(from raw: Fields) -> [MetadataField: Any] {
-        var fieldsDict: [MetadataField: Any] = [:]
+    private func prepareFields(from raw: Fields) -> [MetadataField: MetadataFieldValue] {
+        var fieldsDict: [MetadataField: MetadataFieldValue] = [:]
 
-        fieldsDict[.make] = (raw.make?.isEmpty ?? true) ? NSNull() : raw.make
-        fieldsDict[.model] = (raw.model?.isEmpty ?? true) ? NSNull() : raw.model
-        fieldsDict[.lensMake] = (raw.lensMake?.isEmpty ?? true) ? NSNull() : raw.lensMake
-        fieldsDict[.lensModel] = (raw.lensModel?.isEmpty ?? true) ? NSNull() : raw.lensModel
+        fieldsDict[.make] = (raw.make?.isEmpty ?? true) ? .null : .string(raw.make!)
+        fieldsDict[.model] = (raw.model?.isEmpty ?? true) ? .null : .string(raw.model!)
+        fieldsDict[.lensMake] = (raw.lensMake?.isEmpty ?? true) ? .null : .string(raw.lensMake!)
+        fieldsDict[.lensModel] = (raw.lensModel?.isEmpty ?? true) ? .null : .string(raw.lensModel!)
 
         // Aperture
         if let val = raw.aperture, let d = Double(val) {
-            fieldsDict[.aperture] = d
+            fieldsDict[.aperture] = .double(d)
         } else {
-            fieldsDict[.aperture] = NSNull()
+            fieldsDict[.aperture] = .null
         }
 
         // Shutter Speed
@@ -253,65 +253,65 @@ final class MetadataEditViewModel {
             if val.contains("/") {
                 let parts = val.components(separatedBy: "/")
                 if parts.count == 2, let n = Double(parts[0]), let d = Double(parts[1]), d != 0 {
-                    fieldsDict[.shutter] = n / d
+                    fieldsDict[.shutter] = .double(n / d)
                 } else {
-                    fieldsDict[.shutter] = NSNull()
+                    fieldsDict[.shutter] = .null
                 }
             } else if let d = Double(val) {
-                fieldsDict[.shutter] = d
+                fieldsDict[.shutter] = .double(d)
             } else {
-                fieldsDict[.shutter] = NSNull()
+                fieldsDict[.shutter] = .null
             }
         } else {
-            fieldsDict[.shutter] = NSNull()
+            fieldsDict[.shutter] = .null
         }
 
         // ISO
         if let val = raw.iso, let i = Int(val) {
-            fieldsDict[.iso] = [i]
+            fieldsDict[.iso] = .intArray([i])
         } else {
-            fieldsDict[.iso] = NSNull()
+            fieldsDict[.iso] = .null
         }
 
         // Focal Length
         if let val = raw.focalLength, let d = Double(val) {
-            fieldsDict[.focalLength] = d
+            fieldsDict[.focalLength] = .double(d)
         } else {
-            fieldsDict[.focalLength] = NSNull()
+            fieldsDict[.focalLength] = .null
         }
 
         // Exposure Bias
         if let val = raw.exposureBias, !val.isEmpty {
             let cleanVal = val.replacingOccurrences(of: "+", with: "")
             if let d = Double(cleanVal) {
-                fieldsDict[.exposureBias] = d
+                fieldsDict[.exposureBias] = .double(d)
             } else {
-                fieldsDict[.exposureBias] = NSNull()
+                fieldsDict[.exposureBias] = .null
             }
         } else {
-            fieldsDict[.exposureBias] = NSNull()
+            fieldsDict[.exposureBias] = .null
         }
 
         // Focal Length In 35mm
         if let val = raw.focalLength35, let i = Int(val) {
-            fieldsDict[.focalLength35] = i
+            fieldsDict[.focalLength35] = .int(i)
         } else {
-            fieldsDict[.focalLength35] = NSNull()
+            fieldsDict[.focalLength35] = .null
         }
 
         // Pickers
-        fieldsDict[.exposureProgram] = raw.exposureProgram ?? NSNull()
-        fieldsDict[.meteringMode] = raw.meteringMode ?? NSNull()
-        fieldsDict[.whiteBalance] = raw.whiteBalance ?? NSNull()
-        fieldsDict[.flash] = raw.flash ?? NSNull()
+        fieldsDict[.exposureProgram] = raw.exposureProgram.map { .int($0) } ?? .null
+        fieldsDict[.meteringMode] = raw.meteringMode.map { .int($0) } ?? .null
+        fieldsDict[.whiteBalance] = raw.whiteBalance.map { .int($0) } ?? .null
+        fieldsDict[.flash] = raw.flash.map { .int($0) } ?? .null
 
         // Date and Location
-        fieldsDict[.dateTimeOriginal] = raw.dateTimeOriginal
-        fieldsDict[.location] = raw.location ?? NSNull()
+        fieldsDict[.dateTimeOriginal] = .date(raw.dateTimeOriginal)
+        fieldsDict[.location] = raw.location.map { .location($0) } ?? .null
 
         // Copyright
-        fieldsDict[.artist] = (raw.artist?.isEmpty ?? true) ? NSNull() : raw.artist
-        fieldsDict[.copyright] = (raw.copyright?.isEmpty ?? true) ? NSNull() : raw.copyright
+        fieldsDict[.artist] = (raw.artist?.isEmpty ?? true) ? .null : .string(raw.artist!)
+        fieldsDict[.copyright] = (raw.copyright?.isEmpty ?? true) ? .null : .string(raw.copyright!)
 
         return fieldsDict
     }

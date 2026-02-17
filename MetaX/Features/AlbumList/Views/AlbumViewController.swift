@@ -9,6 +9,7 @@
 import Photos
 import UIKit
 
+@MainActor
 class AlbumViewController: UITableViewController, ViewModelObserving {
 
     // MARK: - ViewModel
@@ -22,8 +23,14 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
 
     // MARK: - Properties
 
-    var splashDismissHandler: (() -> Void)?
+    var splashDismissHandler: (() -> Void)? {
+        didSet {
+            checkSplashDismissal()
+        }
+    }
+
     private var isHeroImageLoaded = false
+    private var isInitialDataLoaded = false
 
     private let sectionTitles = [
         "",
@@ -168,6 +175,8 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     private func handleInitialLoad() {
         tableView.reloadData()
         tableView.layoutIfNeeded()
+
+        isInitialDataLoaded = true
         checkSplashDismissal()
     }
 
@@ -175,6 +184,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
 
     private func checkSplashDismissal() {
         guard splashDismissHandler != nil,
+              isInitialDataLoaded,
               isHeroImageLoaded,
               viewModel.pendingLoadsCount == 0 else { return }
         splashDismissHandler?()
@@ -182,13 +192,17 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     }
 
     private func checkAuthorizationAndLoad() {
-        Task { @MainActor [weak self] in
+        Task { [weak self] in
             guard let self else { return }
-            if await viewModel.authorizeAndLoad() {
+            let success = await viewModel.authorizeAndLoad()
+
+            if success {
                 handleInitialLoad()
             } else {
-                splashDismissHandler?()
-                splashDismissHandler = nil
+                // Allow dismissal if unauthorized so lock view can show
+                isInitialDataLoaded = true
+                isHeroImageLoaded = true
+                checkSplashDismissal()
             }
         }
     }
@@ -293,8 +307,6 @@ extension AlbumViewController {
             }
 
             // Async-load count + thumbnail if not yet cached (no-op when already cached).
-            // Note: Keeping this completion-based for now as it handles complex synchronization
-            // within the ViewModel, but image loading is now Task-based above.
             viewModel
                 .loadCellDataIfNeeded(at: indexPath, thumbnailSize: standardThumbnailSize) { [weak cell] count, image in
                     guard let cell, cell.representedIdentifier == collectionId else { return }

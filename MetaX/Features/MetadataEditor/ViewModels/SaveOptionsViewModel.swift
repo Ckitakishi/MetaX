@@ -11,17 +11,17 @@ import UIKit
 @Observable @MainActor
 final class SaveOptionsViewModel {
 
-    enum Step {
+    enum Step: Sendable {
         case initial
         case deletionInquiry
     }
 
-    struct Option {
+    struct Option: Sendable {
         let title: String
         let description: String
         let icon: String
         let color: UIColor
-        let action: () -> Void
+        let action: @MainActor @Sendable () -> Void
     }
 
     private(set) var currentStep: Step = .initial

@@ -91,7 +91,7 @@ struct DetailInfoViewModelTests {
     }
 }
 
-class MockMetadataService: MetadataServiceProtocol {
+class MockMetadataService: MetadataServiceProtocol, @unchecked Sendable {
     func loadMetadata(from asset: PHAsset) async -> Result<Metadata, MetaXError> { .failure(.unknown(underlying: nil)) }
     func loadMetadata(from url: URL) -> Result<Metadata, MetaXError> { .failure(.unknown(underlying: nil)) }
     func updateTimestamp(_ date: Date, in metadata: Metadata) -> [String: Any] { [:] }
@@ -102,7 +102,7 @@ class MockMetadataService: MetadataServiceProtocol {
     func updateMetadata(with batch: [String: Any], in metadata: Metadata) -> [String: Any] { [:] }
 }
 
-class MockImageSaveService: ImageSaveServiceProtocol {
+class MockImageSaveService: ImageSaveServiceProtocol, @unchecked Sendable {
     func editAssetMetadata(
         asset: PHAsset,
         newProperties: [String: Any]
@@ -113,7 +113,7 @@ class MockImageSaveService: ImageSaveServiceProtocol {
     ) async -> Result<PHAsset, MetaXError> { .failure(.unknown(underlying: nil)) }
 }
 
-class MockPhotoLibraryService: PhotoLibraryServiceProtocol {
+class MockPhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendable {
     func checkAuthorization() async -> Result<Void, MetaXError> { .failure(.unknown(underlying: nil)) }
     func guideToSettings() {}
     func fetchAllPhotos(sortedBy: NSSortDescriptor?) -> PHFetchResult<PHAsset> { fatalError("Not called in tests") }

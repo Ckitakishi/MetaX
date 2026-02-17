@@ -8,6 +8,7 @@
 
 import UIKit
 
+@MainActor
 class DetailSectionHeaderView: UIView {
 
     private let indicatorBlock: UIView = {

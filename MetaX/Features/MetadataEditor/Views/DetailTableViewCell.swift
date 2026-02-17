@@ -8,6 +8,7 @@
 
 import UIKit
 
+@MainActor
 class DetailTableViewCell: UITableViewCell {
 
     private let neoContainer = NeoBrutalistContainerView(contentPadding: 12)
