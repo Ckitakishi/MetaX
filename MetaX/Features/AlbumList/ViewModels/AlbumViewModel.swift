@@ -409,29 +409,43 @@ final class AlbumViewModel: NSObject {
 
 extension AlbumViewModel: PHPhotoLibraryChangeObserver {
 
+    /// True when items were inserted or removed (not just content-updated).
+    /// Pure content changes (e.g. iCloud downloads) return false; cells'
+    /// AsyncStreams handle those updates automatically.
+    private func isStructural<T: PHObject>(_ details: PHFetchResultChangeDetails<T>) -> Bool {
+        !details.hasIncrementalChanges
+            || details.insertedIndexes?.isEmpty == false
+            || details.removedIndexes?.isEmpty == false
+    }
+
     nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
         Task { @MainActor in
-            var hasChanges = false
+            var needsReload = false
 
-            if let allPhotos = allPhotos, let changeDetails = changeInstance.changeDetails(for: allPhotos) {
-                self.allPhotos = changeDetails.fetchResultAfterChanges
-                hasChanges = true
+            if let allPhotos, let details = changeInstance.changeDetails(for: allPhotos) {
+                self.allPhotos = details.fetchResultAfterChanges
+                if isStructural(details) { needsReload = true }
             }
 
-            if let smartAlbums = smartAlbums, let changeDetails = changeInstance.changeDetails(for: smartAlbums) {
-                self.smartAlbums = changeDetails.fetchResultAfterChanges
+            if let smartAlbums, let details = changeInstance.changeDetails(for: smartAlbums) {
+                self.smartAlbums = details.fetchResultAfterChanges
+                let old = nonEmptySmartAlbums.map(\.localIdentifier)
                 self.nonEmptySmartAlbums = updatedNonEmptyAlbums()
-                hasChanges = true
+                if isStructural(details) || nonEmptySmartAlbums.map(\.localIdentifier) != old {
+                    needsReload = true
+                }
             }
 
-            if let userCollections = userCollections,
-               let changeDetails = changeInstance.changeDetails(for: userCollections) {
-                self.userCollections = changeDetails.fetchResultAfterChanges
+            if let userCollections, let details = changeInstance.changeDetails(for: userCollections) {
+                self.userCollections = details.fetchResultAfterChanges
+                let old = userAssetCollections.map(\.localIdentifier)
                 self.userAssetCollections = updatedUserAssetCollections()
-                hasChanges = true
+                if isStructural(details) || userAssetCollections.map(\.localIdentifier) != old {
+                    needsReload = true
+                }
             }
 
-            if hasChanges {
+            if needsReload {
                 invalidateCaches()
                 applySearchAndSort()
             }

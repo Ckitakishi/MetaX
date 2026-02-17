@@ -27,6 +27,9 @@ final class PhotoGridViewModel: NSObject {
     private var previousPreheatRect = CGRect.zero
     private var thumbnailSize: CGSize = .zero
 
+    private var pendingFetchResult: PHFetchResult<PHAsset>?
+    private var libraryChangeTask: Task<Void, Never>?
+
     // MARK: - Dependencies
 
     private let photoLibraryService: PhotoLibraryServiceProtocol
@@ -41,6 +44,8 @@ final class PhotoGridViewModel: NSObject {
     // MARK: - Configuration
 
     func configure(with fetchResult: PHFetchResult<PHAsset>?, collection: PHAssetCollection?) {
+        libraryChangeTask?.cancel()
+        pendingFetchResult = nil
         self.fetchResult = fetchResult
         assetCollection = collection
     }
@@ -160,9 +165,20 @@ extension PhotoGridViewModel: PHPhotoLibraryChangeObserver {
 
     nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
         Task { @MainActor in
-            guard let fetchResult = self.fetchResult,
-                  let changes = changeInstance.changeDetails(for: fetchResult) else { return }
-            self.fetchResult = changes.fetchResultAfterChanges
+            // Always diff against the latest accumulated result, not the last committed one.
+            guard let base = self.pendingFetchResult ?? self.fetchResult,
+                  let changes = changeInstance.changeDetails(for: base) else { return }
+
+            self.pendingFetchResult = changes.fetchResultAfterChanges
+
+            // Debounce: coalesce rapid notifications into a single reloadData.
+            libraryChangeTask?.cancel()
+            libraryChangeTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled, let pending = self.pendingFetchResult else { return }
+                self.fetchResult = pending
+                self.pendingFetchResult = nil
+            }
         }
     }
 }

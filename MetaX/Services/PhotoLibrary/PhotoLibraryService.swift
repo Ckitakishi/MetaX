@@ -176,7 +176,7 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendabl
         completion: @escaping (PHLivePhoto?, Bool) -> Void
     ) -> PHImageRequestID {
         let options = PHLivePhotoRequestOptions()
-        options.deliveryMode = .highQualityFormat
+        options.deliveryMode = .opportunistic
         options.isNetworkAccessAllowed = true
         return imageManager.requestLivePhoto(
             for: asset,
