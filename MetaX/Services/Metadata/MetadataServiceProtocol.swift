@@ -13,11 +13,8 @@ import Photos
 protocol MetadataServiceProtocol: Sendable {
     // MARK: - Load Metadata
 
-    /// Load metadata from a PHAsset
-    func loadMetadata(from asset: PHAsset) async -> Result<Metadata, MetaXError>
-
-    /// Load metadata from a URL
-    func loadMetadata(from url: URL) -> Result<Metadata, MetaXError>
+    /// Loads metadata as a stream of events, allowing for progress updates and cancellation.
+    func loadMetadataEvents(from asset: PHAsset) -> AsyncStream<MetadataLoadEvent>
 
     // MARK: - Modify Metadata
 

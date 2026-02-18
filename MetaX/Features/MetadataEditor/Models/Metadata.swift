@@ -69,7 +69,7 @@ public enum MetadataSection: String, Sendable {
     }
 }
 
-public struct Metadata {
+public struct Metadata: @unchecked Sendable {
 
     public let sourceProperties: [String: Any]
 
@@ -149,6 +149,18 @@ public struct Metadata {
     var timeStampKey: String {
         MetadataKeys.dateTimeOriginal
     }
+}
+
+// MARK: - MetadataLoadEvent
+
+/// Events emitted during the metadata loading process.
+enum MetadataLoadEvent: Sendable {
+    /// Indicates iCloud download progress (0.0 to 1.0).
+    case progress(Double)
+    /// Metadata loaded successfully.
+    case success(Metadata)
+    /// Loading failed with a specific error.
+    case failure(MetaXError)
 }
 
 // MARK: - MetadataFieldValue

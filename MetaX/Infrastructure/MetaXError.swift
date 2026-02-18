@@ -9,21 +9,21 @@
 import Foundation
 
 /// Unified error type for MetaX application
-enum MetaXError: Error {
+public enum MetaXError: Error, Sendable {
     case photoLibrary(PhotoLibrary)
     case metadata(Metadata)
     case imageSave(ImageSave)
     case location(Location)
     case unknown(underlying: Error?)
 
-    enum PhotoLibrary {
+    public enum PhotoLibrary: Sendable {
         case accessDenied
         case unavailable
         case assetNotFound
         case assetFetchFailed(underlying: Error?)
     }
 
-    enum Metadata {
+    public enum Metadata: Sendable {
         case readFailed
         case writeFailed
         case unsupportedMediaType
@@ -31,14 +31,14 @@ enum MetaXError: Error {
         case iCloudSyncFailed
     }
 
-    enum ImageSave {
+    public enum ImageSave: Sendable {
         case editionFailed
         case creationFailed
         case albumCreationFailed
         case temporaryFileError
     }
 
-    enum Location {
+    public enum Location: Sendable {
         case accessDenied
         case geocodingFailed
         case coordinateNotAvailable
@@ -48,7 +48,7 @@ enum MetaXError: Error {
 // MARK: - Error Code
 
 extension MetaXError {
-    var code: Int {
+    public var code: Int {
         switch self {
         case let .photoLibrary(error):
             switch error {
@@ -87,7 +87,7 @@ extension MetaXError {
 // MARK: - LocalizedError
 
 extension MetaXError: LocalizedError {
-    var errorDescription: String? {
+    public var errorDescription: String? {
         let message: String
         switch self {
         case .photoLibrary(.accessDenied):

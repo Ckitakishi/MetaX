@@ -35,17 +35,18 @@ final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
         let searchRequest = MKLocalSearch.Request(completion: completion)
         let search = MKLocalSearch(request: searchRequest)
 
-        return try await withCheckedThrowingContinuation { continuation in
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<LocationModel, Error>) in
+            let onceGuard = OnceGuard(continuation)
             search.start { response, error in
                 if let error = error {
-                    continuation.resume(throwing: error)
+                    onceGuard.resume(throwing: error)
                     return
                 }
 
                 if let mapItem = response?.mapItems.first {
-                    continuation.resume(returning: LocationModel(with: mapItem))
+                    onceGuard.resume(returning: LocationModel(with: mapItem))
                 } else {
-                    continuation.resume(returning: fallback)
+                    onceGuard.resume(returning: fallback)
                 }
             }
         }

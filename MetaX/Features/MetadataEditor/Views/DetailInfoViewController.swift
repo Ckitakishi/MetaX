@@ -143,15 +143,13 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         setupUI()
         setupBindings()
         viewModel.registerPhotoLibraryObserver()
+        Task { await viewModel.loadMetadata() }
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         updateHeaderHeight()
         viewModel.loadHeroContent(targetSize: targetSize)
-        Task {
-            await viewModel.loadMetadata()
-        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -422,6 +420,18 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         observe(viewModel: viewModel, property: { $0.hasMetaXEdit }) { [weak self] _ in
             guard let self else { return }
             moreMenuButton.menu = buildMoreMenu()
+        }
+
+        observe(viewModel: viewModel, property: { $0.isDownloadingFromICloud }) { isDownloading in
+            if isDownloading {
+                HUD.showDownloading()
+            } else {
+                HUD.dismiss()
+            }
+        }
+
+        observe(viewModel: viewModel, property: { $0.loadingProgress }) { progress in
+            HUD.updateDownloadProgress(progress)
         }
 
         observe(viewModel: viewModel, property: { $0.isDeleted }) { [weak self] isDeleted in

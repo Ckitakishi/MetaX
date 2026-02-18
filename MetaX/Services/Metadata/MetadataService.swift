@@ -20,49 +20,40 @@ final class MetadataService: MetadataServiceProtocol, @unchecked Sendable {
 
     // MARK: - Load Metadata
 
-    func loadMetadata(from asset: PHAsset) async -> Result<Metadata, MetaXError> {
-        // Validate media type - only support images, not live photos (mediaSubtypes.rawValue == 32)
-        guard asset.mediaType == .image, asset.mediaSubtypes.rawValue != 32 else {
-            return .failure(.metadata(.unsupportedMediaType))
-        }
-
-        return await withCheckedContinuation { continuation in
+    func loadMetadataEvents(from asset: PHAsset) -> AsyncStream<MetadataLoadEvent> {
+        AsyncStream<MetadataLoadEvent> { continuation in
             let options = PHContentEditingInputRequestOptions()
             options.isNetworkAccessAllowed = true
 
-            asset.requestContentEditingInput(with: options) { input, info in
-                // Check iCloud status
-                if let inCloudKey = info[PHContentEditingInputResultIsInCloudKey] as? Int,
-                   inCloudKey == 1,
-                   input?.fullSizeImageURL == nil {
-                    continuation.resume(returning: .failure(.metadata(.iCloudSyncFailed)))
+            options.progressHandler = { progress, _ in
+                // progress == 1.0 means instantly-complete (local asset edge case), skip
+                guard progress < 1.0 else { return }
+                continuation.yield(.progress(progress))
+            }
+
+            let requestId = asset.requestContentEditingInput(with: options) { input, info in
+                if let inCloud = info[PHContentEditingInputResultIsInCloudKey] as? Bool, inCloud, input == nil {
                     return
                 }
 
-                // Check for errors
+                defer { continuation.finish() }
+
                 if let error = info[PHContentEditingInputErrorKey] as? Error {
-                    continuation.resume(returning: .failure(.photoLibrary(.assetFetchFailed(underlying: error))))
-                    return
+                    continuation.yield(.failure(.photoLibrary(.assetFetchFailed(underlying: error))))
+                } else if let input = input,
+                          let imageURL = input.fullSizeImageURL,
+                          let ciImage = CIImage(contentsOf: imageURL),
+                          let metadata = Metadata(ciimage: ciImage) {
+                    continuation.yield(.success(metadata))
+                } else {
+                    continuation.yield(.failure(.metadata(.readFailed)))
                 }
+            }
 
-                guard let imageURL = input?.fullSizeImageURL,
-                      let ciImage = CIImage(contentsOf: imageURL),
-                      let metadata = Metadata(ciimage: ciImage)
-                else {
-                    continuation.resume(returning: .failure(.metadata(.readFailed)))
-                    return
-                }
-
-                continuation.resume(returning: .success(metadata))
+            continuation.onTermination = { _ in
+                asset.cancelContentEditingInputRequest(requestId)
             }
         }
-    }
-
-    func loadMetadata(from url: URL) -> Result<Metadata, MetaXError> {
-        guard let metadata = Metadata(contentsOf: url) else {
-            return .failure(.metadata(.readFailed))
-        }
-        return .success(metadata)
     }
 
     // MARK: - Modify Metadata

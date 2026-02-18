@@ -17,16 +17,28 @@ final class HUD {
     /// so they only dismiss the HUD they were created for.
     private var showGeneration: Int = 0
 
+    private var downloadProgressLayer: CAShapeLayer?
+    private var downloadProgressLabel: UILabel?
+
     private init() {}
 
     enum HUDType {
         case processing(String)
+        case downloading
         case info(String)
         case error(String)
     }
 
     static func showProcessing(with message: String) {
         shared.show(.processing(message))
+    }
+
+    static func showDownloading() {
+        shared.show(.downloading)
+    }
+
+    static func updateDownloadProgress(_ progress: Double) {
+        shared.updateDownloadProgress(progress)
     }
 
     static func showInfo(with message: String) {
@@ -86,6 +98,50 @@ final class HUD {
             activity.startAnimating()
             stackView.addArrangedSubview(activity)
             messageLabel.text = message
+            stackView.addArrangedSubview(messageLabel)
+        case .downloading:
+            let size: CGFloat = 52
+            let lineWidth: CGFloat = 4
+            let circleView = UIView()
+            circleView.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                circleView.widthAnchor.constraint(equalToConstant: size),
+                circleView.heightAnchor.constraint(equalToConstant: size),
+            ])
+
+            let center = CGPoint(x: size / 2, y: size / 2)
+            let radius = (size - lineWidth) / 2
+            let path = UIBezierPath(
+                arcCenter: center, radius: radius,
+                startAngle: -.pi / 2, endAngle: 1.5 * .pi,
+                clockwise: true
+            )
+
+            let trackLayer = CAShapeLayer()
+            trackLayer.path = path.cgPath
+            trackLayer.strokeColor = UIColor.systemGray4.cgColor
+            trackLayer.fillColor = UIColor.clear.cgColor
+            trackLayer.lineWidth = lineWidth
+            circleView.layer.addSublayer(trackLayer)
+
+            let progressLayer = CAShapeLayer()
+            progressLayer.path = path.cgPath
+            progressLayer.strokeColor = Theme.Colors.accent.resolvedColor(with: hud.traitCollection).cgColor
+            progressLayer.fillColor = UIColor.clear.cgColor
+            progressLayer.lineWidth = lineWidth
+            progressLayer.lineCap = .round
+            progressLayer.strokeEnd = 0
+            downloadProgressLayer = progressLayer
+            circleView.layer.addSublayer(progressLayer)
+
+            stackView.addArrangedSubview(circleView)
+
+            let percentLabel = UILabel()
+            percentLabel.font = Theme.Typography.footnote
+            percentLabel.textColor = Theme.Colors.text
+            percentLabel.text = "0%"
+            downloadProgressLabel = percentLabel
+            stackView.addArrangedSubview(percentLabel)
         case let .info(message):
             let icon = UIImageView(image: UIImage(systemName: "info.circle"))
             icon.tintColor = Theme.Colors.text
@@ -96,6 +152,7 @@ final class HUD {
             ])
             stackView.addArrangedSubview(icon)
             messageLabel.text = message
+            stackView.addArrangedSubview(messageLabel)
         case let .error(message):
             let icon = UIImageView(image: UIImage(systemName: "exclamationmark.triangle"))
             icon.tintColor = .systemRed
@@ -106,9 +163,8 @@ final class HUD {
             ])
             stackView.addArrangedSubview(icon)
             messageLabel.text = message
+            stackView.addArrangedSubview(messageLabel)
         }
-
-        stackView.addArrangedSubview(messageLabel)
 
         NSLayoutConstraint.activate([
             hud.centerXAnchor.constraint(equalTo: container.centerXAnchor),
@@ -127,6 +183,7 @@ final class HUD {
         }
 
         if case .processing = type { return }
+        if case .downloading = type { return }
 
         showGeneration += 1
         let generation = showGeneration
@@ -137,6 +194,17 @@ final class HUD {
         }
     }
 
+    private func updateDownloadProgress(_ progress: Double) {
+        let animation = CABasicAnimation(keyPath: "strokeEnd")
+        animation.fromValue = downloadProgressLayer?.strokeEnd ?? 0
+        animation.toValue = CGFloat(progress)
+        animation.duration = 0.3
+        animation.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        downloadProgressLayer?.strokeEnd = CGFloat(progress)
+        downloadProgressLayer?.add(animation, forKey: "progress")
+        downloadProgressLabel?.text = "\(Int(progress * 100))%"
+    }
+
     private func hide() {
         guard let container = containerView else { return }
         // Clear singleton references immediately so a rapid show() call sees
@@ -144,6 +212,8 @@ final class HUD {
         // the animation via ARC.
         containerView = nil
         hudView = nil
+        downloadProgressLayer = nil
+        downloadProgressLabel = nil
         container.layer.removeAllAnimations()
         UIView.animate(withDuration: 0.2, animations: {
             container.alpha = 0

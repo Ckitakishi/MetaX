@@ -79,7 +79,9 @@
 		56E6F1DC2F42EA73002D0CAA /* SaveOptionsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1DB2F42EA73002D0CAA /* SaveOptionsViewModel.swift */; };
 		56E6F1DE2F42F0D9002D0CAA /* LocationSearchViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1DD2F42F0D9002D0CAA /* LocationSearchViewModelTests.swift */; };
 		56E6F1E12F42F0D9002D0CAA /* DetailInfoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1E02F42F0D9002D0CAA /* DetailInfoViewModelTests.swift */; };
+		56E6F1E22F45B9CA002D0CAA /* OnceGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1E12F45B9CA002D0CAA /* OnceGuard.swift */; };
 		56E6F1E32F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1E22F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift */; };
+		56E6F1E62F45F04E002D0CAA /* PHAssetExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1E52F45F04E002D0CAA /* PHAssetExtension.swift */; };
 		56EBC81D2F36FD08009AF511 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 56EBC81C2F36FD07009AF511 /* Localizable.xcstrings */; };
 		56EBC8212F36FD0D009AF511 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 56EBC8202F36FD0D009AF511 /* InfoPlist.xcstrings */; };
 		B1A53635B2CA4D0AAB1A8083 /* ExifEnumMappings.json in Resources */ = {isa = PBXBuildFile; fileRef = 646A635100A346878D8DF79D /* ExifEnumMappings.json */; };
@@ -171,7 +173,9 @@
 		56E6F1DB2F42EA73002D0CAA /* SaveOptionsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveOptionsViewModel.swift; sourceTree = "<group>"; };
 		56E6F1DD2F42F0D9002D0CAA /* LocationSearchViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchViewModelTests.swift; sourceTree = "<group>"; };
 		56E6F1E02F42F0D9002D0CAA /* DetailInfoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailInfoViewModelTests.swift; sourceTree = "<group>"; };
+		56E6F1E12F45B9CA002D0CAA /* OnceGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnceGuard.swift; sourceTree = "<group>"; };
 		56E6F1E22F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveOptionsViewModelTests.swift; sourceTree = "<group>"; };
+		56E6F1E52F45F04E002D0CAA /* PHAssetExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PHAssetExtension.swift; sourceTree = "<group>"; };
 		56EBC81C2F36FD07009AF511 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		56EBC8202F36FD0D009AF511 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		646A635100A346878D8DF79D /* ExifEnumMappings.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ExifEnumMappings.json; sourceTree = "<group>"; };
@@ -269,6 +273,7 @@
 		56E6F1492F42D491002D0CAA /* Photos */ = {
 			isa = PBXGroup;
 			children = (
+				56E6F1E52F45F04E002D0CAA /* PHAssetExtension.swift */,
 				56E6F1462F42D491002D0CAA /* PHAssetCollectionExtension.swift */,
 				56E6F1472F42D491002D0CAA /* PHImageRequestOptionsExtension.swift */,
 				56E6F1482F42D491002D0CAA /* PHPhotoLibraryExtension.swift */,
@@ -460,6 +465,7 @@
 		56E6F1812F42D491002D0CAA /* Infrastructure */ = {
 			isa = PBXGroup;
 			children = (
+				56E6F1E12F45B9CA002D0CAA /* OnceGuard.swift */,
 				56E6F17A2F42D491002D0CAA /* AppConstants.swift */,
 				56E6F17B2F42D491002D0CAA /* CellConfig.swift */,
 				56E6F17C2F42D491002D0CAA /* CellReusable.swift */,
@@ -658,6 +664,7 @@
 				56E6F19D2F42D491002D0CAA /* SaveOptionsViewController.swift in Sources */,
 				56E6F19E2F42D491002D0CAA /* FormTextField.swift in Sources */,
 				56E6F19F2F42D491002D0CAA /* PHPhotoLibraryExtension.swift in Sources */,
+				56E6F1E62F45F04E002D0CAA /* PHAssetExtension.swift in Sources */,
 				56E6F1A02F42D491002D0CAA /* AlbumHeroTableViewCell.swift in Sources */,
 				56E6F1A12F42D491002D0CAA /* PhotoLibraryServiceProtocol.swift in Sources */,
 				56E6F1A22F42D491002D0CAA /* ViewModelObserving.swift in Sources */,
@@ -697,6 +704,7 @@
 				56E6F1C42F42D491002D0CAA /* LocationSearchViewModel.swift in Sources */,
 				56E6F1C52F42D491002D0CAA /* PhotoGridViewModel.swift in Sources */,
 				56E6F1C62F42D491002D0CAA /* DetailTableViewCell.swift in Sources */,
+				56E6F1E22F45B9CA002D0CAA /* OnceGuard.swift in Sources */,
 				56E6F1C72F42D491002D0CAA /* UIViewExtension.swift in Sources */,
 				56E6F1C82F42D491002D0CAA /* MetaXError.swift in Sources */,
 				56E6F1C92F42D491002D0CAA /* PHImageRequestOptionsExtension.swift in Sources */,

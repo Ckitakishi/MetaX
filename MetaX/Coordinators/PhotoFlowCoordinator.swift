@@ -216,17 +216,17 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
 
     private func pickSaveMode(on presenter: UIViewController? = nil) async -> SaveWorkflowMode? {
         let host = presenter ?? navigationController
-        return await withCheckedContinuation { continuation in
+        return await withCheckedContinuation { (continuation: CheckedContinuation<SaveWorkflowMode?, Never>) in
+            let onceGuard = OnceGuard(continuation)
             let vc = SaveOptionsViewController()
             if UIDevice.current.userInterfaceIdiom == .pad {
                 vc.modalPresentationStyle = .pageSheet
             }
-            var isResumed = false
             vc.onSelect = { mode in
-                if !isResumed { isResumed = true; continuation.resume(returning: mode) }
+                onceGuard.resume(returning: mode)
             }
             vc.onCancel = {
-                if !isResumed { isResumed = true; continuation.resume(returning: nil) }
+                onceGuard.resume(returning: nil)
             }
             host.present(vc, animated: true)
         }
@@ -236,13 +236,17 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
         on vc: MetadataEditViewController,
         source: UIViewController
     ) async -> [MetadataField: MetadataFieldValue]? {
-        await withCheckedContinuation { continuation in
-            var isResumed = false
+        await withCheckedContinuation { (continuation: CheckedContinuation<
+            [MetadataField: MetadataFieldValue]?,
+            Never
+        >) in
+            let onceGuard = OnceGuard(continuation)
             vc.onSave = { fields in
-                if !isResumed { isResumed = true; continuation.resume(returning: fields) }
+                onceGuard.resume(returning: fields)
             }
             vc.onCancel = { [weak source] in
-                if !isResumed { isResumed = true; source?.dismiss(animated: true); continuation.resume(returning: nil) }
+                source?.dismiss(animated: true)
+                onceGuard.resume(returning: nil)
             }
         }
     }

@@ -8,6 +8,7 @@
 
 import CoreLocation
 import Observation
+import os
 import Photos
 import UIKit
 
@@ -72,6 +73,10 @@ final class DetailInfoViewModel: NSObject {
     private(set) var hasMetaXEdit: Bool = false
     private(set) var metadata: Metadata?
     private(set) var isDeleted: Bool = false
+
+    /// iCloud download progress and status
+    private(set) var loadingProgress: Double = 0
+    private(set) var isDownloadingFromICloud: Bool = false
 
     /// Separate error for transient actions (save/revert) to avoid wiping content state
     private(set) var actionError: MetaXError?
@@ -174,18 +179,25 @@ final class DetailInfoViewModel: NSObject {
         }
 
         state = .loading
+        isDownloadingFromICloud = false
+        loadingProgress = 0
 
-        // Force reload from Photo Library to get the latest edited metadata
-        let result = await metadataService.loadMetadata(from: asset)
-
-        switch result {
-        case let .success(metadata):
-            self.metadata = metadata
-            updateDisplayData(from: metadata)
-            state = .success
-            await refreshMetaXEditStatus()
-        case let .failure(error):
-            state = .failure(error)
+        // Use event-based loading to track progress and handle potential multiple callbacks safely.
+        for await event in metadataService.loadMetadataEvents(from: asset) {
+            switch event {
+            case let .progress(progress):
+                isDownloadingFromICloud = true
+                loadingProgress = progress
+            case let .success(metadata):
+                isDownloadingFromICloud = false
+                self.metadata = metadata
+                updateDisplayData(from: metadata)
+                state = .success
+                await refreshMetaXEditStatus()
+            case let .failure(error):
+                isDownloadingFromICloud = false
+                state = .failure(error)
+            }
         }
     }
 
@@ -210,18 +222,21 @@ final class DetailInfoViewModel: NSObject {
 
     private func refreshMetaXEditStatus() async {
         guard let asset else { hasMetaXEdit = false; return }
-        hasMetaXEdit = await withCheckedContinuation { continuation in
-            let options = PHContentEditingInputRequestOptions()
-            options.isNetworkAccessAllowed = false
-            options.canHandleAdjustmentData = { adjustmentData in
-                adjustmentData.formatIdentifier == Bundle.main.bundleIdentifier
-            }
-            asset.requestContentEditingInput(with: options) { input, _ in
-                continuation.resume(
-                    returning:
-                    input?.adjustmentData?.formatIdentifier == Bundle.main.bundleIdentifier
-                )
-            }
+        hasMetaXEdit = await Self.fetchMetaXEditStatus(for: asset)
+    }
+
+    private nonisolated static func fetchMetaXEditStatus(for asset: PHAsset) async -> Bool {
+        let options = PHContentEditingInputRequestOptions()
+        options.isNetworkAccessAllowed = false
+        options.canHandleAdjustmentData = { adjustmentData in
+            adjustmentData.formatIdentifier == Bundle.main.bundleIdentifier
+        }
+
+        do {
+            let input = try await asset.fetchContentEditingInput(with: options)
+            return input.adjustmentData?.formatIdentifier == Bundle.main.bundleIdentifier
+        } catch {
+            return false
         }
     }
 

@@ -92,8 +92,7 @@ struct DetailInfoViewModelTests {
 }
 
 class MockMetadataService: MetadataServiceProtocol, @unchecked Sendable {
-    func loadMetadata(from asset: PHAsset) async -> Result<Metadata, MetaXError> { .failure(.unknown(underlying: nil)) }
-    func loadMetadata(from url: URL) -> Result<Metadata, MetaXError> { .failure(.unknown(underlying: nil)) }
+    func loadMetadataEvents(from asset: PHAsset) -> AsyncStream<MetadataLoadEvent> { AsyncStream { $0.finish() } }
     func updateTimestamp(_ date: Date, in metadata: Metadata) -> [String: Any] { [:] }
     func removeTimestamp(from metadata: Metadata) -> [String: Any] { [:] }
     func updateLocation(_ location: CLLocation, in metadata: Metadata) -> [String: Any] { [:] }
