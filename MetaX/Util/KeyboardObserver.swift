@@ -5,70 +5,91 @@
 //  Created by Yuhan Chen on 2026/02/09.
 //
 
+import os
 import UIKit
 
 @MainActor
 final class KeyboardObserver {
     private weak var scrollView: UIScrollView?
-
-    private nonisolated(unsafe) var observers: [NSObjectProtocol] = []
+    private let tasks = OSAllocatedUnfairLock(initialState: [Task<Void, Never>]())
 
     init(scrollView: UIScrollView) {
         self.scrollView = scrollView
     }
 
     deinit {
-        // NotificationCenter.removeObserver is thread-safe.
-        for observer in observers {
-            NotificationCenter.default.removeObserver(observer)
-        }
+        tasks.withLock { $0.forEach { $0.cancel() } }
     }
 
     func startObserving() {
-        // Guard against double registration.
         stopObserving()
 
-        let showObserver = NotificationCenter.default.addObserver(
-            forName: UIResponder.keyboardWillShowNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            let keyboardFrame = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?
-                .cgRectValue
-            MainActor.assumeIsolated {
-                self?.handleKeyboard(keyboardFrame: keyboardFrame, isShowing: true)
+        let task = Task { [weak self] in
+            for await notification in NotificationCenter.default
+                .notifications(named: UIResponder.keyboardWillChangeFrameNotification) {
+                self?.handleKeyboard(notification: notification)
             }
         }
-
-        let hideObserver = NotificationCenter.default.addObserver(
-            forName: UIResponder.keyboardWillHideNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.handleKeyboard(keyboardFrame: nil, isShowing: false)
-            }
-        }
-
-        observers = [showObserver, hideObserver]
+        tasks.withLock { $0.append(task) }
     }
 
     func stopObserving() {
-        observers.forEach { NotificationCenter.default.removeObserver($0) }
-        observers.removeAll()
+        tasks.withLock {
+            $0.forEach { $0.cancel() }
+            $0.removeAll()
+        }
     }
 
-    private func handleKeyboard(keyboardFrame: CGRect?, isShowing: Bool) {
-        guard let scrollView = scrollView else { return }
+    private func handleKeyboard(notification: Notification) {
+        guard let scrollView, let userInfo = notification.userInfo else { return }
 
+        let keyboardFrame = (userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue ?? .zero
+        let windowHeight = scrollView.window?.bounds.height ?? UIScreen.main.bounds.height
+        let isShowing = keyboardFrame.minY < windowHeight
+
+        let bottomInset: CGFloat
         if isShowing {
-            guard let keyboardFrame = keyboardFrame else { return }
-            let contentInsets = UIEdgeInsets(top: 0, left: 0, bottom: keyboardFrame.height, right: 0)
-            scrollView.contentInset = contentInsets
-            scrollView.verticalScrollIndicatorInsets = contentInsets
+            let superview = scrollView.superview ?? scrollView
+            let kbFrameInSuperview = superview.convert(keyboardFrame, from: nil)
+            bottomInset = max(0, scrollView.frame.maxY - kbFrameInSuperview.minY)
         } else {
-            scrollView.contentInset = .zero
-            scrollView.verticalScrollIndicatorInsets = .zero
+            bottomInset = 0
         }
+
+        let duration = (userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber)?.doubleValue ?? 0.25
+        let curveRaw = (userInfo[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber)?.uintValue ?? 7
+        let options = UIView.AnimationOptions(rawValue: curveRaw << 16)
+
+        var targetOffset = scrollView.contentOffset
+        if isShowing, let firstResponder = scrollView.findFirstResponder() {
+            let fieldBottomInWindow = firstResponder.convert(
+                CGPoint(x: 0, y: firstResponder.bounds.maxY), to: nil
+            ).y
+            let desiredBottomInWindow = keyboardFrame.minY - 16
+            let delta = fieldBottomInWindow - desiredBottomInWindow
+            if delta > 0 {
+                targetOffset.y += delta
+            }
+        }
+
+        UIView.animate(withDuration: duration, delay: 0, options: options) {
+            scrollView.contentInset.bottom = bottomInset
+            scrollView.verticalScrollIndicatorInsets.bottom = bottomInset
+            if isShowing {
+                scrollView.contentOffset = targetOffset
+            }
+        }
+    }
+}
+
+// MARK: - Helper Extension
+
+extension UIView {
+    fileprivate func findFirstResponder() -> UIView? {
+        if isFirstResponder { return self }
+        for subview in subviews {
+            if let responder = subview.findFirstResponder() { return responder }
+        }
+        return nil
     }
 }

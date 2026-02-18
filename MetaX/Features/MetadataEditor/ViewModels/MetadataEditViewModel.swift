@@ -78,6 +78,7 @@ final class MetadataEditViewModel {
 
     private let initialFields: Fields
     private let geocoder = CLGeocoder()
+    private var geocodingTask: Task<Void, Never>?
 
     init(metadata: Metadata) {
         let props = metadata.sourceProperties
@@ -131,7 +132,7 @@ final class MetadataEditViewModel {
 
         let dateTimeOriginal: Date
         if let dateStr = exif[MetadataKeys.dateTimeOriginal] as? String,
-           let date = DateFormatter(with: .yMdHms).getDate(from: dateStr) {
+           let date = DateFormatter.yMdHms.date(from: dateStr) {
             dateTimeOriginal = min(date, Date())
         } else {
             dateTimeOriginal = Date()
@@ -189,7 +190,7 @@ final class MetadataEditViewModel {
         case .flash: fields.flash = value as? Int
         case .artist: fields.artist = value as? String
         case .copyright: fields.copyright = value as? String
-        case .dateTimeOriginal: if let d = value as? Date { fields.dateTimeOriginal = d }
+        case .dateTimeOriginal: if let d = value as? Date { fields.dateTimeOriginal = min(d, Date()) }
         case .location: if let l = value as? CLLocation { fields.location = l }
         default: break
         }
@@ -197,12 +198,15 @@ final class MetadataEditViewModel {
 
     func reverseGeocode(_ loc: CLLocation) {
         fields.location = loc
+        geocodingTask?.cancel()
+        geocoder.cancelGeocode()
         isGeocoding = true
         locationAddress = "..."
 
-        Task {
+        geocodingTask = Task {
             do {
                 let placemarks = try await geocoder.reverseGeocodeLocation(loc)
+                guard !Task.isCancelled else { return }
                 isGeocoding = false
                 if let p = placemarks.first {
                     let infos = [p.thoroughfare, p.locality, p.administrativeArea, p.country]
@@ -211,6 +215,7 @@ final class MetadataEditViewModel {
                     locationAddress = Self.coordinateFallback(for: loc)
                 }
             } catch {
+                guard !Task.isCancelled else { return }
                 isGeocoding = false
                 locationAddress = Self.coordinateFallback(for: loc)
             }

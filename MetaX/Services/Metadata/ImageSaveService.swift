@@ -32,7 +32,12 @@ final class ImageSaveService: ImageSaveServiceProtocol {
     // MARK: - Dependencies
 
     private let photoLibraryService: PhotoLibraryServiceProtocol
-    private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+    private let ciContext: CIContext = {
+        if let device = MTLCreateSystemDefaultDevice() {
+            return CIContext(mtlDevice: device, options: [.useSoftwareRenderer: false])
+        }
+        return CIContext(options: [.useSoftwareRenderer: false])
+    }()
 
     // [String: Any] is not Sendable. Wrap it at the @MainActor boundary before passing to
     // nonisolated methods. Safe because the value is only read after transfer, never mutated.
@@ -56,10 +61,8 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         // 1. Generate new image data to temp file.
         //    Must happen before any await so that newProperties can be safely transferred
         //    to the nonisolated context without crossing a suspension point boundary.
-        let tempURLResult = await generateModifiedImageFile(
-            for: asset,
-            newProperties: MetadataBox(value: newProperties)
-        )
+        let box = MetadataBox(value: newProperties)
+        let tempURLResult = await generateModifiedImageFile(for: asset, newProperties: box)
         guard case let .success(tempURL) = tempURLResult else {
             return .failure(tempURLResult.error ?? .imageSave(.editionFailed))
         }
@@ -85,10 +88,11 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         asset: PHAsset,
         newProperties: [String: Any]
     ) async -> Result<PHAsset, MetaXError> {
+        let box = MetadataBox(value: newProperties)
         if asset.mediaSubtypes.contains(.photoLive) {
-            return await editLivePhotoMetadata(asset: asset, newProperties: MetadataBox(value: newProperties))
+            return await editLivePhotoMetadata(asset: asset, newProperties: box)
         }
-        return await editStillPhotoMetadata(asset: asset, newProperties: MetadataBox(value: newProperties))
+        return await editStillPhotoMetadata(asset: asset, newProperties: box)
     }
 
     private nonisolated func editStillPhotoMetadata(

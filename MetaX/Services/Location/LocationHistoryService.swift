@@ -26,10 +26,6 @@ struct HistoryLocation: Codable, Equatable, Sendable {
     var identifier: String {
         return "\(title)|\(subtitle)"
     }
-
-    static func == (lhs: HistoryLocation, rhs: HistoryLocation) -> Bool {
-        return lhs.identifier == rhs.identifier
-    }
 }
 
 final class LocationHistoryService: LocationHistoryServiceProtocol {

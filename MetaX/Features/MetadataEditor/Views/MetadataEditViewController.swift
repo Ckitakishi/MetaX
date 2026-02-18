@@ -54,6 +54,7 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
         let picker = UIDatePicker()
         picker.datePickerMode = .dateAndTime
         picker.preferredDatePickerStyle = .compact
+        picker.maximumDate = Date()
         return picker
     }()
 
@@ -192,12 +193,12 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
 
             stackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 20),
             stackView.leadingAnchor.constraint(
-                equalTo: scrollView.readableContentGuide.leadingAnchor,
-                constant: Theme.Layout.horizontalMargin
+                equalTo: view.safeAreaLayoutGuide.leadingAnchor,
+                constant: Theme.Layout.standardPadding
             ),
             stackView.trailingAnchor.constraint(
-                equalTo: scrollView.readableContentGuide.trailingAnchor,
-                constant: -Theme.Layout.horizontalMargin
+                equalTo: view.safeAreaLayoutGuide.trailingAnchor,
+                constant: -Theme.Layout.standardPadding
             ),
             stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -40),
         ])

@@ -66,6 +66,11 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
         updateSections()
     }
 
+    func cancelSearch() {
+        searchTask?.cancel()
+        searchService.cancel()
+    }
+
     func selectItem(at indexPath: IndexPath) async -> LocationModel? {
         guard indexPath.section < sections.count,
               indexPath.row < sections[indexPath.section].rows.count else { return nil }

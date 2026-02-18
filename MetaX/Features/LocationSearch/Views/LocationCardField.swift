@@ -32,6 +32,8 @@ final class LocationCardField: UIView {
     private let mapView: MKMapView = {
         let map = MKMapView()
         map.isUserInteractionEnabled = false
+        map.layer.cornerRadius = 0
+        map.clipsToBounds = true
         map.translatesAutoresizingMaskIntoConstraints = false
         map.isHidden = true
         return map

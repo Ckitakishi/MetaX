@@ -171,14 +171,35 @@ extension PhotoGridViewModel: PHPhotoLibraryChangeObserver {
 
             self.pendingFetchResult = changes.fetchResultAfterChanges
 
-            // Debounce: coalesce rapid notifications into a single reloadData.
-            libraryChangeTask?.cancel()
-            libraryChangeTask = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(300))
-                guard !Task.isCancelled, let pending = self.pendingFetchResult else { return }
-                self.fetchResult = pending
-                self.pendingFetchResult = nil
+            // Dual-strategy Debounce/Throttle:
+            // 1. Structural changes (insert/delete/move) get a 500ms high-priority debounce.
+            // 2. Property updates (like iCloud downloads) get a 1200ms low-priority throttle.
+
+            let isStructural = changes.insertedObjects.count > 0 ||
+                changes.removedObjects.count > 0 ||
+                changes.hasMoves
+
+            if isStructural {
+                // For structural changes, we always reset the timer to ensure a timely update.
+                libraryChangeTask?.cancel()
+                startRefreshTask(delay: 500)
+            } else {
+                // For property updates, if a task is already pending, don't reset it.
+                // This "coalesces" rapid property notifications into one refresh.
+                if libraryChangeTask == nil {
+                    startRefreshTask(delay: 5000)
+                }
             }
+        }
+    }
+
+    private func startRefreshTask(delay: Int) {
+        libraryChangeTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(delay))
+            guard !Task.isCancelled, let pending = self.pendingFetchResult else { return }
+            self.fetchResult = pending
+            self.pendingFetchResult = nil
+            self.libraryChangeTask = nil
         }
     }
 }

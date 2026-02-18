@@ -99,7 +99,7 @@ struct DetailCellModel: DetailCellModelRepresentable {
 
         // DateTimeOriginal special formatting
         if prop == MetadataKeys.dateTimeOriginal, let dateStr = rawValue as? String {
-            if let date = DateFormatter(with: .yMdHms).getDate(from: dateStr) {
+            if let date = DateFormatter.yMdHms.date(from: dateStr) {
                 let displayFormatter = DateFormatter()
                 displayFormatter.dateStyle = .medium
                 displayFormatter.timeStyle = .short

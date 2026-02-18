@@ -46,6 +46,7 @@ class AuthLockView: UIView {
         config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 24, bottom: 10, trailing: 24)
         config.baseForegroundColor = .label
         config.background.backgroundColor = Theme.Colors.tagBackground
+        config.background.cornerRadius = 0 // Force sharp corners
         config.cornerStyle = .fixed
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
             var a = attrs
@@ -53,6 +54,7 @@ class AuthLockView: UIView {
             return a
         }
         let button = UIButton(configuration: config)
+        button.layer.cornerRadius = 0
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()

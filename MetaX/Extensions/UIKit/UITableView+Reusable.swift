@@ -1,5 +1,5 @@
 //
-//  CellReusable.swift
+//  UITableView+Reusable.swift
 //  MetaX
 //
 //  Created by Ckitakishi on 2018/3/19.
@@ -34,6 +34,12 @@ extension UITableView {
     }
 
     func dequeueReusableCell<T: UITableViewCell & Reusable>(indexPath: IndexPath) -> T {
-        return dequeueReusableCell(withIdentifier: T.reuseIdentifier, for: indexPath) as! T
+        guard let cell = dequeueReusableCell(withIdentifier: T.reuseIdentifier, for: indexPath) as? T else {
+            assertionFailure(
+                "Failed to dequeue cell with identifier: \(T.reuseIdentifier). Did you forget to register it?"
+            )
+            return T() // Fallback to avoid crash in production, though UI will be wrong
+        }
+        return cell
     }
 }

@@ -372,7 +372,7 @@ final class DetailInfoViewModel: NSObject {
 
         let newDate: Date?
         if let dateStr = exif?[MetadataKeys.dateTimeOriginal] as? String {
-            newDate = DateFormatter(with: .yMdHms).getDate(from: dateStr)
+            newDate = DateFormatter.yMdHms.date(from: dateStr)
         } else {
             newDate = asset.creationDate
         }
@@ -430,6 +430,7 @@ final class DetailInfoViewModel: NSObject {
 
     private func reverseGeocodeLocation(_ location: CLLocation) {
         geocodingTask?.cancel()
+        geocoder.cancelGeocode() // Cancel the underlying CLGeocoder request, not just the Swift Task
         geocodingTask = Task {
             guard let placemarks = try? await geocoder.reverseGeocodeLocation(location),
                   !Task.isCancelled,

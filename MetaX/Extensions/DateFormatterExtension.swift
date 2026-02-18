@@ -6,7 +6,7 @@
 //  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
-import UIKit
+import Foundation
 
 extension DateFormatter {
 
@@ -15,20 +15,26 @@ extension DateFormatter {
         case yMdHms = "yyyy:MM:dd HH:mm:ss"
     }
 
+    static let yMd: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = Format.yMd.rawValue
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        return formatter
+    }()
+
+    static let yMdHms: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = Format.yMdHms.rawValue
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        return formatter
+    }()
+
     convenience init(with format: Format) {
         self.init()
         dateFormat = format.rawValue
-    }
-
-    func setFormat(_ format: Format) {
-        dateFormat = format.rawValue
-    }
-
-    func getStr(from date: Date) -> String {
-        return string(from: date)
-    }
-
-    func getDate(from str: String) -> Date? {
-        return date(from: str)
+        locale = Locale(identifier: "en_US_POSIX")
+        calendar = Calendar(identifier: .gregorian)
     }
 }

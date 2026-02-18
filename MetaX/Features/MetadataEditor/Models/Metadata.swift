@@ -263,8 +263,7 @@ public enum MetadataField: CaseIterable, Sendable {
     public var keyboardType: UIKeyboardType {
         switch self {
         case .iso, .focalLength35: return .numberPad
-        case .aperture, .focalLength, .exposureBias: return .decimalPad
-        case .shutter: return .numbersAndPunctuation
+        case .aperture, .focalLength, .exposureBias, .shutter: return .decimalPad
         default: return .default
         }
     }
@@ -294,7 +293,7 @@ extension Metadata {
     func writeTimeOriginal(_ date: Date) -> [String: Any] {
         var editableProps = sourceProperties
         var exifInfo = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
-        let dateStr = DateFormatter(with: .yMdHms).getStr(from: date)
+        let dateStr = DateFormatter.yMdHms.string(from: date)
         exifInfo[MetadataKeys.dateTimeOriginal] = dateStr
         exifInfo[MetadataKeys.dateTimeDigitized] = dateStr
         editableProps[MetadataKeys.exifDict] = exifInfo
@@ -357,7 +356,7 @@ extension Metadata {
                     exifInfo.removeValue(forKey: key)
                     exifInfo.removeValue(forKey: MetadataKeys.dateTimeDigitized)
                 } else if let date = value as? Date {
-                    let dateStr = DateFormatter(with: .yMdHms).getStr(from: date)
+                    let dateStr = DateFormatter.yMdHms.string(from: date)
                     exifInfo[key] = dateStr
                     exifInfo[MetadataKeys.dateTimeDigitized] = dateStr
                 }
@@ -414,7 +413,7 @@ extension Metadata {
         }
 
         // Metadata DateTime should be a formatted string, matching the behavior of DateTimeOriginal
-        tiffInfo[MetadataKeys.dateTime] = DateFormatter(with: .yMdHms).getStr(from: Date())
+        tiffInfo[MetadataKeys.dateTime] = DateFormatter.yMdHms.string(from: Date())
 
         editableProps[MetadataKeys.tiffDict] = tiffInfo
         return editableProps

@@ -25,9 +25,13 @@ final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
         }
     }
 
+    func cancel() {
+        completer.cancel()
+    }
+
     @MainActor func resolve(at index: Int) async throws -> LocationModel {
         guard index < completer.results.count else {
-            throw MetaXError.unknown(underlying: nil)
+            throw MetaXError.location(.coordinateNotAvailable)
         }
         let completion = completer.results[index]
         // Pre-capture as a value type before search.start, whose callback runs on a background queue

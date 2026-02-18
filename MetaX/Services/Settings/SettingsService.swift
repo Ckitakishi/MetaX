@@ -32,8 +32,12 @@ final class SettingsService: SettingsServiceProtocol {
 
     private func apply(style: UIUserInterfaceStyle) {
         Task { @MainActor in
-            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
-            windowScene.keyWindow?.overrideUserInterfaceStyle = style
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let window = windowScene.windows.first(where: { $0.isKeyWindow })
+            else {
+                return
+            }
+            window.overrideUserInterfaceStyle = style
         }
     }
 }

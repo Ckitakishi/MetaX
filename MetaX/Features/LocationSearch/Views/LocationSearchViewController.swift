@@ -28,7 +28,7 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
     private let searchTextField: UITextField = {
         let tf = UITextField()
         tf.backgroundColor = Theme.Colors.tagBackground
-        tf.layer.borderWidth = 2
+        tf.layer.borderWidth = 1
         tf.layer.borderColor = Theme.Colors.border.cgColor
         tf.layer.cornerRadius = 0
         tf.font = Theme.Typography.bodyMedium
@@ -172,6 +172,7 @@ class LocationSearchViewController: UIViewController, ViewModelObserving, UIText
     // MARK: - Actions
 
     @objc private func cancel() {
+        viewModel.cancelSearch()
         dismiss(animated: true) { [weak self] in
             self?.onCancel?()
         }
@@ -247,8 +248,10 @@ extension LocationSearchViewController: UITableViewDelegate {
         tableView.deselectRow(at: indexPath, animated: true)
 
         view.isUserInteractionEnabled = false
+        HUD.showProcessing(with: String(localized: .viewProcessing))
         Task {
             let model = await viewModel.selectItem(at: indexPath)
+            HUD.dismiss()
             view.isUserInteractionEnabled = true
 
             if let model = model {

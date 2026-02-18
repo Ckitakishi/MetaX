@@ -207,13 +207,17 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         }
     }
 
-    private static let lockViewTag = 9001
+    // MARK: - Constants
+
+    private enum Constants {
+        static let lockViewTag = 9001
+    }
 
     private func showLockView() {
         guard let topView = navigationController?.view,
-              topView.viewWithTag(AlbumViewController.lockViewTag) == nil else { return }
+              topView.viewWithTag(Constants.lockViewTag) == nil else { return }
         let lockView = AuthLockView()
-        lockView.tag = AlbumViewController.lockViewTag
+        lockView.tag = Constants.lockViewTag
         lockView.frame = topView.frame
         lockView.delegate = self
         lockView.title = String(localized: .alertPhotoAccess)
@@ -223,7 +227,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     }
 
     private func removeLockView() {
-        navigationController?.view.viewWithTag(AlbumViewController.lockViewTag)?.removeFromSuperview()
+        navigationController?.view.viewWithTag(Constants.lockViewTag)?.removeFromSuperview()
     }
 }
 

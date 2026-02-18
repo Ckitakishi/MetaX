@@ -20,5 +20,6 @@ protocol LocationSearchServiceProtocol: AnyObject {
     var delegate: LocationSearchServiceDelegate? { get set }
 
     func search(query: String)
+    func cancel()
     @MainActor func resolve(at index: Int) async throws -> LocationModel
 }

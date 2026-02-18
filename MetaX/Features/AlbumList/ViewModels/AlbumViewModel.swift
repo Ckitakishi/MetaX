@@ -224,46 +224,48 @@ final class AlbumViewModel: NSObject {
         // Capture the current generation so the task can discard stale results
         // if invalidateCaches() fires while the fetch is in flight.
         let generation = cacheGeneration
-        Task.detached { [weak self] in
-            let cover = collection.newestImage()
-            let count = collection.imagesCount
-            await MainActor.run { [weak self] in
-                guard let self, self.cacheGeneration == generation else { return }
-                self.coverCache[id] = cover
-                self.countCache[id] = count
+        Task { [weak self] in
+            // Move Photos metadata fetch to a non-isolated context if needed,
+            // but PHAsset methods are generally fast or thread-safe.
+            let (cover, count) = await Task.detached(priority: .userInitiated) {
+                (collection.newestImage(), collection.imagesCount)
+            }.value
 
-                guard let cover else {
-                    // No cover — fire completions immediately with nil image.
-                    self.pendingLoads.remove(id)
-                    self.pendingLoadsCount -= 1
-                    for cb in self.loadCompletions.removeValue(forKey: id) ?? [] {
-                        cb(count, nil)
-                    }
-                    return
+            guard let self, self.cacheGeneration == generation else { return }
+            self.coverCache[id] = cover
+            self.countCache[id] = count
+
+            guard let cover else {
+                // No cover — fire completions immediately with nil image.
+                self.pendingLoads.remove(id)
+                self.pendingLoadsCount -= 1
+                for cb in self.loadCompletions.removeValue(forKey: id) ?? [] {
+                    cb(count, nil)
                 }
+                return
+            }
 
-                // Thumbnail request keeps pendingLoadsCount elevated until HQ arrives.
-                // Degraded delivery updates cells immediately; final delivery unblocks splash.
-                let pendingCallbacks = self.loadCompletions.removeValue(forKey: id) ?? []
-                self.photoLibraryService
-                    .requestThumbnail(for: cover, targetSize: thumbnailSize) { [weak self] image, isDegraded in
-                        Task { @MainActor in
-                            guard let self, self.cacheGeneration == generation else { return }
+            // Thumbnail request keeps pendingLoadsCount elevated until HQ arrives.
+            // Degraded delivery updates cells immediately; final delivery unblocks splash.
+            let pendingCallbacks = self.loadCompletions.removeValue(forKey: id) ?? []
+            self.photoLibraryService
+                .requestThumbnail(for: cover, targetSize: thumbnailSize) { [weak self] image, isDegraded in
+                    Task { @MainActor in
+                        guard let self, self.cacheGeneration == generation else { return }
 
-                            // Update cell UI with what we have
-                            for cb in pendingCallbacks {
-                                cb(count, image)
-                            }
+                        // Update cell UI with what we have
+                        for cb in pendingCallbacks {
+                            cb(count, image)
+                        }
 
-                            // Only decrement and clean up when we have the final result
-                            if !isDegraded || image == nil {
-                                guard self.pendingLoads.contains(id) else { return }
-                                self.pendingLoads.remove(id)
-                                self.pendingLoadsCount -= 1
-                            }
+                        // Only decrement and clean up when we have the final result
+                        if !isDegraded || image == nil {
+                            guard self.pendingLoads.contains(id) else { return }
+                            self.pendingLoads.remove(id)
+                            self.pendingLoadsCount -= 1
                         }
                     }
-            }
+                }
         }
     }
 
