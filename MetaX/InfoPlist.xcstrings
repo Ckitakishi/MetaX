@@ -1,42 +1,42 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "CFBundleName" : {
-      "comment" : "Bundle name",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "MetaX"
+  "sourceLanguage": "en",
+  "strings": {
+    "CFBundleName": {
+      "comment": "Bundle name",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "MetaX"
           }
         }
       }
     },
-    "NSPhotoLibraryUsageDescription" : {
-      "comment" : "InfoPlist.strings\n  MetaX\n\n  Created by Ckitakishi on 2018/4/23.\n  Copyright © 2018年 Yuhan Chen. All rights reserved.",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "We need it to read your photos and save edited photos to camera roll."
+    "NSPhotoLibraryUsageDescription": {
+      "comment": "InfoPlist.strings\n  MetaX\n\n  Created by Ckitakishi on 2018/4/23.\n  Copyright © 2018年 Yuhan Chen. All rights reserved.",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "We need it to read your photos and save edited photos to camera roll."
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "写真の読み出しと書き込みをできるように、権限が必要です。"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真の読み込みや、編集した写真の保存を行うためにアクセス権限が必要です。"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "我们需要您的允许，以读取及保存照片。"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MetaX 需要访问您的相册以读取照片信息，并将修改后的结果保存到您的设备中。"
           }
         }
       }
     }
   },
-  "version" : "1.1"
+  "version": "1.1"
 }
