@@ -43,7 +43,7 @@ final class MetadataService: MetadataServiceProtocol, @unchecked Sendable {
                 } else if let input = input,
                           let imageURL = input.fullSizeImageURL,
                           let ciImage = CIImage(contentsOf: imageURL),
-                          let metadata = Metadata(ciimage: ciImage) {
+                          let metadata = Metadata(ciimage: ciImage, asset: asset) {
                     continuation.yield(.success(metadata))
                 } else {
                     continuation.yield(.failure(.metadata(.readFailed)))

@@ -9,6 +9,7 @@
 import CoreLocation
 import Foundation
 import ImageIO
+import Photos
 import UIKit
 
 public enum MetadataKeys {
@@ -85,12 +86,32 @@ public struct Metadata: @unchecked Sendable {
         self.init(ciimage: ciimage)
     }
 
-    public init?(ciimage: CIImage) {
-        self.init(props: ciimage.properties)
+    public init?(ciimage: CIImage, asset: PHAsset? = nil) {
+        self.init(props: ciimage.properties, asset: asset)
     }
 
-    public init?(props: [String: Any]) {
-        sourceProperties = props
+    public init?(props: [String: Any], asset: PHAsset? = nil) {
+        var sourceProperties = props
+
+        // Priority: PHAsset values overwrite EXIF/GPS if they exist.
+        // If PHAsset values are nil, we keep the original EXIF/GPS (Scenario 2-D).
+        if let asset = asset {
+            // Handle Timestamp
+            if let creationDate = asset.creationDate {
+                var exifInfo = sourceProperties[MetadataKeys.exifDict] as? [String: Any] ?? [:]
+                let dateStr = DateFormatter.yMdHms.string(from: creationDate)
+                exifInfo[MetadataKeys.dateTimeOriginal] = dateStr
+                exifInfo[MetadataKeys.dateTimeDigitized] = dateStr
+                sourceProperties[MetadataKeys.exifDict] = exifInfo
+            }
+
+            // Handle Location
+            if let location = asset.location {
+                sourceProperties[MetadataKeys.gpsDict] = Metadata.makeGpsDictionary(for: location)
+            }
+        }
+
+        self.sourceProperties = sourceProperties
 
         guard let path = Bundle.main.path(forResource: "MetadataPlus", ofType: "plist"),
               let groups = NSArray(contentsOfFile: path) as? [[String: Any]]
@@ -101,11 +122,11 @@ public struct Metadata: @unchecked Sendable {
         var tmpMetaProps: [(section: MetadataSection, props: [[String: Any]])] = []
         var tmpGPSProp: CLLocation?
 
-        let exifInfo = props[MetadataKeys.exifDict] as? [String: Any] ?? [:]
-        let tiffInfo = props[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
+        let exifInfo = sourceProperties[MetadataKeys.exifDict] as? [String: Any] ?? [:]
+        let tiffInfo = sourceProperties[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
 
         // Extract GPS first for internal use
-        if let gpsInfo = props[MetadataKeys.gpsDict] as? [String: Any],
+        if let gpsInfo = sourceProperties[MetadataKeys.gpsDict] as? [String: Any],
            let latitudeRef = gpsInfo[MetadataKeys.gpsLatitudeRef] as? String,
            let latitude = gpsInfo[MetadataKeys.gpsLatitude] as? Double,
            let longitudeRef = gpsInfo[MetadataKeys.gpsLongitudeRef] as? String,
@@ -133,7 +154,7 @@ public struct Metadata: @unchecked Sendable {
                     groupProps.append([key: val])
                 } else if let val = tiffInfo[key] {
                     groupProps.append([key: val])
-                } else if let val = props[key] {
+                } else if let val = sourceProperties[key] {
                     groupProps.append([key: val])
                 }
             }
@@ -311,7 +332,7 @@ extension Metadata {
 
     func writeLocation(_ location: CLLocation) -> [String: Any] {
         var editableProps = sourceProperties
-        editableProps[MetadataKeys.gpsDict] = makeGpsDictionary(for: location)
+        editableProps[MetadataKeys.gpsDict] = Metadata.makeGpsDictionary(for: location)
         return updateTiff(with: editableProps)
     }
 
@@ -364,7 +385,7 @@ extension Metadata {
                 if isRemoval {
                     gpsInfo = [:]
                 } else if let loc = value as? CLLocation {
-                    gpsInfo = makeGpsDictionary(for: loc)
+                    gpsInfo = Metadata.makeGpsDictionary(for: loc)
                 }
             } else {
                 if isRemoval {
@@ -388,7 +409,7 @@ extension Metadata {
         return updateTiff(with: editableProps)
     }
 
-    private func makeGpsDictionary(for location: CLLocation) -> [String: Any] {
+    static func makeGpsDictionary(for location: CLLocation) -> [String: Any] {
         var dict: [String: Any] = [:]
         let latitude = location.coordinate.latitude
         let longitude = location.coordinate.longitude
