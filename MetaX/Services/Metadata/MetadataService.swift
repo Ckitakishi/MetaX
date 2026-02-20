@@ -6,7 +6,6 @@
 //  Copyright © 2026 Chen Yuhan. All rights reserved.
 //
 
-import CoreImage
 import CoreLocation
 import Photos
 
@@ -22,36 +21,44 @@ final class MetadataService: MetadataServiceProtocol, @unchecked Sendable {
 
     func loadMetadataEvents(from asset: PHAsset) -> AsyncStream<MetadataLoadEvent> {
         AsyncStream<MetadataLoadEvent> { continuation in
-            let options = PHContentEditingInputRequestOptions()
+            let options = PHImageRequestOptions()
             options.isNetworkAccessAllowed = true
+            options.deliveryMode = .highQualityFormat
+            options.version = .current // IMPORTANT: Always request the latest rendered version
 
-            options.progressHandler = { progress, _ in
-                // progress == 1.0 means instantly-complete (local asset edge case), skip
+            options.progressHandler = { progress, _, _, _ in
+                // progress == 1.0 means instantly-complete, skip
                 guard progress < 1.0 else { return }
                 continuation.yield(.progress(progress))
             }
 
-            let requestId = asset.requestContentEditingInput(with: options) { input, info in
-                if let inCloud = info[PHContentEditingInputResultIsInCloudKey] as? Bool, inCloud, input == nil {
-                    return
-                }
+            let requestId = PHImageManager.default()
+                .requestImageDataAndOrientation(for: asset, options: options) { data, _, _, info in
+                    if let error = info?[PHImageErrorKey] as? Error {
+                        continuation.yield(.failure(.photoLibrary(.assetFetchFailed(underlying: error))))
+                        continuation.finish()
+                        return
+                    }
 
-                defer { continuation.finish() }
-
-                if let error = info[PHContentEditingInputErrorKey] as? Error {
-                    continuation.yield(.failure(.photoLibrary(.assetFetchFailed(underlying: error))))
-                } else if let input = input,
-                          let imageURL = input.fullSizeImageURL,
-                          let ciImage = CIImage(contentsOf: imageURL),
-                          let metadata = Metadata(ciimage: ciImage, asset: asset) {
-                    continuation.yield(.success(metadata))
-                } else {
-                    continuation.yield(.failure(.metadata(.readFailed)))
+                    if let data = data {
+                        if let source = CGImageSourceCreateWithData(data as CFData, nil),
+                           let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] {
+                            if let metadata = Metadata(props: properties, asset: asset) {
+                                continuation.yield(.success(metadata))
+                            } else {
+                                continuation.yield(.failure(.metadata(.readFailed)))
+                            }
+                        } else {
+                            continuation.yield(.failure(.metadata(.readFailed)))
+                        }
+                    } else {
+                        continuation.yield(.failure(.metadata(.readFailed)))
+                    }
+                    continuation.finish()
                 }
-            }
 
             continuation.onTermination = { _ in
-                asset.cancelContentEditingInputRequest(requestId)
+                PHImageManager.default().cancelImageRequest(requestId)
             }
         }
     }

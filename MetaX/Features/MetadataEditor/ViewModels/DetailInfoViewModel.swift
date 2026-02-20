@@ -327,16 +327,13 @@ final class DetailInfoViewModel: NSObject {
                 _ = await photoLibraryService.deleteAsset(oldAsset)
             }
 
-        case let .failure(error):
-            actionError = error
-        }
-
-        if case .success = result {
             await loadMetadata()
             return true
-        }
 
-        return false
+        case let .failure(error):
+            actionError = error
+            return false
+        }
     }
 
     /// Compares new metadata values with current PHAsset properties to decide if sync is needed.
@@ -409,6 +406,15 @@ final class DetailInfoViewModel: NSObject {
 
     private func updateDisplayData(from metadata: Metadata) {
         ui.currentLocation = metadata.rawGPS
+
+        if let asset {
+            // Extract original filename from asset resources for better reliability.
+            let resources = PHAssetResource.assetResources(for: asset)
+            if let name = (resources.first(where: { $0.type == .photo }) ?? resources.first)?.originalFilename {
+                ui.fileName = name
+            }
+        }
+
         ui.sections = metadata.metaProps.map { section, props in
             SectionModel(
                 section: section,

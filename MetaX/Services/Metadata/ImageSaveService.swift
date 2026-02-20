@@ -128,7 +128,16 @@ final class ImageSaveService: ImageSaveServiceProtocol {
                 PHPhotoLibrary.shared().performChanges {
                     PHAssetChangeRequest(for: asset).contentEditingOutput = output
                 } completionHandler: { success, _ in
-                    onceGuard.resume(returning: success ? .success(asset) : .failure(.imageSave(.editionFailed)))
+                    if !success {
+                        onceGuard.resume(returning: .failure(.imageSave(.editionFailed)))
+                    } else {
+                        // Return the original pre-change asset object so that
+                        // PHPhotoLibraryChangeObserver.changeDetails(for:) can locate it
+                        // and fire assetContentChanged = true to trigger a metadata reload.
+                        // (changeDetails requires the object to have been fetched before the change.)
+                        // The observer's objectAfterChanges supplies the fresh post-change object.
+                        onceGuard.resume(returning: .success(asset))
+                    }
                 }
             }
         } catch {
@@ -249,17 +258,12 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         destinationURL: URL,
         newProperties: [String: Any]
     ) -> Bool {
-        // Copy pixel data as-is (no decode/re-encode) and only replace metadata.
-        // This avoids recompression loss on JPEG/HEIC.
         guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, nil),
               let sourceType = CGImageSourceGetType(source)
-        else {
-            return false
-        }
+        else { return false }
 
-        // For editAssetMetadata, Photos dictates the format via renderedContentURL's extension
-        // (always .JPG regardless of source). Derive encoding type from destination extension,
-        // falling back to source type if unknown.
+        // Photos dictates the output format via renderedContentURL's extension (.JPG for all assets).
+        // Derive the encoding type from the destination extension, falling back to the source type.
         let destExtension = destinationURL.pathExtension.lowercased()
         let encodingType: CFString
         let tempExtension: String
@@ -279,26 +283,37 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             return false
         }
 
-        // When source and destination formats match, copy pixel data as-is (lossless).
-        // When formats differ (e.g. HEIC source → JPG required by Photos' renderedContentURL),
-        // fall back to pixel decode — format conversion requires it.
         let sourceFormatStr = CGImageSourceGetType(source) as String? ?? ""
         let destFormatStr = encodingType as String
-        if sourceFormatStr == destFormatStr {
-            // Same format: copy pixel data as-is, only replace metadata (lossless).
-            CGImageDestinationAddImageFromSource(destination, source, 0, newProperties as CFDictionary)
+        let sourceProps = (CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any]) ?? [:]
+        let isJPEG = UTType(sourceFormatStr)?.conforms(to: .jpeg) == true
+
+        // Lossless path (AddImageFromSource) is preferred but has two known ImageIO limitations:
+        // 1. Cannot create a TIFF/IFD0 block from scratch — pixel re-encode required.
+        // 2. Cannot reliably overwrite existing Artist/Copyright values in a JPEG IFD0.
+        let sourceHasTIFF = sourceProps[kCGImagePropertyTIFFDictionary as String] != nil
+        let needsTIFFWrite = newProperties[kCGImagePropertyTIFFDictionary as String] != nil
+        let mustInitTIFF = needsTIFFWrite && !sourceHasTIFF
+        let mustRewriteTIFF = isJPEG && isRewritingExistingTIFFText(in: sourceProps, with: newProperties)
+        let canUseLossless = sourceFormatStr == destFormatStr && !mustInitTIFF && !mustRewriteTIFF
+
+        if canUseLossless {
+            // Lossless: copy pixels verbatim, only patch metadata.
+            let finalProps = mergedProperties(base: sourceProps, overrides: newProperties, removeJFIF: isJPEG)
+            CGImageDestinationAddImageFromSource(destination, source, 0, finalProps as CFDictionary)
         } else {
-            // Cross-format (e.g. HEIC → JPEG): must decode pixels.
-            // CIImage handles wide color, HDR, and HEIC correctly; baking orientation
-            // into pixels and setting orientation=1 is required for Photos to accept the output.
+            // Lossy: pixel decode + re-encode at 0.95 quality. Required for format conversion,
+            // missing IFD0 creation, or overwriting existing Artist/Copyright (ImageIO workaround).
             guard let ciImage = CIImage(contentsOf: sourceURL, options: [.applyOrientationProperty: true]),
                   let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent)
             else {
                 try? FileManager.default.removeItem(at: tempURL)
                 return false
             }
-            var finalProps = newProperties
+            var finalProps = mergedProperties(base: sourceProps, overrides: newProperties, removeJFIF: isJPEG)
+            // CIImage bakes orientation into pixels; reset the tag so Photos reads it correctly.
             finalProps[kCGImagePropertyOrientation as String] = 1
+            finalProps[kCGImageDestinationLossyCompressionQuality as String] = 0.95
             CGImageDestinationAddImage(destination, cgImage, finalProps as CFDictionary)
         }
 
@@ -321,6 +336,49 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         } catch {
             try? FileManager.default.removeItem(at: tempURL)
             return false
+        }
+    }
+
+    /// Deep-merges `overrides` into `base`, combining sub-dictionaries key-by-key.
+    /// When `removeJFIF` is true, sets the JFIF key to `kCFNull` so ImageIO removes the APP0 block,
+    /// preventing APP0/APP1 conflicts without pixel re-encoding.
+    private nonisolated func mergedProperties(
+        base: [String: Any],
+        overrides: [String: Any],
+        removeJFIF: Bool
+    ) -> [String: Any] {
+        var result = base
+        for (key, value) in overrides {
+            if var existing = result[key] as? [String: Any], let sub = value as? [String: Any] {
+                for (subKey, subValue) in sub { existing[subKey] = subValue }
+                result[key] = existing
+            } else {
+                result[key] = value
+            }
+        }
+        if removeJFIF {
+            result[kCGImagePropertyJFIFDictionary as String] = kCFNull
+        }
+        return result
+    }
+
+    /// Returns true if `newProperties` changes an already-present Artist or Copyright value in `sourceProps`.
+    /// `CGImageDestinationAddImageFromSource` cannot reliably overwrite existing IFD0 string tags in JPEG,
+    /// so this signals that a pixel re-encode is needed.
+    private nonisolated func isRewritingExistingTIFFText(
+        in sourceProps: [String: Any],
+        with newProperties: [String: Any]
+    ) -> Bool {
+        guard let newTIFF = newProperties[kCGImagePropertyTIFFDictionary as String] as? [String: Any],
+              let sourceTIFF = sourceProps[kCGImagePropertyTIFFDictionary as String] as? [String: Any]
+        else { return false }
+
+        let keys = [kCGImagePropertyTIFFArtist, kCGImagePropertyTIFFCopyright] as [CFString]
+        return keys.contains { key in
+            let k = key as String
+            guard let newStr = newTIFF[k] as? String,
+                  let oldStr = sourceTIFF[k] as? String else { return false }
+            return newStr != oldStr
         }
     }
 
