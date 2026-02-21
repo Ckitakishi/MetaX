@@ -55,6 +55,9 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     func configureWithViewModel(fetchResult: PHFetchResult<PHAsset>?, collection: PHAssetCollection?) {
         viewModel.configure(with: fetchResult, collection: collection)
+        if isViewLoaded {
+            setupNavigationBar()
+        }
     }
 
     // MARK: - Life Cycle
@@ -67,11 +70,6 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
         viewModel.loadDefaultPhotosIfNeeded()
         viewModel.registerPhotoLibraryObserver()
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        updateThumbnailSize()
     }
 
     override func viewDidLayoutSubviews() {
@@ -101,9 +99,47 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     // MARK: - UI Setup
 
+    private func setupNavigationBar() {
+        if viewModel.assetCollection != nil {
+            navigationItem.rightBarButtonItem = nil
+            return
+        }
+
+        let sortButton = UIBarButtonItem(
+            image: UIImage(systemName: "arrow.up.arrow.down"),
+            menu: createSortMenu()
+        )
+        navigationItem.rightBarButtonItem = sortButton
+    }
+
+    private func createSortMenu() -> UIMenu {
+        let creationDateAction = UIAction(
+            title: PhotoSortOrder.creationDate.title,
+            state: viewModel.currentSortOrder == .creationDate ? .on : .off
+        ) { [weak self] _ in
+            self?.viewModel.currentSortOrder = .creationDate
+            self?.updateNavigationBar()
+        }
+
+        let addedDateAction = UIAction(
+            title: PhotoSortOrder.addedDate.title,
+            state: viewModel.currentSortOrder == .addedDate ? .on : .off
+        ) { [weak self] _ in
+            self?.viewModel.currentSortOrder = .addedDate
+            self?.updateNavigationBar()
+        }
+
+        return UIMenu(title: String(localized: .sortMenuTitle), children: [creationDateAction, addedDateAction])
+    }
+
+    private func updateNavigationBar() {
+        navigationItem.rightBarButtonItem?.menu = createSortMenu()
+    }
+
     private func setupUI() {
         view.backgroundColor = Theme.Colors.mainBackground
 
+        setupNavigationBar()
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: createLayout())
         collectionView.backgroundColor = .clear
         collectionView.delegate = self

@@ -30,6 +30,12 @@ final class PhotoGridViewModel: NSObject {
     private var pendingFetchResult: PHFetchResult<PHAsset>?
     private var libraryChangeTask: Task<Void, Never>?
 
+    var currentSortOrder: PhotoSortOrder {
+        didSet {
+            refreshPhotos()
+        }
+    }
+
     // MARK: - Dependencies
 
     private let photoLibraryService: PhotoLibraryServiceProtocol
@@ -38,6 +44,7 @@ final class PhotoGridViewModel: NSObject {
 
     init(photoLibraryService: PhotoLibraryServiceProtocol) {
         self.photoLibraryService = photoLibraryService
+        currentSortOrder = .creationDate
         super.init()
     }
 
@@ -61,7 +68,15 @@ final class PhotoGridViewModel: NSObject {
             resetCachedAssets()
             return
         }
-        fetchResult = photoLibraryService.fetchAllPhotos()
+        refreshPhotos()
+    }
+
+    func refreshPhotos() {
+        if let collection = assetCollection {
+            fetchResult = photoLibraryService.fetchAssets(in: collection, sortedBy: currentSortOrder)
+        } else {
+            fetchResult = photoLibraryService.fetchAllPhotos(sortedBy: currentSortOrder)
+        }
     }
 
     func registerPhotoLibraryObserver() {

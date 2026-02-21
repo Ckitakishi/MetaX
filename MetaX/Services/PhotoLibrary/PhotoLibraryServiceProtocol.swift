@@ -9,6 +9,26 @@
 import Photos
 import UIKit
 
+/// Available sort orders for photo fetching
+enum PhotoSortOrder: Int, CaseIterable, Sendable {
+    case creationDate
+    case addedDate
+
+    var title: String {
+        switch self {
+        case .creationDate: return String(localized: .sortCreationDate)
+        case .addedDate: return String(localized: .sortRecentlyAdded)
+        }
+    }
+
+    var sortKey: String {
+        switch self {
+        case .creationDate: return "creationDate"
+        case .addedDate: return "addedDate"
+        }
+    }
+}
+
 /// Protocol defining photo library operations
 protocol PhotoLibraryServiceProtocol: Sendable {
     // MARK: - Authorization
@@ -21,11 +41,11 @@ protocol PhotoLibraryServiceProtocol: Sendable {
 
     // MARK: - Fetch Operations
 
-    /// Fetch all photos with optional sort descriptor
-    func fetchAllPhotos(sortedBy sortDescriptor: NSSortDescriptor?) -> PHFetchResult<PHAsset>
+    /// Fetch all photos with specific sort order
+    func fetchAllPhotos(sortedBy sortOrder: PhotoSortOrder) -> PHFetchResult<PHAsset>
 
     /// Fetch assets in a specific collection
-    func fetchAssets(in collection: PHAssetCollection, sortedBy sortDescriptor: NSSortDescriptor?)
+    func fetchAssets(in collection: PHAssetCollection, sortedBy sortOrder: PhotoSortOrder)
         -> PHFetchResult<PHAsset>
 
     /// Fetch smart albums
@@ -101,10 +121,10 @@ protocol PhotoLibraryServiceProtocol: Sendable {
 
 extension PhotoLibraryServiceProtocol {
     func fetchAllPhotos() -> PHFetchResult<PHAsset> {
-        fetchAllPhotos(sortedBy: NSSortDescriptor(key: "creationDate", ascending: false))
+        fetchAllPhotos(sortedBy: .creationDate)
     }
 
     func fetchAssets(in collection: PHAssetCollection) -> PHFetchResult<PHAsset> {
-        fetchAssets(in: collection, sortedBy: nil)
+        fetchAssets(in: collection, sortedBy: .creationDate)
     }
 }

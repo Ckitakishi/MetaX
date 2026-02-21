@@ -52,22 +52,16 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendabl
 
     // MARK: - Fetch Operations
 
-    func fetchAllPhotos(sortedBy sortDescriptor: NSSortDescriptor?) -> PHFetchResult<PHAsset> {
-        let options = imageFetchOptions()
-        if let sortDescriptor = sortDescriptor {
-            options.sortDescriptors = [sortDescriptor]
-        }
+    func fetchAllPhotos(sortedBy sortOrder: PhotoSortOrder) -> PHFetchResult<PHAsset> {
+        let options = imageFetchOptions(sortedBy: sortOrder)
         return PHAsset.fetchAssets(with: options)
     }
 
     func fetchAssets(
         in collection: PHAssetCollection,
-        sortedBy sortDescriptor: NSSortDescriptor?
+        sortedBy sortOrder: PhotoSortOrder
     ) -> PHFetchResult<PHAsset> {
-        let options = imageFetchOptions()
-        if let sortDescriptor = sortDescriptor {
-            options.sortDescriptors = [sortDescriptor]
-        }
+        let options = imageFetchOptions(sortedBy: sortOrder)
         return PHAsset.fetchAssets(in: collection, options: options)
     }
 
@@ -75,10 +69,10 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendabl
         PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .any, options: nil)
     }
 
-    private func imageFetchOptions() -> PHFetchOptions {
+    private func imageFetchOptions(sortedBy sortOrder: PhotoSortOrder) -> PHFetchOptions {
         let options = PHFetchOptions()
         options.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
-        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        options.sortDescriptors = [NSSortDescriptor(key: sortOrder.sortKey, ascending: false)]
         return options
     }
 

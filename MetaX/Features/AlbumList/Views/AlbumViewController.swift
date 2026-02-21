@@ -34,8 +34,8 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
 
     private let sectionTitles = [
         "",
-        String(localized: .viewMyAlbums),
         String(localized: .viewSmartAlbums),
+        String(localized: .viewMyAlbums),
     ]
 
     private let searchController = UISearchController(searchResultsController: nil)
@@ -91,11 +91,8 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
         )
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "arrow.up.arrow.down"),
-            style: .plain,
-            target: nil,
-            action: nil
+            menu: makeSortMenu()
         )
-        navigationItem.rightBarButtonItem?.menu = makeSortMenu()
 
         searchController.searchResultsUpdater = self
         searchController.obscuresBackgroundDuringPresentation = false
@@ -146,7 +143,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
                 self?.navigationItem.rightBarButtonItem?.menu = self?.makeSortMenu()
             }
         }
-        return UIMenu(children: actions)
+        return UIMenu(title: String(localized: .sortMenuTitle), children: actions)
     }
 
     // MARK: - Bindings

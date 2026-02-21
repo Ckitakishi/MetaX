@@ -3066,19 +3066,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Categories"
+            "value": "Media Types"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "カテゴリ"
+            "value": "メディアタイプ"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "分类"
+            "value": "媒体类型"
           }
         }
       }
@@ -3148,6 +3148,75 @@
           "stringUnit": {
             "state": "translated",
             "value": "手动"
+          }
+        }
+      }
+    },
+    "sortMenuTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sort By"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "並べ替え"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "排序方式"
+          }
+        }
+      }
+    },
+    "sortCreationDate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creation Date"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "撮影日"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拍摄日期"
+          }
+        }
+      }
+    },
+    "sortRecentlyAdded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently Added"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近追加した項目"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近添加"
           }
         }
       }

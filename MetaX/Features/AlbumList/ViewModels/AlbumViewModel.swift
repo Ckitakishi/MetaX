@@ -13,8 +13,8 @@ import UIKit
 /// Section types for album list
 enum AlbumSection: Int, CaseIterable {
     case allPhotos = 0
-    case userCollections
     case smartAlbums
+    case userCollections
 
     static var count: Int {
         allCases.count
@@ -271,8 +271,6 @@ final class AlbumViewModel: NSObject {
             return (nil, nil, nil)
         }
 
-        let sortDescriptor = NSSortDescriptor(key: "creationDate", ascending: false)
-
         switch section {
         case .allPhotos:
             return (allPhotos, nil, String(localized: .viewAllPhotos))
@@ -280,7 +278,7 @@ final class AlbumViewModel: NSObject {
         case .userCollections:
             guard let collection = displayedUserCollections[safe: indexPath.row] else { return (nil, nil, nil) }
             return (
-                photoLibraryService.fetchAssets(in: collection, sortedBy: sortDescriptor),
+                photoLibraryService.fetchAssets(in: collection, sortedBy: .creationDate),
                 collection,
                 collection.localizedTitle
             )
@@ -288,7 +286,7 @@ final class AlbumViewModel: NSObject {
         case .smartAlbums:
             guard let collection = displayedSmartAlbums[safe: indexPath.row] else { return (nil, nil, nil) }
             return (
-                photoLibraryService.fetchAssets(in: collection, sortedBy: sortDescriptor),
+                photoLibraryService.fetchAssets(in: collection, sortedBy: .creationDate),
                 collection,
                 collection.localizedTitle
             )
