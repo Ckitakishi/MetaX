@@ -408,10 +408,19 @@ final class DetailInfoViewModel: NSObject {
         ui.currentLocation = metadata.rawGPS
 
         if let asset {
-            // Extract original filename from asset resources for better reliability.
-            let resources = PHAssetResource.assetResources(for: asset)
-            if let name = (resources.first(where: { $0.type == .photo }) ?? resources.first)?.originalFilename {
-                ui.fileName = name
+            // Fetch filename asynchronously to avoid blocking the main thread.
+            // PHAssetResource.assetResources(for:) can be slow on newly created assets.
+            let assetId = asset.localIdentifier
+            Task.detached(priority: .utility) {
+                let resources = PHAssetResource.assetResources(for: asset)
+                if let name = (resources.first(where: { $0.type == .photo }) ?? resources.first)?.originalFilename {
+                    await MainActor.run {
+                        // Ensure we are still showing the same asset
+                        if self.asset?.localIdentifier == assetId {
+                            self.ui.fileName = name
+                        }
+                    }
+                }
             }
         }
 

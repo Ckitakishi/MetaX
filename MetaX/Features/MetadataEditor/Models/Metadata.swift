@@ -90,13 +90,31 @@ public struct Metadata: @unchecked Sendable {
         self.init(props: ciimage.properties, asset: asset)
     }
 
+    private struct MetadataGroup: Codable {
+        let title: String
+        let props: [String]
+
+        enum CodingKeys: String, CodingKey {
+            case title = "Title"
+            case props = "Props"
+        }
+    }
+
+    private static let metadataGroups: [MetadataGroup] = {
+        guard let url = Bundle.main.url(forResource: "MetadataPlus", withExtension: "plist"),
+              let data = try? Data(contentsOf: url),
+              let groups = try? PropertyListDecoder().decode([MetadataGroup].self, from: data)
+        else {
+            return []
+        }
+        return groups
+    }()
+
     public init?(props: [String: Any], asset: PHAsset? = nil) {
         var sourceProperties = props
 
         // Priority: PHAsset values overwrite EXIF/GPS if they exist.
-        // If PHAsset values are nil, we keep the original EXIF/GPS (Scenario 2-D).
         if let asset = asset {
-            // Handle Timestamp
             if let creationDate = asset.creationDate {
                 var exifInfo = sourceProperties[MetadataKeys.exifDict] as? [String: Any] ?? [:]
                 let dateStr = DateFormatter.yMdHms.string(from: creationDate)
@@ -104,20 +122,12 @@ public struct Metadata: @unchecked Sendable {
                 exifInfo[MetadataKeys.dateTimeDigitized] = dateStr
                 sourceProperties[MetadataKeys.exifDict] = exifInfo
             }
-
-            // Handle Location
             if let location = asset.location {
                 sourceProperties[MetadataKeys.gpsDict] = Metadata.makeGpsDictionary(for: location)
             }
         }
 
         self.sourceProperties = sourceProperties
-
-        guard let path = Bundle.main.path(forResource: "MetadataPlus", ofType: "plist"),
-              let groups = NSArray(contentsOfFile: path) as? [[String: Any]]
-        else {
-            return nil
-        }
 
         var tmpMetaProps: [(section: MetadataSection, props: [[String: Any]])] = []
         var tmpGPSProp: CLLocation?
@@ -138,14 +148,12 @@ public struct Metadata: @unchecked Sendable {
         }
         rawGPS = tmpGPSProp
 
-        for group in groups {
-            guard let title = group["Title"] as? String,
-                  let section = MetadataSection(rawValue: title),
-                  let keys = group["Props"] as? [String] else { continue }
+        for group in Metadata.metadataGroups {
+            guard let section = MetadataSection(rawValue: group.title) else { continue }
 
             var groupProps: [[String: Any]] = []
 
-            for key in keys {
+            for key in group.props {
                 if key == MetadataKeys.location {
                     if let gps = tmpGPSProp {
                         groupProps.append([key: gps])

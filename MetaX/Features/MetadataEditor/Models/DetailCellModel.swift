@@ -22,19 +22,18 @@ struct DetailCellModel: DetailCellModelRepresentable {
 
     // MARK: - EXIF Enum Mappings
 
+    private struct ExifMapping: Codable {
+        let tags: [String: TagInfo]
+        struct TagInfo: Codable {
+            let values: [String: String]
+        }
+    }
+
     private static let exifEnumMappings: [String: [String: String]] = {
         guard let url = Bundle.main.url(forResource: "ExifEnumMappings", withExtension: "json"),
               let data = try? Data(contentsOf: url),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let tags = json["tags"] as? [String: Any] else { return [:] }
-        var result: [String: [String: String]] = [:]
-        for (tagName, tagInfo) in tags {
-            if let info = tagInfo as? [String: Any],
-               let values = info["values"] as? [String: String] {
-                result[tagName] = values
-            }
-        }
-        return result
+              let mapping = try? JSONDecoder().decode(ExifMapping.self, from: data) else { return [:] }
+        return mapping.tags.mapValues { $0.values }
     }()
 
     init(prop: String, value: String, rawKey: String = "") {
@@ -77,7 +76,7 @@ struct DetailCellModel: DetailCellModelRepresentable {
         case "ProfileName": localizedProp = String(localized: .profileName)
         case MetadataKeys.artist: localizedProp = String(localized: .artist)
         case MetadataKeys.copyright: localizedProp = String(localized: .copyright)
-        default: localizedProp = NSLocalizedString(rawProp, comment: "")
+        default: localizedProp = rawProp
         }
 
         prop = localizedProp
@@ -100,10 +99,7 @@ struct DetailCellModel: DetailCellModelRepresentable {
         // DateTimeOriginal special formatting
         if prop == MetadataKeys.dateTimeOriginal, let dateStr = rawValue as? String {
             if let date = DateFormatter.yMdHms.date(from: dateStr) {
-                let displayFormatter = DateFormatter()
-                displayFormatter.dateStyle = .medium
-                displayFormatter.timeStyle = .short
-                return displayFormatter.string(from: date)
+                return date.formatted(date: .abbreviated, time: .shortened)
             }
         }
 
@@ -135,7 +131,7 @@ struct DetailCellModel: DetailCellModelRepresentable {
         guard let intVal = rawValue as? Int else { return nil }
         guard let specName = mappings[String(intVal)] else { return nil }
         let locKey = prop + "." + specName
-        return NSLocalizedString(locKey, comment: "")
+        return String(localized: LocalizedStringResource(stringLiteral: locKey))
     }
 
     private static func formatExposureBias(_ value: Double) -> String {
