@@ -45,7 +45,6 @@ final class SaveOptionsViewController: UIViewController, ViewModelObserving {
             sheet.detents = [
                 .custom { [weak self] _ in
                     guard let self else { return 256 }
-                    self.view.layoutIfNeeded()
                     let contentHeight = self.containerStack.systemLayoutSizeFitting(
                         CGSize(width: self.view.bounds.width - 32, height: UIView.layoutFittingCompressedSize.height),
                         withHorizontalFittingPriority: .required,

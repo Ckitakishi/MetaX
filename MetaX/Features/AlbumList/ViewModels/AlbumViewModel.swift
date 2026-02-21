@@ -161,14 +161,12 @@ final class AlbumViewModel: NSObject {
             return (String(localized: .viewAllPhotos), count, asset)
 
         case .userCollections:
-            guard indexPath.row < displayedUserCollections.count else { return (nil, nil, nil) }
-            let collection = displayedUserCollections[indexPath.row]
+            guard let collection = displayedUserCollections[safe: indexPath.row] else { return (nil, nil, nil) }
             let id = collection.localIdentifier
             return (collection.localizedTitle, countCache[id], coverCache[id] ?? nil)
 
         case .smartAlbums:
-            guard indexPath.row < displayedSmartAlbums.count else { return (nil, nil, nil) }
-            let collection = displayedSmartAlbums[indexPath.row]
+            guard let collection = displayedSmartAlbums[safe: indexPath.row] else { return (nil, nil, nil) }
             let id = collection.localIdentifier
             return (collection.localizedTitle, countCache[id], coverCache[id] ?? nil)
         }
@@ -180,11 +178,9 @@ final class AlbumViewModel: NSObject {
         switch section {
         case .allPhotos: return nil
         case .userCollections:
-            guard indexPath.row < displayedUserCollections.count else { return nil }
-            return displayedUserCollections[indexPath.row].localIdentifier
+            return displayedUserCollections[safe: indexPath.row]?.localIdentifier
         case .smartAlbums:
-            guard indexPath.row < displayedSmartAlbums.count else { return nil }
-            return displayedSmartAlbums[indexPath.row].localIdentifier
+            return displayedSmartAlbums[safe: indexPath.row]?.localIdentifier
         }
     }
 
@@ -203,11 +199,11 @@ final class AlbumViewModel: NSObject {
         switch section {
         case .allPhotos: fatalError("unreachable — guarded above")
         case .userCollections:
-            guard indexPath.row < displayedUserCollections.count else { return }
-            collection = displayedUserCollections[indexPath.row]
+            guard let col = displayedUserCollections[safe: indexPath.row] else { return }
+            collection = col
         case .smartAlbums:
-            guard indexPath.row < displayedSmartAlbums.count else { return }
-            collection = displayedSmartAlbums[indexPath.row]
+            guard let col = displayedSmartAlbums[safe: indexPath.row] else { return }
+            collection = col
         }
 
         let id = collection.localIdentifier
@@ -282,8 +278,7 @@ final class AlbumViewModel: NSObject {
             return (allPhotos, nil, String(localized: .viewAllPhotos))
 
         case .userCollections:
-            guard indexPath.row < displayedUserCollections.count else { return (nil, nil, nil) }
-            let collection = displayedUserCollections[indexPath.row]
+            guard let collection = displayedUserCollections[safe: indexPath.row] else { return (nil, nil, nil) }
             return (
                 photoLibraryService.fetchAssets(in: collection, sortedBy: sortDescriptor),
                 collection,
@@ -291,8 +286,7 @@ final class AlbumViewModel: NSObject {
             )
 
         case .smartAlbums:
-            guard indexPath.row < displayedSmartAlbums.count else { return (nil, nil, nil) }
-            let collection = displayedSmartAlbums[indexPath.row]
+            guard let collection = displayedSmartAlbums[safe: indexPath.row] else { return (nil, nil, nil) }
             return (
                 photoLibraryService.fetchAssets(in: collection, sortedBy: sortDescriptor),
                 collection,
@@ -339,11 +333,11 @@ final class AlbumViewModel: NSObject {
             switch section {
             case .allPhotos: return nil
             case .userCollections:
-                guard indexPath.row < displayedUserCollections.count else { return nil }
-                id = displayedUserCollections[indexPath.row].localIdentifier
+                guard let col = displayedUserCollections[safe: indexPath.row] else { return nil }
+                id = col.localIdentifier
             case .smartAlbums:
-                guard indexPath.row < displayedSmartAlbums.count else { return nil }
-                id = displayedSmartAlbums[indexPath.row].localIdentifier
+                guard let col = displayedSmartAlbums[safe: indexPath.row] else { return nil }
+                id = col.localIdentifier
             }
             // Only stop caching assets whose cover we've already resolved.
             return coverCache[id] ?? nil

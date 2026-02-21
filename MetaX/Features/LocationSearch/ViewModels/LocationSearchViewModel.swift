@@ -72,10 +72,7 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
     }
 
     func selectItem(at indexPath: IndexPath) async -> LocationModel? {
-        guard indexPath.section < sections.count,
-              indexPath.row < sections[indexPath.section].rows.count else { return nil }
-
-        let row = sections[indexPath.section].rows[indexPath.row]
+        guard let row = sections[safe: indexPath.section]?.rows[safe: indexPath.row] else { return nil }
 
         switch row {
         case let .history(item):

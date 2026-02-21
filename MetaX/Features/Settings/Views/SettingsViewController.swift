@@ -105,11 +105,11 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
         guard let cell = tableView.dequeueReusableCell(
             withIdentifier: String(describing: SettingsTableViewCell.self),
             for: indexPath
-        ) as? SettingsTableViewCell else {
+        ) as? SettingsTableViewCell,
+            let item = viewModel.sectionModels[safe: indexPath.section]?.items[safe: indexPath.row] else {
             return UITableViewCell()
         }
 
-        let item = viewModel.sectionModels[indexPath.section].items[indexPath.row]
         cell.configure(with: item)
         return cell
     }
@@ -137,7 +137,7 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let item = viewModel.sectionModels[indexPath.section].items[indexPath.row]
+        guard let item = viewModel.sectionModels[safe: indexPath.section]?.items[safe: indexPath.row] else { return }
 
         if item.type == .appearance {
             showAppearanceMenu(at: indexPath)

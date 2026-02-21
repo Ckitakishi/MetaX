@@ -401,7 +401,12 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
             if let error = error {
                 HUD.showError(with: error.localizedDescription)
                 if case .metadata(.unsupportedMediaType) = error {
-                    self?.navigationController?.popViewController(animated: true)
+                    // Safety: Perform navigation on the next runloop to avoid UINavigationBar
+                    // layout inconsistencies during active transitions.
+                    Task { @MainActor in
+                        guard let self, self.view.window != nil else { return }
+                        self.navigationController?.popViewController(animated: true)
+                    }
                 }
                 self?.viewModel.clearError()
             }
@@ -409,12 +414,6 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
         observe(viewModel: viewModel, property: { $0.sections }) { [weak self] _ in
             self?.tableView.reloadData()
-        }
-
-        observe(viewModel: viewModel, property: { $0.fileName }) { [weak self] fileName in
-            if !fileName.isEmpty {
-                self?.navigationItem.title = fileName
-            }
         }
 
         observe(viewModel: viewModel, property: { $0.hasMetaXEdit }) { [weak self] _ in
@@ -436,7 +435,12 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
 
         observe(viewModel: viewModel, property: { $0.isDeleted }) { [weak self] isDeleted in
             if isDeleted {
-                self?.navigationController?.popViewController(animated: true)
+                // Safety: Avoid double-pop or navigation stack conflicts when an asset is deleted
+                // (e.g. after a 'Save as Copy' operation).
+                Task { @MainActor in
+                    guard let self, self.view.window != nil else { return }
+                    self.navigationController?.popViewController(animated: true)
+                }
             }
         }
 
@@ -485,8 +489,11 @@ extension DetailInfoViewController: UITableViewDataSource, UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let sectionData = viewModel.sections[indexPath.section]
-        let row = sectionData.rows[indexPath.row]
+        guard let sectionData = viewModel.sections[safe: indexPath.section],
+              let row = sectionData.rows[safe: indexPath.row] else {
+            return UITableViewCell()
+        }
+
         let isFirst = indexPath.row == 0
         let isLast = indexPath.row == sectionData.rows.count - 1
 

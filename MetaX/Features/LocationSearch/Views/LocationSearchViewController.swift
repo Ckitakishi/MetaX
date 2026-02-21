@@ -210,11 +210,11 @@ extension LocationSearchViewController: UITableViewDataSource {
         guard let cell = tableView.dequeueReusableCell(
             withIdentifier: String(describing: LocationTableViewCell.self),
             for: indexPath
-        ) as? LocationTableViewCell else {
+        ) as? LocationTableViewCell,
+            let row = viewModel.sections[safe: indexPath.section]?.rows[safe: indexPath.row] else {
             return UITableViewCell()
         }
 
-        let row = viewModel.sections[indexPath.section].rows[indexPath.row]
         switch row {
         case let .history(item):
             cell.cellDataSource = LocationModel(title: item.title, subtitle: item.subtitle)
@@ -225,7 +225,7 @@ extension LocationSearchViewController: UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        let row = viewModel.sections[indexPath.section].rows[indexPath.row]
+        guard let row = viewModel.sections[safe: indexPath.section]?.rows[safe: indexPath.row] else { return false }
         if case .history = row { return true }
         return false
     }
