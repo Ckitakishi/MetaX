@@ -198,9 +198,10 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
         // Observe fetchResult changes and reload immediately (synchronously)
         // to take advantage of PHFetchResult's lazy loading.
         observe(viewModel: viewModel, property: { $0.fetchResult }) { [weak self] _ in
-            self?.collectionView.reloadData()
-            self?.viewModel.resetCachedAssets()
-            self?.updateCachedAssets()
+            guard let self else { return }
+            collectionView.reloadData()
+            viewModel.resetCachedAssets()
+            updateCachedAssets()
         }
     }
 

@@ -330,10 +330,10 @@ extension Metadata {
     }
 
     func deleteTimeOriginal() -> [String: Any] {
-        var editableProps = sourceProperties
-        var exifInfo = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
-        exifInfo.removeValue(forKey: MetadataKeys.dateTimeOriginal)
-        exifInfo.removeValue(forKey: MetadataKeys.dateTimeDigitized)
+        var editableProps: [String: Any] = [:]
+        var exifInfo: [String: Any] = [:]
+        exifInfo[MetadataKeys.dateTimeOriginal] = NSNull()
+        exifInfo[MetadataKeys.dateTimeDigitized] = NSNull()
         editableProps[MetadataKeys.exifDict] = exifInfo
         return updateTiff(with: editableProps)
     }
@@ -345,45 +345,49 @@ extension Metadata {
     }
 
     func deleteGPS() -> [String: Any]? {
-        var editableProps = sourceProperties
-        if editableProps[MetadataKeys.gpsDict] != nil {
-            editableProps.removeValue(forKey: MetadataKeys.gpsDict)
-            return updateTiff(with: editableProps)
-        }
-        return sourceProperties
+        var editableProps: [String: Any] = [:]
+        editableProps[MetadataKeys.gpsDict] = NSNull()
+        return updateTiff(with: editableProps)
     }
 
     func deleteAllExceptOrientation() -> [String: Any]? {
         var editableProps: [String: Any] = [:]
+        editableProps[MetadataKeys.exifDict] = NSNull()
+        editableProps[MetadataKeys.gpsDict] = NSNull()
+        editableProps[kCGImagePropertyIPTCDictionary as String] = NSNull()
+
+        var tiffInfo: [String: Any] = [:]
+        tiffInfo[MetadataKeys.artist] = NSNull()
+        tiffInfo[MetadataKeys.copyright] = NSNull()
+        tiffInfo[MetadataKeys.make] = NSNull()
+        tiffInfo[MetadataKeys.model] = NSNull()
+        editableProps[MetadataKeys.tiffDict] = tiffInfo
+
         editableProps["Orientation"] = sourceProperties["Orientation"]
         return updateTiff(with: editableProps)
     }
 
     func write(batch: [String: Any]) -> [String: Any] {
-        var editableProps = sourceProperties
+        var editableProps: [String: Any] = [:]
 
         let tiffKeys = [
             MetadataKeys.make, MetadataKeys.model, MetadataKeys.artist,
             MetadataKeys.copyright, MetadataKeys.software, MetadataKeys.dateTime,
         ]
 
-        var tiffInfo = editableProps[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
-        var exifInfo = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
-        var gpsInfo = editableProps[MetadataKeys.gpsDict] as? [String: Any] ?? [:]
+        var tiffInfo: [String: Any] = [:]
+        var exifInfo: [String: Any] = [:]
+        var gpsInfo: [String: Any]?
 
         for (key, value) in batch {
             let isRemoval = value is NSNull
 
             if tiffKeys.contains(key) {
-                if isRemoval {
-                    tiffInfo.removeValue(forKey: key)
-                } else {
-                    tiffInfo[key] = value
-                }
+                tiffInfo[key] = value
             } else if key == MetadataKeys.dateTimeOriginal {
                 if isRemoval {
-                    exifInfo.removeValue(forKey: key)
-                    exifInfo.removeValue(forKey: MetadataKeys.dateTimeDigitized)
+                    exifInfo[key] = NSNull()
+                    exifInfo[MetadataKeys.dateTimeDigitized] = NSNull()
                 } else if let date = value as? Date {
                     let dateStr = DateFormatter.yMdHms.string(from: date)
                     exifInfo[key] = dateStr
@@ -391,27 +395,26 @@ extension Metadata {
                 }
             } else if key == MetadataKeys.location {
                 if isRemoval {
-                    gpsInfo = [:]
+                    gpsInfo = nil // Will set to NSNull below
                 } else if let loc = value as? CLLocation {
                     gpsInfo = Metadata.makeGpsDictionary(for: loc)
                 }
             } else {
-                if isRemoval {
-                    exifInfo.removeValue(forKey: key)
-                } else {
-                    exifInfo[key] = value
-                }
+                exifInfo[key] = value
             }
         }
 
-        editableProps[MetadataKeys.tiffDict] = tiffInfo
-        editableProps[MetadataKeys.exifDict] = exifInfo
+        if !tiffInfo.isEmpty {
+            editableProps[MetadataKeys.tiffDict] = tiffInfo
+        }
+        if !exifInfo.isEmpty {
+            editableProps[MetadataKeys.exifDict] = exifInfo
+        }
 
-        // Ensure GPS dict is updated even if it becomes empty (removal)
-        if gpsInfo.isEmpty {
-            editableProps.removeValue(forKey: MetadataKeys.gpsDict)
-        } else {
-            editableProps[MetadataKeys.gpsDict] = gpsInfo
+        if let gps = gpsInfo {
+            editableProps[MetadataKeys.gpsDict] = gps
+        } else if batch.keys.contains(MetadataKeys.location) {
+            editableProps[MetadataKeys.gpsDict] = NSNull()
         }
 
         return updateTiff(with: editableProps)

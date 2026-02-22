@@ -78,11 +78,11 @@ final class MetadataService: MetadataServiceProtocol, @unchecked Sendable {
     }
 
     func removeLocation(from metadata: Metadata) -> [String: Any] {
-        metadata.deleteGPS() ?? metadata.sourceProperties
+        metadata.deleteGPS() ?? [:]
     }
 
     func removeAllMetadata(from metadata: Metadata) -> [String: Any] {
-        metadata.deleteAllExceptOrientation() ?? metadata.sourceProperties
+        metadata.deleteAllExceptOrientation() ?? [:]
     }
 
     func updateMetadata(with batch: [String: Any], in metadata: Metadata) -> [String: Any] {

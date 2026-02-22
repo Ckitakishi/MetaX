@@ -8,7 +8,6 @@
 
 import CoreLocation
 import Observation
-import os
 import Photos
 import UIKit
 
@@ -59,7 +58,6 @@ final class DetailInfoViewModel: NSObject {
 
     struct UIModel {
         var heroContent: HeroContent?
-        var fileName: String = ""
         var currentLocation: CLLocation?
         var sections: [SectionModel] = []
     }
@@ -84,7 +82,6 @@ final class DetailInfoViewModel: NSObject {
     // MARK: - Computed Properties (Compatibility Layer)
 
     var heroContent: HeroContent? { ui.heroContent }
-    var fileName: String { ui.fileName }
     var currentLocation: CLLocation? { ui.currentLocation }
     var sections: [SectionModel] { ui.sections }
 
@@ -170,7 +167,18 @@ final class DetailInfoViewModel: NSObject {
     }
 
     func loadMetadata() async {
-        guard let asset = asset else { return }
+        guard let assetId = asset?.localIdentifier else { return }
+
+        // Refresh the asset from the library to ensure we have the latest properties
+        // (location, creationDate, etc.) and bypass any stale object caching.
+        if let freshAsset = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil).firstObject {
+            self.asset = freshAsset
+        }
+
+        guard let asset = asset else {
+            state = .failure(.photoLibrary(.assetNotFound))
+            return
+        }
 
         // Validate media type
         guard asset.mediaType == .image else {
@@ -211,9 +219,15 @@ final class DetailInfoViewModel: NSObject {
         let result = await photoLibraryService.revertAsset(asset)
         switch result {
         case .success:
+            // Fetch fresh asset reference after revert to ensure consistency.
+            if let fresh = PHAsset.fetchAssets(withLocalIdentifiers: [asset.localIdentifier], options: nil)
+                .firstObject {
+                self.asset = fresh
+            }
+
             await loadMetadata()
             if let metadata {
-                await syncAssetProperties(from: metadata.sourceProperties, for: asset)
+                await syncAssetProperties(from: metadata.sourceProperties, for: self.asset!)
             }
         case let .failure(error):
             actionError = error
@@ -247,11 +261,12 @@ final class DetailInfoViewModel: NSObject {
         saveMode: SaveWorkflowMode,
         confirm: ((SaveWarning) async -> Bool)? = nil
     ) async -> Bool {
+        isSaving = true
+        defer { isSaving = false }
+
         if hasMetaXEdit, case .updateOriginal = saveMode, asset != nil {
-            isSaving = true
             let revertResult = await photoLibraryService.revertAsset(asset!)
             if case let .failure(error) = revertResult {
-                isSaving = false
                 actionError = error
                 return false
             }
@@ -304,7 +319,6 @@ final class DetailInfoViewModel: NSObject {
         guard let asset = asset else { return false }
 
         isSaving = true
-        defer { isSaving = false }
 
         let result: Result<PHAsset, MetaXError>
         let originalToDelete: PHAsset?
@@ -327,10 +341,12 @@ final class DetailInfoViewModel: NSObject {
                 _ = await photoLibraryService.deleteAsset(oldAsset)
             }
 
+            isSaving = false
             await loadMetadata()
             return true
 
         case let .failure(error):
+            isSaving = false
             actionError = error
             return false
         }
@@ -407,23 +423,6 @@ final class DetailInfoViewModel: NSObject {
     private func updateDisplayData(from metadata: Metadata) {
         ui.currentLocation = metadata.rawGPS
 
-        if let asset {
-            // Fetch filename asynchronously to avoid blocking the main thread.
-            // PHAssetResource.assetResources(for:) can be slow on newly created assets.
-            let assetId = asset.localIdentifier
-            Task.detached(priority: .utility) {
-                let resources = PHAssetResource.assetResources(for: asset)
-                if let name = (resources.first(where: { $0.type == .photo }) ?? resources.first)?.originalFilename {
-                    await MainActor.run {
-                        // Ensure we are still showing the same asset
-                        if self.asset?.localIdentifier == assetId {
-                            self.ui.fileName = name
-                        }
-                    }
-                }
-            }
-        }
-
         ui.sections = metadata.metaProps.map { section, props in
             SectionModel(
                 section: section,
@@ -474,10 +473,6 @@ final class DetailInfoViewModel: NSObject {
         }
     }
 
-    func setFileName(_ name: String) {
-        ui.fileName = name
-    }
-
     // MARK: - Photo Library Observer
 
     func registerPhotoLibraryObserver() {
@@ -494,6 +489,8 @@ final class DetailInfoViewModel: NSObject {
 extension DetailInfoViewModel: PHPhotoLibraryChangeObserver {
     nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
         Task { @MainActor in
+            guard !self.isSaving else { return }
+
             guard let curAsset = self.asset,
                   let details = changeInstance.changeDetails(for: curAsset) else { return }
 

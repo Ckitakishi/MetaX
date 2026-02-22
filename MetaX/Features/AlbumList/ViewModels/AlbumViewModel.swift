@@ -423,18 +423,26 @@ extension AlbumViewModel: PHPhotoLibraryChangeObserver {
 
             if let smartAlbums, let details = changeInstance.changeDetails(for: smartAlbums) {
                 self.smartAlbums = details.fetchResultAfterChanges
-                let old = nonEmptySmartAlbums.map(\.localIdentifier)
-                self.nonEmptySmartAlbums = updatedNonEmptyAlbums()
-                if isStructural(details) || nonEmptySmartAlbums.map(\.localIdentifier) != old {
+
+                // PERFORMANCE vs DATA FRESHNESS TRADEOFF:
+                // We only recalculate the non-empty status on structural changes (add/remove albums).
+                // Recalculating on every content update (hasIncrementalChanges) causes a ~1s UI hang
+                // when saving metadata, as it triggers a full DB scan of all album counts.
+                // Note: This means a newly populated empty album might not appear until a refresh.
+                if isStructural(details) {
+                    self.nonEmptySmartAlbums = updatedNonEmptyAlbums()
                     needsReload = true
                 }
             }
 
             if let userCollections, let details = changeInstance.changeDetails(for: userCollections) {
                 self.userCollections = details.fetchResultAfterChanges
-                let old = userAssetCollections.map(\.localIdentifier)
-                self.userAssetCollections = updatedUserAssetCollections()
-                if isStructural(details) || userAssetCollections.map(\.localIdentifier) != old {
+
+                // PERFORMANCE vs DATA FRESHNESS TRADEOFF:
+                // Only sync album lists on structural changes to prevent UI blocking during frequent
+                // metadata updates or "Save as Copy" operations.
+                if isStructural(details) {
+                    self.userAssetCollections = updatedUserAssetCollections()
                     needsReload = true
                 }
             }

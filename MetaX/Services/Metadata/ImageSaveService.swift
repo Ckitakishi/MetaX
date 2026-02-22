@@ -310,7 +310,11 @@ final class ImageSaveService: ImageSaveServiceProtocol {
                 try? FileManager.default.removeItem(at: tempURL)
                 return false
             }
-            var finalProps = mergedProperties(base: sourceProps, overrides: newProperties, removeJFIF: isJPEG)
+            let merged = mergedProperties(base: sourceProps, overrides: newProperties, removeJFIF: isJPEG)
+            // For lossy encoding, we must strip NSNull values as they are only used as
+            // removal markers for the lossless (AddImageFromSource) path.
+            var finalProps = stripNulls(from: merged)
+
             // CIImage bakes orientation into pixels; reset the tag so Photos reads it correctly.
             finalProps[kCGImagePropertyOrientation as String] = 1
             finalProps[kCGImageDestinationLossyCompressionQuality as String] = 0.95
@@ -337,6 +341,23 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             try? FileManager.default.removeItem(at: tempURL)
             return false
         }
+    }
+
+    /// Recursively removes NSNull values from a dictionary.
+    private nonisolated func stripNulls(from dict: [String: Any]) -> [String: Any] {
+        var result = [String: Any]()
+        for (key, value) in dict {
+            if value is NSNull { continue }
+            if let subDict = value as? [String: Any] {
+                let strippedSub = stripNulls(from: subDict)
+                if !strippedSub.isEmpty {
+                    result[key] = strippedSub
+                }
+            } else {
+                result[key] = value
+            }
+        }
+        return result
     }
 
     /// Deep-merges `overrides` into `base`, combining sub-dictionaries key-by-key.
@@ -376,8 +397,15 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         let keys = [kCGImagePropertyTIFFArtist, kCGImagePropertyTIFFCopyright] as [CFString]
         return keys.contains { key in
             let k = key as String
-            guard let newStr = newTIFF[k] as? String,
-                  let oldStr = sourceTIFF[k] as? String else { return false }
+            let newValue = newTIFF[k]
+            let oldValue = sourceTIFF[k]
+
+            if newValue is NSNull {
+                return oldValue != nil
+            }
+
+            guard let newStr = newValue as? String,
+                  let oldStr = oldValue as? String else { return false }
             return newStr != oldStr
         }
     }
