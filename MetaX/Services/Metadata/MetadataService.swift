@@ -65,27 +65,27 @@ final class MetadataService: MetadataServiceProtocol, @unchecked Sendable {
 
     // MARK: - Modify Metadata
 
-    func updateTimestamp(_ date: Date, in metadata: Metadata) -> [String: Any] {
+    func updateTimestamp(_ date: Date, in metadata: Metadata) -> MetadataUpdateIntent {
         metadata.writeTimeOriginal(date)
     }
 
-    func removeTimestamp(from metadata: Metadata) -> [String: Any] {
+    func removeTimestamp(from metadata: Metadata) -> MetadataUpdateIntent {
         metadata.deleteTimeOriginal()
     }
 
-    func updateLocation(_ location: CLLocation, in metadata: Metadata) -> [String: Any] {
+    func updateLocation(_ location: CLLocation, in metadata: Metadata) -> MetadataUpdateIntent {
         metadata.writeLocation(location)
     }
 
-    func removeLocation(from metadata: Metadata) -> [String: Any] {
-        metadata.deleteGPS() ?? [:]
+    func removeLocation(from metadata: Metadata) -> MetadataUpdateIntent {
+        metadata.deleteGPS()
     }
 
-    func removeAllMetadata(from metadata: Metadata) -> [String: Any] {
-        metadata.deleteAllExceptOrientation() ?? [:]
+    func removeAllMetadata(from metadata: Metadata) -> MetadataUpdateIntent {
+        metadata.deleteAllExceptOrientation()
     }
 
-    func updateMetadata(with batch: [String: Any], in metadata: Metadata) -> [String: Any] {
+    func updateMetadata(with batch: [String: Any], in metadata: Metadata) -> MetadataUpdateIntent {
         metadata.write(batch: batch)
     }
 }

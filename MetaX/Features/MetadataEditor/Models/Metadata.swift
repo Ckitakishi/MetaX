@@ -180,6 +180,21 @@ public struct Metadata: @unchecked Sendable {
     }
 }
 
+/// Encapsulates a complete metadata update request, specifying both file-level
+/// properties and high-level database fields (Location, Creation Date).
+struct MetadataUpdateIntent: @unchecked Sendable {
+    /// The full dictionary of properties to be written into the image file.
+    let fileProperties: [String: Any]
+
+    /// The specific location to be synchronized with the PHAsset database.
+    /// If nil, it suggests that the location should be cleared from the database.
+    let dbLocation: CLLocation?
+
+    /// The specific date to be synchronized with the PHAsset database.
+    /// If nil, the existing asset creation date should be preserved.
+    let dbDate: Date?
+}
+
 // MARK: - MetadataLoadEvent
 
 /// Events emitted during the metadata loading process.
@@ -319,38 +334,42 @@ public enum MetadataField: CaseIterable, Sendable {
 
 extension Metadata {
     /// {Exif}.DateTimeOriginal
-    func writeTimeOriginal(_ date: Date) -> [String: Any] {
+    func writeTimeOriginal(_ date: Date) -> MetadataUpdateIntent {
         var editableProps = sourceProperties
         var exifInfo = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
         let dateStr = DateFormatter.yMdHms.string(from: date)
         exifInfo[MetadataKeys.dateTimeOriginal] = dateStr
         exifInfo[MetadataKeys.dateTimeDigitized] = dateStr
         editableProps[MetadataKeys.exifDict] = exifInfo
-        return updateTiff(with: editableProps)
+        let finalProps = updateTiff(with: editableProps)
+        return MetadataUpdateIntent(fileProperties: finalProps, dbLocation: rawGPS, dbDate: date)
     }
 
-    func deleteTimeOriginal() -> [String: Any] {
+    func deleteTimeOriginal() -> MetadataUpdateIntent {
         var editableProps: [String: Any] = [:]
         var exifInfo: [String: Any] = [:]
         exifInfo[MetadataKeys.dateTimeOriginal] = NSNull()
         exifInfo[MetadataKeys.dateTimeDigitized] = NSNull()
         editableProps[MetadataKeys.exifDict] = exifInfo
-        return updateTiff(with: editableProps)
+        let finalProps = updateTiff(with: editableProps)
+        return MetadataUpdateIntent(fileProperties: finalProps, dbLocation: rawGPS, dbDate: nil)
     }
 
-    func writeLocation(_ location: CLLocation) -> [String: Any] {
+    func writeLocation(_ location: CLLocation) -> MetadataUpdateIntent {
         var editableProps = sourceProperties
         editableProps[MetadataKeys.gpsDict] = Metadata.makeGpsDictionary(for: location)
-        return updateTiff(with: editableProps)
+        let finalProps = updateTiff(with: editableProps)
+        return MetadataUpdateIntent(fileProperties: finalProps, dbLocation: location, dbDate: nil)
     }
 
-    func deleteGPS() -> [String: Any]? {
+    func deleteGPS() -> MetadataUpdateIntent {
         var editableProps: [String: Any] = [:]
         editableProps[MetadataKeys.gpsDict] = NSNull()
-        return updateTiff(with: editableProps)
+        let finalProps = updateTiff(with: editableProps)
+        return MetadataUpdateIntent(fileProperties: finalProps, dbLocation: nil, dbDate: nil)
     }
 
-    func deleteAllExceptOrientation() -> [String: Any]? {
+    func deleteAllExceptOrientation() -> MetadataUpdateIntent {
         var editableProps: [String: Any] = [:]
         editableProps[MetadataKeys.exifDict] = NSNull()
         editableProps[MetadataKeys.gpsDict] = NSNull()
@@ -364,10 +383,11 @@ extension Metadata {
         editableProps[MetadataKeys.tiffDict] = tiffInfo
 
         editableProps["Orientation"] = sourceProperties["Orientation"]
-        return updateTiff(with: editableProps)
+        let finalProps = updateTiff(with: editableProps)
+        return MetadataUpdateIntent(fileProperties: finalProps, dbLocation: nil, dbDate: nil)
     }
 
-    func write(batch: [String: Any]) -> [String: Any] {
+    func write(batch: [String: Any]) -> MetadataUpdateIntent {
         var editableProps: [String: Any] = [:]
 
         let tiffKeys = [
@@ -378,6 +398,10 @@ extension Metadata {
         var tiffInfo: [String: Any] = [:]
         var exifInfo: [String: Any] = [:]
         var gpsInfo: [String: Any]?
+
+        var newDate: Date?
+        var newLocation: CLLocation?
+        var isLocationCleared = false
 
         for (key, value) in batch {
             let isRemoval = value is NSNull
@@ -392,12 +416,15 @@ extension Metadata {
                     let dateStr = DateFormatter.yMdHms.string(from: date)
                     exifInfo[key] = dateStr
                     exifInfo[MetadataKeys.dateTimeDigitized] = dateStr
+                    newDate = date
                 }
             } else if key == MetadataKeys.location {
                 if isRemoval {
                     gpsInfo = nil // Will set to NSNull below
+                    isLocationCleared = true
                 } else if let loc = value as? CLLocation {
                     gpsInfo = Metadata.makeGpsDictionary(for: loc)
+                    newLocation = loc
                 }
             } else {
                 exifInfo[key] = value
@@ -417,7 +444,14 @@ extension Metadata {
             editableProps[MetadataKeys.gpsDict] = NSNull()
         }
 
-        return updateTiff(with: editableProps)
+        let finalProps = updateTiff(with: editableProps)
+        let finalLocation = isLocationCleared ? nil : (newLocation ?? rawGPS)
+
+        return MetadataUpdateIntent(
+            fileProperties: finalProps,
+            dbLocation: finalLocation,
+            dbDate: newDate
+        )
     }
 
     static func makeGpsDictionary(for location: CLLocation) -> [String: Any] {

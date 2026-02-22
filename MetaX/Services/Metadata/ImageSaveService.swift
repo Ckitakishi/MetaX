@@ -11,18 +11,24 @@ import Photos
 import UniformTypeIdentifiers
 
 /// Protocol defining image save operations
-/// Methods are @MainActor because `[String: Any]` parameters are not Sendable.
 protocol ImageSaveServiceProtocol: Sendable {
     /// Create a new asset with modified metadata
-    @MainActor func saveImageAsNewAsset(
+    func saveImageAsNewAsset(
         asset: PHAsset,
         newProperties: [String: Any]
     ) async -> Result<PHAsset, MetaXError>
 
     /// Edit existing asset metadata using non-destructive editing
-    @MainActor func editAssetMetadata(
+    func editAssetMetadata(
         asset: PHAsset,
         newProperties: [String: Any]
+    ) async -> Result<PHAsset, MetaXError>
+
+    /// Apply a comprehensive metadata update intent (both file and DB properties)
+    func applyMetadataIntent(
+        _ intent: MetadataUpdateIntent,
+        to asset: PHAsset,
+        mode: SaveWorkflowMode
     ) async -> Result<PHAsset, MetaXError>
 }
 
@@ -53,14 +59,11 @@ final class ImageSaveService: ImageSaveServiceProtocol {
 
     // MARK: - Public Methods
 
-    @MainActor
     func saveImageAsNewAsset(
         asset: PHAsset,
         newProperties: [String: Any]
     ) async -> Result<PHAsset, MetaXError> {
         // 1. Generate new image data to temp file.
-        //    Must happen before any await so that newProperties can be safely transferred
-        //    to the nonisolated context without crossing a suspension point boundary.
         let box = MetadataBox(value: newProperties)
         let tempURLResult = await generateModifiedImageFile(for: asset, newProperties: box)
         guard case let .success(tempURL) = tempURLResult else {
@@ -83,7 +86,6 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         return createResult
     }
 
-    @MainActor
     func editAssetMetadata(
         asset: PHAsset,
         newProperties: [String: Any]
@@ -93,6 +95,61 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             return await editLivePhotoMetadata(asset: asset, newProperties: box)
         }
         return await editStillPhotoMetadata(asset: asset, newProperties: box)
+    }
+
+    func applyMetadataIntent(
+        _ intent: MetadataUpdateIntent,
+        to asset: PHAsset,
+        mode: SaveWorkflowMode
+    ) async -> Result<PHAsset, MetaXError> {
+        let result: Result<PHAsset, MetaXError>
+        let originalToDelete: PHAsset?
+
+        switch mode {
+        case .updateOriginal:
+            result = await editAssetMetadata(asset: asset, newProperties: intent.fileProperties)
+            originalToDelete = nil
+        case let .saveAsCopy(deleteOriginal):
+            result = await saveImageAsNewAsset(asset: asset, newProperties: intent.fileProperties)
+            originalToDelete = deleteOriginal ? asset : nil
+        }
+
+        switch result {
+        case let .success(newAsset):
+            // 2. Sync database properties (Date and Location) only if changed
+            let dateChanged: Bool = {
+                guard let newDate = intent.dbDate else { return false }
+                guard let current = newAsset.creationDate else { return true }
+                return abs(newDate.timeIntervalSince(current)) > 1
+            }()
+
+            let locationChanged: Bool = {
+                if let newLoc = intent.dbLocation, let curLoc = newAsset.location {
+                    return abs(newLoc.coordinate.latitude - curLoc.coordinate.latitude) > 0.00001
+                        || abs(newLoc.coordinate.longitude - curLoc.coordinate.longitude) > 0.00001
+                }
+                // Handle deletion semantic: intentional nil vs existing location
+                return (intent.dbLocation == nil) != (newAsset.location == nil)
+            }()
+
+            if dateChanged || locationChanged {
+                _ = await photoLibraryService.updateAssetProperties(
+                    newAsset,
+                    date: dateChanged ? intent.dbDate : nil,
+                    location: locationChanged ? intent.dbLocation : newAsset.location
+                )
+            }
+
+            // 3. Delete original if requested
+            if let oldAsset = originalToDelete {
+                _ = await photoLibraryService.deleteAsset(oldAsset)
+            }
+
+            return .success(newAsset)
+
+        case let .failure(error):
+            return .failure(error)
+        }
     }
 
     private nonisolated func editStillPhotoMetadata(
