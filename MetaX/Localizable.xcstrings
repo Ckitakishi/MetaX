@@ -93,29 +93,6 @@
         }
       }
     },
-    "Alert.LivePhoto.CopyMessage": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Only the still image will be saved as a copy. The video component of this Live Photo will not be included."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Live Photo のビデオ部分は保存されず、静止画のみがコピーとして保存されます。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "该 Live Photo 的视频部分将不会被保留，仅保存为静态图片副本。"
-          }
-        }
-      }
-    },
     "Alert.PhotoAccess": {
       "extractionState": "manual",
       "localizations": {
@@ -3217,6 +3194,98 @@
           "stringUnit": {
             "state": "translated",
             "value": "最近添加"
+          }
+        }
+      }
+    },
+    "Alert.RawConversion.Title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save as Copy"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピーとして保存"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另存为副本"
+          }
+        }
+      }
+    },
+    "Alert.RawConversion.Message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RAW images cannot be modified directly and will be saved as a high-quality JPEG copy. Do you want to continue?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RAW画像は直接編集できないため、高品質なJPEGとして保存されます。続行しますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RAW图片无法直接修改元数据，将为您创建高质量JPEG副本。是否继续？"
+          }
+        }
+      }
+    },
+    "Alert.LivePhoto.CopyTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Photo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Photo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实况照片"
+          }
+        }
+      }
+    },
+    "Alert.LivePhoto.CopyMessage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving a copy will only preserve the still image. The Live Photo effect will be lost. Do you want to continue?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピーを保存すると静止画のみが残り、Live Photoの効果は失われます。続行しますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存副本将仅保留静态图片，实况效果将丢失。是否继续？"
           }
         }
       }

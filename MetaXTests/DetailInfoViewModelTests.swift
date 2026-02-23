@@ -10,12 +10,12 @@ import Photos
 import Testing
 import UIKit
 
-@Suite("Detail Info Sync Logic Tests")
-@MainActor
+@Suite("Detail Info Logic Tests")
 struct DetailInfoViewModelTests {
 
     let viewModel: DetailInfoViewModel
 
+    @MainActor
     init() {
         viewModel = DetailInfoViewModel(
             metadataService: MockMetadataService(),
@@ -28,97 +28,89 @@ struct DetailInfoViewModelTests {
     func dateSyncDecision() {
         let now = Date()
 
-        // 1. Difference < 1s (0.5s)
-        let needs1 = viewModel.calculateSyncNeeds(
-            newDate: now.addingTimeInterval(0.5),
-            currentDate: now,
-            newLocation: nil,
-            currentLocation: nil
-        )
-        #expect(needs1.dateChanged == false)
+        // 1. Difference < 1s (0.5s) -> No sync
+        #expect(MetadataSyncLogic.shouldSyncDate(now.addingTimeInterval(0.5), with: now) == false)
 
-        // 2. Difference > 1s (1.5s)
-        let needs2 = viewModel.calculateSyncNeeds(
-            newDate: now.addingTimeInterval(1.5),
-            currentDate: now,
-            newLocation: nil,
-            currentLocation: nil
-        )
-        #expect(needs2.dateChanged == true)
+        // 2. Difference > 1s (1.5s) -> Sync
+        #expect(MetadataSyncLogic.shouldSyncDate(now.addingTimeInterval(1.5), with: now) == true)
 
-        // 3. One is nil
-        let needs3 = viewModel.calculateSyncNeeds(
-            newDate: now,
-            currentDate: nil,
-            newLocation: nil,
-            currentLocation: nil
-        )
-        #expect(needs3.dateChanged == true)
+        // 3. New date vs nil current -> Sync
+        #expect(MetadataSyncLogic.shouldSyncDate(now, with: nil as Date?) == true)
+
+        // 4. Nil new date -> No sync
+        #expect(MetadataSyncLogic.shouldSyncDate(nil as Date?, with: now) == false)
     }
 
     @Test("Sync decision: Location tolerance")
     func locationSyncDecision() {
         let loc1 = CLLocation(latitude: 35.0, longitude: 139.0)
 
-        // 1. Very small difference (same location roughly)
+        // 1. Very small difference (same location roughly) -> No sync
         let locSmallDiff = CLLocation(latitude: 35.000001, longitude: 139.000001)
-        let needs1 = viewModel.calculateSyncNeeds(
-            newDate: nil,
-            currentDate: nil,
-            newLocation: locSmallDiff,
-            currentLocation: loc1
-        )
-        #expect(needs1.locationChanged == false)
+        #expect(MetadataSyncLogic.shouldSyncLocation(locSmallDiff, with: loc1) == false)
 
-        // 2. Significant difference
+        // 2. Significant difference -> Sync
         let locBigDiff = CLLocation(latitude: 35.1, longitude: 139.1)
-        let needs2 = viewModel.calculateSyncNeeds(
-            newDate: nil,
-            currentDate: nil,
-            newLocation: locBigDiff,
-            currentLocation: loc1
-        )
-        #expect(needs2.locationChanged == true)
+        #expect(MetadataSyncLogic.shouldSyncLocation(locBigDiff, with: loc1) == true)
 
-        // 3. One is nil
-        let needs3 = viewModel.calculateSyncNeeds(
-            newDate: nil,
-            currentDate: nil,
-            newLocation: loc1,
-            currentLocation: nil
-        )
-        #expect(needs3.locationChanged == true)
+        // 3. New location vs nil current -> Sync
+        #expect(MetadataSyncLogic.shouldSyncLocation(loc1, with: nil as CLLocation?) == true)
+
+        // 4. Nil new location vs existing current (Deletion) -> Sync
+        #expect(MetadataSyncLogic.shouldSyncLocation(nil as CLLocation?, with: loc1) == true)
     }
 }
 
 class MockMetadataService: MetadataServiceProtocol, @unchecked Sendable {
     func loadMetadataEvents(from asset: PHAsset) -> AsyncStream<MetadataLoadEvent> { AsyncStream { $0.finish() } }
-    func updateTimestamp(_ date: Date, in metadata: Metadata) -> [String: Any] { [:] }
-    func removeTimestamp(from metadata: Metadata) -> [String: Any] { [:] }
-    func updateLocation(_ location: CLLocation, in metadata: Metadata) -> [String: Any] { [:] }
-    func removeLocation(from metadata: Metadata) -> [String: Any] { [:] }
-    func removeAllMetadata(from metadata: Metadata) -> [String: Any] { [:] }
-    func updateMetadata(with batch: [String: Any], in metadata: Metadata) -> [String: Any] { [:] }
+    func updateTimestamp(_ date: Date, in metadata: Metadata) -> MetadataUpdateIntent {
+        MetadataUpdateIntent(fileProperties: [:], dbLocation: nil, dbDate: date)
+    }
+
+    func removeTimestamp(from metadata: Metadata) -> MetadataUpdateIntent {
+        MetadataUpdateIntent(fileProperties: [:], dbLocation: nil, dbDate: nil)
+    }
+
+    func updateLocation(_ location: CLLocation, in metadata: Metadata) -> MetadataUpdateIntent {
+        MetadataUpdateIntent(fileProperties: [:], dbLocation: location, dbDate: nil)
+    }
+
+    func removeLocation(from metadata: Metadata) -> MetadataUpdateIntent {
+        MetadataUpdateIntent(fileProperties: [:], dbLocation: nil, dbDate: nil)
+    }
+
+    func removeAllMetadata(from metadata: Metadata) -> MetadataUpdateIntent {
+        MetadataUpdateIntent(fileProperties: [:], dbLocation: nil, dbDate: nil)
+    }
+
+    func updateMetadata(with batch: [String: Any], in metadata: Metadata) -> MetadataUpdateIntent {
+        MetadataUpdateIntent(fileProperties: [:], dbLocation: nil, dbDate: nil)
+    }
 }
 
 class MockImageSaveService: ImageSaveServiceProtocol, @unchecked Sendable {
     func editAssetMetadata(
         asset: PHAsset,
-        newProperties: [String: Any]
+        intent: MetadataUpdateIntent
     ) async -> Result<PHAsset, MetaXError> { .failure(.unknown(underlying: nil)) }
     func saveImageAsNewAsset(
         asset: PHAsset,
-        newProperties: [String: Any]
+        intent: MetadataUpdateIntent
+    ) async -> Result<PHAsset, MetaXError> { .failure(.unknown(underlying: nil)) }
+    func applyMetadataIntent(
+        _ intent: MetadataUpdateIntent,
+        to asset: PHAsset,
+        mode: SaveWorkflowMode
     ) async -> Result<PHAsset, MetaXError> { .failure(.unknown(underlying: nil)) }
 }
 
 class MockPhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendable {
     func checkAuthorization() async -> Result<Void, MetaXError> { .failure(.unknown(underlying: nil)) }
     func guideToSettings() {}
-    func fetchAllPhotos(sortedBy: NSSortDescriptor?) -> PHFetchResult<PHAsset> { fatalError("Not called in tests") }
+    func fetchAllPhotos(sortedBy: PhotoSortOrder) -> PHFetchResult<PHAsset> { fatalError("Not called in tests") }
     func fetchAssets(
         in collection: PHAssetCollection,
-        sortedBy: NSSortDescriptor?
+        sortedBy: PhotoSortOrder
     ) -> PHFetchResult<PHAsset> { fatalError("Not called in tests") }
     func fetchSmartAlbums() -> PHFetchResult<PHAssetCollection> { fatalError("Not called in tests") }
     func fetchUserCollections() -> PHFetchResult<PHCollection> { fatalError("Not called in tests") }

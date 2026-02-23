@@ -9,8 +9,8 @@
 import CoreLocation
 import Photos
 
-/// Service for metadata operations
-/// @unchecked Sendable: stateless service, all methods operate on their inputs only.
+/// High-level service for loading and generating metadata update intents.
+/// This service acts as a facade, bridging the UI requests to the underlying Metadata model logic.
 final class MetadataService: MetadataServiceProtocol, @unchecked Sendable {
 
     // MARK: - Initialization
@@ -24,33 +24,32 @@ final class MetadataService: MetadataServiceProtocol, @unchecked Sendable {
             let options = PHImageRequestOptions()
             options.isNetworkAccessAllowed = true
             options.deliveryMode = .highQualityFormat
-            options.version = .current // IMPORTANT: Always request the latest rendered version
+            options.version = .current // Always request the latest rendered version
 
             options.progressHandler = { progress, _, _, _ in
-                // progress == 1.0 means instantly-complete, skip
                 guard progress < 1.0 else { return }
                 continuation.yield(.progress(progress))
             }
 
             let requestId = PHImageManager.default()
-                .requestImageDataAndOrientation(for: asset, options: options) { data, _, _, info in
-                    if let error = info?[PHImageErrorKey] as? Error {
-                        continuation.yield(.failure(.photoLibrary(.assetFetchFailed(underlying: error))))
+                .requestImageDataAndOrientation(for: asset, options: options) { imageData, _, _, info in
+
+                    if let fetchError = info?[PHImageErrorKey] as? Error {
+                        continuation.yield(.failure(.photoLibrary(.assetFetchFailed(underlying: fetchError))))
                         continuation.finish()
                         return
                     }
 
-                    if let data = data {
-                        if let source = CGImageSourceCreateWithData(data as CFData, nil),
-                           let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] {
-                            if let metadata = Metadata(props: properties, asset: asset) {
-                                continuation.yield(.success(metadata))
-                            } else {
-                                continuation.yield(.failure(.metadata(.readFailed)))
-                            }
-                        } else {
-                            continuation.yield(.failure(.metadata(.readFailed)))
-                        }
+                    guard let data = imageData else {
+                        continuation.yield(.failure(.metadata(.readFailed)))
+                        continuation.finish()
+                        return
+                    }
+
+                    if let imageSource = CGImageSourceCreateWithData(data as CFData, nil),
+                       let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any] {
+                        let metadataModel = Metadata(props: properties, asset: asset)
+                        continuation.yield(.success(metadataModel))
                     } else {
                         continuation.yield(.failure(.metadata(.readFailed)))
                     }
@@ -63,7 +62,7 @@ final class MetadataService: MetadataServiceProtocol, @unchecked Sendable {
         }
     }
 
-    // MARK: - Modify Metadata
+    // MARK: - Intent Generation Bridge
 
     func updateTimestamp(_ date: Date, in metadata: Metadata) -> MetadataUpdateIntent {
         metadata.writeTimeOriginal(date)

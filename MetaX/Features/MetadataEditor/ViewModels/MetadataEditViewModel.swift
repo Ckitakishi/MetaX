@@ -55,7 +55,7 @@ final class MetadataEditViewModel {
                 isLocationEqual(lhs.location, rhs.location)
         }
 
-        private static func isLocationEqual(_ l1: CLLocation?, _ l2: CLLocation?) -> Bool {
+        static func isLocationEqual(_ l1: CLLocation?, _ l2: CLLocation?) -> Bool {
             if l1 == nil && l2 == nil { return true }
             guard let l1 = l1, let l2 = l2 else { return false }
             return l1.coordinate.latitude == l2.coordinate.latitude &&
@@ -237,86 +237,115 @@ final class MetadataEditViewModel {
         return prepareFields(from: fields)
     }
 
-    /// Converts raw UI inputs into a metadata fields dictionary.
+    /// Converts raw UI inputs into a metadata fields dictionary, only including fields that have changed.
     private func prepareFields(from raw: Fields) -> [MetadataField: MetadataFieldValue] {
         var fieldsDict: [MetadataField: MetadataFieldValue] = [:]
 
-        fieldsDict[.make] = (raw.make?.isEmpty ?? true) ? .null : .string(raw.make!)
-        fieldsDict[.model] = (raw.model?.isEmpty ?? true) ? .null : .string(raw.model!)
-        fieldsDict[.lensMake] = (raw.lensMake?.isEmpty ?? true) ? .null : .string(raw.lensMake!)
-        fieldsDict[.lensModel] = (raw.lensModel?.isEmpty ?? true) ? .null : .string(raw.lensModel!)
+        /// Simple String fields helper
+        func addIfChanged(_ field: MetadataField, current: String?, initial: String?) {
+            if (current ?? "") != (initial ?? "") {
+                fieldsDict[field] = (current?.isEmpty ?? true) ? .null : .string(current!)
+            }
+        }
+
+        addIfChanged(.make, current: raw.make, initial: initialFields.make)
+        addIfChanged(.model, current: raw.model, initial: initialFields.model)
+        addIfChanged(.lensMake, current: raw.lensMake, initial: initialFields.lensMake)
+        addIfChanged(.lensModel, current: raw.lensModel, initial: initialFields.lensModel)
+        addIfChanged(.artist, current: raw.artist, initial: initialFields.artist)
+        addIfChanged(.copyright, current: raw.copyright, initial: initialFields.copyright)
 
         // Aperture
-        if let val = raw.aperture, let d = Double(val) {
-            fieldsDict[.aperture] = .double(d)
-        } else {
-            fieldsDict[.aperture] = .null
+        if raw.aperture != initialFields.aperture {
+            if let val = raw.aperture, let d = Double(val) {
+                fieldsDict[.aperture] = .double(d)
+            } else {
+                fieldsDict[.aperture] = .null
+            }
         }
 
         // Shutter Speed
-        if let val = raw.shutter, !val.isEmpty {
-            if val.contains("/") {
-                let parts = val.components(separatedBy: "/")
-                if parts.count == 2, let n = Double(parts[0]), let d = Double(parts[1]), d != 0 {
-                    fieldsDict[.shutter] = .double(n / d)
+        if raw.shutter != initialFields.shutter {
+            if let val = raw.shutter, !val.isEmpty {
+                if val.contains("/") {
+                    let parts = val.components(separatedBy: "/")
+                    if parts.count == 2, let n = Double(parts[0]), let d = Double(parts[1]), d != 0 {
+                        fieldsDict[.shutter] = .double(n / d)
+                    } else {
+                        fieldsDict[.shutter] = .null
+                    }
+                } else if let d = Double(val) {
+                    fieldsDict[.shutter] = .double(d)
                 } else {
                     fieldsDict[.shutter] = .null
                 }
-            } else if let d = Double(val) {
-                fieldsDict[.shutter] = .double(d)
             } else {
                 fieldsDict[.shutter] = .null
             }
-        } else {
-            fieldsDict[.shutter] = .null
         }
 
         // ISO
-        if let val = raw.iso, let i = Int(val) {
-            fieldsDict[.iso] = .intArray([i])
-        } else {
-            fieldsDict[.iso] = .null
+        if raw.iso != initialFields.iso {
+            if let val = raw.iso, let i = Int(val) {
+                fieldsDict[.iso] = .intArray([i])
+            } else {
+                fieldsDict[.iso] = .null
+            }
         }
 
         // Focal Length
-        if let val = raw.focalLength, let d = Double(val) {
-            fieldsDict[.focalLength] = .double(d)
-        } else {
-            fieldsDict[.focalLength] = .null
+        if raw.focalLength != initialFields.focalLength {
+            if let val = raw.focalLength, let d = Double(val) {
+                fieldsDict[.focalLength] = .double(d)
+            } else {
+                fieldsDict[.focalLength] = .null
+            }
         }
 
         // Exposure Bias
-        if let val = raw.exposureBias, !val.isEmpty {
-            let cleanVal = val.replacingOccurrences(of: "+", with: "")
-            if let d = Double(cleanVal) {
-                fieldsDict[.exposureBias] = .double(d)
+        if raw.exposureBias != initialFields.exposureBias {
+            if let val = raw.exposureBias, !val.isEmpty {
+                let cleanVal = val.replacingOccurrences(of: "+", with: "")
+                if let d = Double(cleanVal) {
+                    fieldsDict[.exposureBias] = .double(d)
+                } else {
+                    fieldsDict[.exposureBias] = .null
+                }
             } else {
                 fieldsDict[.exposureBias] = .null
             }
-        } else {
-            fieldsDict[.exposureBias] = .null
         }
 
         // Focal Length In 35mm
-        if let val = raw.focalLength35, let i = Int(val) {
-            fieldsDict[.focalLength35] = .int(i)
-        } else {
-            fieldsDict[.focalLength35] = .null
+        if raw.focalLength35 != initialFields.focalLength35 {
+            if let val = raw.focalLength35, let i = Int(val) {
+                fieldsDict[.focalLength35] = .int(i)
+            } else {
+                fieldsDict[.focalLength35] = .null
+            }
         }
 
         // Pickers
-        fieldsDict[.exposureProgram] = raw.exposureProgram.map { .int($0) } ?? .null
-        fieldsDict[.meteringMode] = raw.meteringMode.map { .int($0) } ?? .null
-        fieldsDict[.whiteBalance] = raw.whiteBalance.map { .int($0) } ?? .null
-        fieldsDict[.flash] = raw.flash.map { .int($0) } ?? .null
+        if raw.exposureProgram != initialFields.exposureProgram {
+            fieldsDict[.exposureProgram] = raw.exposureProgram.map { .int($0) } ?? .null
+        }
+        if raw.meteringMode != initialFields.meteringMode {
+            fieldsDict[.meteringMode] = raw.meteringMode.map { .int($0) } ?? .null
+        }
+        if raw.whiteBalance != initialFields.whiteBalance {
+            fieldsDict[.whiteBalance] = raw.whiteBalance.map { .int($0) } ?? .null
+        }
+        if raw.flash != initialFields.flash {
+            fieldsDict[.flash] = raw.flash.map { .int($0) } ?? .null
+        }
 
         // Date and Location
-        fieldsDict[.dateTimeOriginal] = .date(raw.dateTimeOriginal)
-        fieldsDict[.location] = raw.location.map { .location($0) } ?? .null
-
-        // Copyright
-        fieldsDict[.artist] = (raw.artist?.isEmpty ?? true) ? .null : .string(raw.artist!)
-        fieldsDict[.copyright] = (raw.copyright?.isEmpty ?? true) ? .null : .string(raw.copyright!)
+        if raw.dateTimeOriginal != initialFields.dateTimeOriginal {
+            fieldsDict[.dateTimeOriginal] = .date(raw.dateTimeOriginal)
+        }
+        if !Fields.isLocationEqual(raw.location, initialFields.location) {
+            fieldsDict[.location] = raw.location.map { .location($0) } ?? .null
+        }
 
         return fieldsDict
     }

@@ -12,14 +12,19 @@ import ImageIO
 import Photos
 import UIKit
 
+// MARK: - Metadata Keys & Constants
+
 public enum MetadataKeys {
+    // Dictionary Containers
     static let exifDict = kCGImagePropertyExifDictionary as String
     static let tiffDict = kCGImagePropertyTIFFDictionary as String
     static let gpsDict = kCGImagePropertyGPSDictionary as String
+    static let iptcDict = kCGImagePropertyIPTCDictionary as String
+    static let pngDict = kCGImagePropertyPNGDictionary as String
+    static let appleDict = kCGImagePropertyMakerAppleDictionary as String
+    static let iccProfile = "{ICCProfile}"
 
-    static let location = "Location"
-    static let dateTimeOriginal = kCGImagePropertyExifDateTimeOriginal as String
-    static let dateTimeDigitized = kCGImagePropertyExifDateTimeDigitized as String
+    // TIFF Properties
     static let make = kCGImagePropertyTIFFMake as String
     static let model = kCGImagePropertyTIFFModel as String
     static let software = kCGImagePropertyTIFFSoftware as String
@@ -27,6 +32,13 @@ public enum MetadataKeys {
     static let copyright = kCGImagePropertyTIFFCopyright as String
     static let dateTime = kCGImagePropertyTIFFDateTime as String
 
+    // IPTC Properties
+    static let iptcByline = kCGImagePropertyIPTCByline as String
+    static let iptcCopyright = kCGImagePropertyIPTCCopyrightNotice as String
+
+    // EXIF Properties
+    static let dateTimeOriginal = kCGImagePropertyExifDateTimeOriginal as String
+    static let dateTimeDigitized = kCGImagePropertyExifDateTimeDigitized as String
     static let lensMake = kCGImagePropertyExifLensMake as String
     static let lensModel = kCGImagePropertyExifLensModel as String
     static let fNumber = kCGImagePropertyExifFNumber as String
@@ -40,11 +52,13 @@ public enum MetadataKeys {
     static let whiteBalance = kCGImagePropertyExifWhiteBalance as String
     static let flash = kCGImagePropertyExifFlash as String
 
-    // GPS Keys
+    // GPS Properties
     static let gpsLatitude = kCGImagePropertyGPSLatitude as String
     static let gpsLatitudeRef = kCGImagePropertyGPSLatitudeRef as String
     static let gpsLongitude = kCGImagePropertyGPSLongitude as String
     static let gpsLongitudeRef = kCGImagePropertyGPSLongitudeRef as String
+
+    static let location = "Location"
 }
 
 public enum SaveWorkflowMode: Equatable, Sendable {
@@ -52,436 +66,315 @@ public enum SaveWorkflowMode: Equatable, Sendable {
     case saveAsCopy(deleteOriginal: Bool)
 }
 
-public enum MetadataSection: String, Sendable {
-    case basicInfo = "BASIC INFO"
-    case gear = "GEAR"
-    case exposure = "EXPOSURE"
-    case fileInfo = "FILE INFO"
-    case copyright = "COPYRIGHT"
+// MARK: - Metadata Schema & Mapping
 
-    var localizedTitle: String {
-        switch self {
-        case .basicInfo: return String(localized: .editGroupBasicInfo)
-        case .gear: return String(localized: .editGroupGear)
-        case .exposure: return String(localized: .shooting)
-        case .fileInfo: return String(localized: .editGroupFileInfo)
-        case .copyright: return String(localized: .editGroupCopyright)
-        }
+private enum MetadataContainer {
+    case topLevel, exif, tiff, gps, iptc
+}
+
+private struct MetadataFieldPolicy {
+    let container: MetadataContainer
+    let key: String
+    let syncedFields: [(MetadataContainer, String)]?
+
+    init(_ container: MetadataContainer, _ key: String, syncedFields: [(MetadataContainer, String)]? = nil) {
+        self.container = container
+        self.key = key
+        self.syncedFields = syncedFields
     }
 }
 
+private enum MetadataSchema {
+    /// Essential keys to preserve during "Clear All" to keep the file structure valid.
+    static let structuralKeys: Set<String> = [
+        kCGImagePropertyPixelWidth as String,
+        kCGImagePropertyPixelHeight as String,
+        kCGImagePropertyOrientation as String,
+        kCGImagePropertyColorModel as String,
+        kCGImagePropertyDepth as String,
+        kCGImagePropertyProfileName as String,
+        kCGImagePropertyDPIWidth as String,
+        kCGImagePropertyDPIHeight as String,
+        MetadataKeys.appleDict,
+        kCGImagePropertyHasAlpha as String,
+        kCGImagePropertyExifColorSpace as String,
+        kCGImagePropertyPNGGamma as String,
+        kCGImagePropertyPNGChromaticities as String,
+        kCGImagePropertyTIFFXResolution as String,
+        kCGImagePropertyTIFFYResolution as String,
+        kCGImagePropertyTIFFResolutionUnit as String,
+        MetadataKeys.iccProfile,
+        "BitsPerComponent",
+        "BitsPerSample",
+        "SamplesPerPixel",
+        "NamedColorSpace",
+        "PrimaryImage",
+        "AuxiliaryImage",
+        "AuxiliaryData",
+        "PixelWidth",
+        "PixelHeight",
+        "Orientation",
+    ]
+
+    private static let policies: [String: MetadataFieldPolicy] = [
+        MetadataKeys.make: .init(.tiff, MetadataKeys.make),
+        MetadataKeys.model: .init(.tiff, MetadataKeys.model),
+        MetadataKeys.software: .init(.tiff, MetadataKeys.software),
+        MetadataKeys.dateTime: .init(.tiff, MetadataKeys.dateTime),
+        MetadataKeys.artist: .init(.tiff, MetadataKeys.artist, syncedFields: [(.iptc, MetadataKeys.iptcByline)]),
+        MetadataKeys.copyright: .init(
+            .tiff,
+            MetadataKeys.copyright,
+            syncedFields: [(.iptc, MetadataKeys.iptcCopyright)]
+        ),
+        MetadataKeys.lensMake: .init(.exif, MetadataKeys.lensMake),
+        MetadataKeys.lensModel: .init(.exif, MetadataKeys.lensModel),
+        MetadataKeys.fNumber: .init(.exif, MetadataKeys.fNumber),
+        MetadataKeys.exposureTime: .init(.exif, MetadataKeys.exposureTime),
+        MetadataKeys.isoSpeedRatings: .init(.exif, MetadataKeys.isoSpeedRatings),
+        MetadataKeys.focalLength: .init(.exif, MetadataKeys.focalLength),
+        MetadataKeys.exposureBiasValue: .init(.exif, MetadataKeys.exposureBiasValue),
+        MetadataKeys.focalLenIn35mmFilm: .init(.exif, MetadataKeys.focalLenIn35mmFilm),
+        MetadataKeys.exposureProgram: .init(.exif, MetadataKeys.exposureProgram),
+        MetadataKeys.meteringMode: .init(.exif, MetadataKeys.meteringMode),
+        MetadataKeys.whiteBalance: .init(.exif, MetadataKeys.whiteBalance),
+        MetadataKeys.flash: .init(.exif, MetadataKeys.flash),
+        MetadataKeys.dateTimeOriginal: .init(.exif, MetadataKeys.dateTimeOriginal),
+        MetadataKeys.dateTimeDigitized: .init(.exif, MetadataKeys.dateTimeDigitized),
+        MetadataKeys.location: .init(.gps, MetadataKeys.location),
+    ]
+
+    static func policy(for key: String) -> MetadataFieldPolicy {
+        policies[key] ?? .init(.exif, key)
+    }
+}
+
+// MARK: - Metadata Model
+
 public struct Metadata: @unchecked Sendable {
-
     public let sourceProperties: [String: Any]
-
-    /// Categorized metadata properties grouped by section.
     public let metaProps: [(section: MetadataSection, props: [[String: Any]])]
-
     public let rawGPS: CLLocation?
 
     public init?(contentsOf url: URL) {
-        guard let ciimage = CIImage(contentsOf: url) else {
-            return nil
-        }
-        self.init(ciimage: ciimage)
+        guard let ciimage = CIImage(contentsOf: url) else { return nil }
+        self.init(props: ciimage.properties)
     }
 
     public init?(ciimage: CIImage, asset: PHAsset? = nil) {
         self.init(props: ciimage.properties, asset: asset)
     }
 
-    private struct MetadataGroup: Codable {
-        let title: String
-        let props: [String]
-
-        enum CodingKeys: String, CodingKey {
-            case title = "Title"
-            case props = "Props"
-        }
-    }
-
-    private static let metadataGroups: [MetadataGroup] = {
-        guard let url = Bundle.main.url(forResource: "MetadataPlus", withExtension: "plist"),
-              let data = try? Data(contentsOf: url),
-              let groups = try? PropertyListDecoder().decode([MetadataGroup].self, from: data)
-        else {
-            return []
-        }
-        return groups
-    }()
-
-    public init?(props: [String: Any], asset: PHAsset? = nil) {
-        var sourceProperties = props
-
-        // Priority: PHAsset values overwrite EXIF/GPS if they exist.
-        if let asset = asset {
-            if let creationDate = asset.creationDate {
-                var exifInfo = sourceProperties[MetadataKeys.exifDict] as? [String: Any] ?? [:]
-                let dateStr = DateFormatter.yMdHms.string(from: creationDate)
-                exifInfo[MetadataKeys.dateTimeOriginal] = dateStr
-                exifInfo[MetadataKeys.dateTimeDigitized] = dateStr
-                sourceProperties[MetadataKeys.exifDict] = exifInfo
-            }
-            if let location = asset.location {
-                sourceProperties[MetadataKeys.gpsDict] = Metadata.makeGpsDictionary(for: location)
-            }
-        }
-
-        self.sourceProperties = sourceProperties
-
-        var tmpMetaProps: [(section: MetadataSection, props: [[String: Any]])] = []
-        var tmpGPSProp: CLLocation?
-
-        let exifInfo = sourceProperties[MetadataKeys.exifDict] as? [String: Any] ?? [:]
-        let tiffInfo = sourceProperties[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
-
-        // Extract GPS first for internal use
-        if let gpsInfo = sourceProperties[MetadataKeys.gpsDict] as? [String: Any],
-           let latitudeRef = gpsInfo[MetadataKeys.gpsLatitudeRef] as? String,
-           let latitude = gpsInfo[MetadataKeys.gpsLatitude] as? Double,
-           let longitudeRef = gpsInfo[MetadataKeys.gpsLongitudeRef] as? String,
-           let longitude = gpsInfo[MetadataKeys.gpsLongitude] as? Double {
-            tmpGPSProp = CLLocation(
+    public init(props: [String: Any], asset: PHAsset? = nil) {
+        sourceProperties = props
+        var tmpGPS: CLLocation?
+        if let gps = props[MetadataKeys.gpsDict] as? [String: Any],
+           let latitude = gps[MetadataKeys.gpsLatitude] as? Double,
+           let latitudeRef = gps[MetadataKeys.gpsLatitudeRef] as? String,
+           let longitude = gps[MetadataKeys.gpsLongitude] as? Double,
+           let longitudeRef = gps[MetadataKeys.gpsLongitudeRef] as? String {
+            tmpGPS = CLLocation(
                 latitude: latitudeRef == "N" ? latitude : -latitude,
                 longitude: longitudeRef == "E" ? longitude : -longitude
             )
         }
-        rawGPS = tmpGPSProp
-
-        for group in Metadata.metadataGroups {
-            guard let section = MetadataSection(rawValue: group.title) else { continue }
-
-            var groupProps: [[String: Any]] = []
-
-            for key in group.props {
-                if key == MetadataKeys.location {
-                    if let gps = tmpGPSProp {
-                        groupProps.append([key: gps])
-                    }
-                } else if let val = exifInfo[key] {
-                    groupProps.append([key: val])
-                } else if let val = tiffInfo[key] {
-                    groupProps.append([key: val])
-                } else if let val = sourceProperties[key] {
-                    groupProps.append([key: val])
-                }
-            }
-
-            if !groupProps.isEmpty {
-                tmpMetaProps.append((section: section, props: groupProps))
-            }
-        }
-
-        metaProps = tmpMetaProps
+        rawGPS = tmpGPS
+        metaProps = Metadata.buildMetaProps(source: props, gps: tmpGPS)
     }
 
-    var timeStampKey: String {
-        MetadataKeys.dateTimeOriginal
-    }
-}
-
-/// Encapsulates a complete metadata update request, specifying both file-level
-/// properties and high-level database fields (Location, Creation Date).
-struct MetadataUpdateIntent: @unchecked Sendable {
-    /// The full dictionary of properties to be written into the image file.
-    let fileProperties: [String: Any]
-
-    /// The specific location to be synchronized with the PHAsset database.
-    /// If nil, it suggests that the location should be cleared from the database.
-    let dbLocation: CLLocation?
-
-    /// The specific date to be synchronized with the PHAsset database.
-    /// If nil, the existing asset creation date should be preserved.
-    let dbDate: Date?
-}
-
-// MARK: - MetadataLoadEvent
-
-/// Events emitted during the metadata loading process.
-enum MetadataLoadEvent: Sendable {
-    /// Indicates iCloud download progress (0.0 to 1.0).
-    case progress(Double)
-    /// Metadata loaded successfully.
-    case success(Metadata)
-    /// Loading failed with a specific error.
-    case failure(MetaXError)
-}
-
-// MARK: - MetadataFieldValue
-
-public enum MetadataFieldValue: Sendable {
-    case null
-    case string(String)
-    case double(Double)
-    case int(Int)
-    case intArray([Int])
-    case date(Date)
-    case location(CLLocation)
-
-    /// Converts back to `Any` for the metadata service layer.
-    var rawValue: Any {
-        switch self {
-        case .null: return NSNull()
-        case let .string(s): return s
-        case let .double(d): return d
-        case let .int(i): return i
-        case let .intArray(a): return a
-        case let .date(d): return d
-        case let .location(l): return l
-        }
-    }
-}
-
-// MARK: - MetadataField
-
-public enum MetadataField: CaseIterable, Sendable {
-    case make, model, lensMake, lensModel
-    case aperture, shutter, iso, focalLength, focalLength35, exposureBias
-    case exposureProgram, meteringMode, whiteBalance, flash
-    case artist, copyright
-    case pixelWidth, pixelHeight, profileName // Read-only
-    case dateTimeOriginal, location // Special handling
-
-    public var key: String {
-        switch self {
-        case .make: return MetadataKeys.make
-        case .model: return MetadataKeys.model
-        case .lensMake: return MetadataKeys.lensMake
-        case .lensModel: return MetadataKeys.lensModel
-        case .aperture: return MetadataKeys.fNumber
-        case .shutter: return MetadataKeys.exposureTime
-        case .iso: return MetadataKeys.isoSpeedRatings
-        case .focalLength: return MetadataKeys.focalLength
-        case .focalLength35: return MetadataKeys.focalLenIn35mmFilm
-        case .exposureBias: return MetadataKeys.exposureBiasValue
-        case .exposureProgram: return MetadataKeys.exposureProgram
-        case .meteringMode: return MetadataKeys.meteringMode
-        case .whiteBalance: return MetadataKeys.whiteBalance
-        case .flash: return MetadataKeys.flash
-        case .artist: return MetadataKeys.artist
-        case .copyright: return MetadataKeys.copyright
-        case .pixelWidth: return "PixelWidth"
-        case .pixelHeight: return "PixelHeight"
-        case .profileName: return "ProfileName"
-        case .dateTimeOriginal: return MetadataKeys.dateTimeOriginal
-        case .location: return MetadataKeys.location
-        }
+    public var dateTimeOriginal: Date? {
+        let exif = sourceProperties[MetadataKeys.exifDict] as? [String: Any]
+        guard let dateString = exif?[MetadataKeys.dateTimeOriginal] as? String else { return nil }
+        return DateFormatter.yMdHms.date(from: dateString)
     }
 
-    public var label: String {
-        switch self {
-        case .make: return String(localized: .make)
-        case .model: return String(localized: .model)
-        case .lensMake: return String(localized: .lensMake)
-        case .lensModel: return String(localized: .lensModel)
-        case .aperture: return String(localized: .fnumber)
-        case .shutter: return String(localized: .exposureTime)
-        case .iso: return String(localized: .isospeedRatings)
-        case .focalLength: return String(localized: .focalLength)
-        case .focalLength35: return String(localized: .focalLenIn35MmFilm)
-        case .exposureBias: return String(localized: .exposureBiasValue)
-        case .exposureProgram: return String(localized: .exposureProgram)
-        case .meteringMode: return String(localized: .meteringMode)
-        case .whiteBalance: return String(localized: .whiteBalance)
-        case .flash: return String(localized: .flash)
-        case .artist: return String(localized: .artist)
-        case .copyright: return String(localized: .copyright)
-        case .pixelWidth: return String(localized: .pixelWidth)
-        case .pixelHeight: return String(localized: .pixelHeight)
-        case .profileName: return String(localized: .profileName)
-        case .dateTimeOriginal: return String(localized: .viewAddDate)
-        case .location: return String(localized: .viewAddLocation)
-        }
-    }
+    // MARK: - Modification Methods
 
-    public var unit: String? {
-        switch self {
-        case .focalLength, .focalLength35: return "mm"
-        case .exposureBias: return "EV"
-        case .shutter: return "s"
-        case .pixelWidth, .pixelHeight: return "px"
-        default: return nil
-        }
-    }
-
-    public var keyboardType: UIKeyboardType {
-        switch self {
-        case .iso, .focalLength35: return .numberPad
-        case .aperture, .focalLength, .exposureBias, .shutter: return .decimalPad
-        default: return .default
-        }
-    }
-
-    public var placeholder: String? {
-        switch self {
-        case .artist: return "Artist name"
-        case .copyright: return "Copyright notice"
-        case .make, .lensMake: return "SONY"
-        case .model: return "ILCE-7C"
-        case .lensModel: return "FE 50mm F1.4 GM"
-        case .aperture: return "e.g. 2.8"
-        case .shutter: return "e.g. 1/125"
-        case .iso: return "e.g. 400"
-        case .focalLength: return "e.g. 35"
-        case .exposureBias: return "e.g. 1.3"
-        case .focalLength35: return "e.g. 28"
-        default: return nil
-        }
-    }
-}
-
-// MARK: Helper
-
-extension Metadata {
-    /// {Exif}.DateTimeOriginal
     func writeTimeOriginal(_ date: Date) -> MetadataUpdateIntent {
-        var editableProps = sourceProperties
-        var exifInfo = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
-        let dateStr = DateFormatter.yMdHms.string(from: date)
-        exifInfo[MetadataKeys.dateTimeOriginal] = dateStr
-        exifInfo[MetadataKeys.dateTimeDigitized] = dateStr
-        editableProps[MetadataKeys.exifDict] = exifInfo
-        let finalProps = updateTiff(with: editableProps)
-        return MetadataUpdateIntent(fileProperties: finalProps, dbLocation: rawGPS, dbDate: date)
+        write(batch: [MetadataKeys.dateTimeOriginal: date])
     }
 
     func deleteTimeOriginal() -> MetadataUpdateIntent {
-        var editableProps: [String: Any] = [:]
-        var exifInfo: [String: Any] = [:]
-        exifInfo[MetadataKeys.dateTimeOriginal] = NSNull()
-        exifInfo[MetadataKeys.dateTimeDigitized] = NSNull()
-        editableProps[MetadataKeys.exifDict] = exifInfo
-        let finalProps = updateTiff(with: editableProps)
-        return MetadataUpdateIntent(fileProperties: finalProps, dbLocation: rawGPS, dbDate: nil)
+        write(batch: [MetadataKeys.dateTimeOriginal: NSNull()])
     }
 
     func writeLocation(_ location: CLLocation) -> MetadataUpdateIntent {
-        var editableProps = sourceProperties
-        editableProps[MetadataKeys.gpsDict] = Metadata.makeGpsDictionary(for: location)
-        let finalProps = updateTiff(with: editableProps)
-        return MetadataUpdateIntent(fileProperties: finalProps, dbLocation: location, dbDate: nil)
+        write(batch: [MetadataKeys.location: location])
     }
 
     func deleteGPS() -> MetadataUpdateIntent {
-        var editableProps: [String: Any] = [:]
-        editableProps[MetadataKeys.gpsDict] = NSNull()
-        let finalProps = updateTiff(with: editableProps)
-        return MetadataUpdateIntent(fileProperties: finalProps, dbLocation: nil, dbDate: nil)
+        write(batch: [MetadataKeys.location: NSNull()])
     }
 
     func deleteAllExceptOrientation() -> MetadataUpdateIntent {
-        var editableProps: [String: Any] = [:]
-        editableProps[MetadataKeys.exifDict] = NSNull()
-        editableProps[MetadataKeys.gpsDict] = NSNull()
-        editableProps[kCGImagePropertyIPTCDictionary as String] = NSNull()
+        let date = dateTimeOriginal
 
-        var tiffInfo: [String: Any] = [:]
-        tiffInfo[MetadataKeys.artist] = NSNull()
-        tiffInfo[MetadataKeys.copyright] = NSNull()
-        tiffInfo[MetadataKeys.make] = NSNull()
-        tiffInfo[MetadataKeys.model] = NSNull()
-        editableProps[MetadataKeys.tiffDict] = tiffInfo
+        func extractCleanMetadata(from source: [String: Any]) -> [String: Any] {
+            var result = [String: Any]()
+            for (key, value) in source {
+                if MetadataSchema.structuralKeys.contains(key) {
+                    result[key] = value
+                } else if let subDictionary = value as? [String: Any] {
+                    let cleanedSub = extractCleanMetadata(from: subDictionary)
+                    if !cleanedSub.isEmpty { result[key] = cleanedSub }
+                }
+            }
+            return result
+        }
 
-        editableProps["Orientation"] = sourceProperties["Orientation"]
-        let finalProps = updateTiff(with: editableProps)
-        return MetadataUpdateIntent(fileProperties: finalProps, dbLocation: nil, dbDate: nil)
+        var editableProps = extractCleanMetadata(from: sourceProperties)
+
+        if let date = date {
+            let dateString = DateFormatter.yMdHms.string(from: date)
+            var exif = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
+            exif[MetadataKeys.dateTimeOriginal] = dateString
+            exif[MetadataKeys.dateTimeDigitized] = dateString
+            editableProps[MetadataKeys.exifDict] = exif
+        }
+
+        if editableProps[MetadataKeys.tiffDict] == nil {
+            editableProps[MetadataKeys.tiffDict] = [MetadataKeys.software: "MetaX"]
+        }
+
+        return MetadataUpdateIntent(
+            fileProperties: editableProps,
+            dbLocation: nil,
+            dbDate: date,
+            forceReencode: true
+        )
     }
 
     func write(batch: [String: Any]) -> MetadataUpdateIntent {
-        var editableProps: [String: Any] = [:]
-
-        let tiffKeys = [
-            MetadataKeys.make, MetadataKeys.model, MetadataKeys.artist,
-            MetadataKeys.copyright, MetadataKeys.software, MetadataKeys.dateTime,
-        ]
-
-        var tiffInfo: [String: Any] = [:]
-        var exifInfo: [String: Any] = [:]
-        var gpsInfo: [String: Any]?
-
+        var finalProperties = sourceProperties
         var newDate: Date?
         var newLocation: CLLocation?
         var isLocationCleared = false
 
-        for (key, value) in batch {
-            let isRemoval = value is NSNull
+        let getDict = { (key: String) in finalProperties[key] as? [String: Any] ?? [:] }
 
-            if tiffKeys.contains(key) {
-                tiffInfo[key] = value
-            } else if key == MetadataKeys.dateTimeOriginal {
-                if isRemoval {
-                    exifInfo[key] = NSNull()
-                    exifInfo[MetadataKeys.dateTimeDigitized] = NSNull()
-                } else if let date = value as? Date {
+        for (key, value) in batch {
+            let policy = MetadataSchema.policy(for: key)
+
+            switch key {
+            case MetadataKeys.location:
+                isLocationCleared = value is NSNull
+                newLocation = value as? CLLocation
+            case MetadataKeys.dateTimeOriginal:
+                var exif = getDict(MetadataKeys.exifDict)
+                if let date = value as? Date {
                     let dateStr = DateFormatter.yMdHms.string(from: date)
-                    exifInfo[key] = dateStr
-                    exifInfo[MetadataKeys.dateTimeDigitized] = dateStr
+                    exif[MetadataKeys.dateTimeOriginal] = dateStr
+                    exif[MetadataKeys.dateTimeDigitized] = dateStr
                     newDate = date
+                } else {
+                    exif[MetadataKeys.dateTimeOriginal] = NSNull()
+                    exif[MetadataKeys.dateTimeDigitized] = NSNull()
                 }
-            } else if key == MetadataKeys.location {
-                if isRemoval {
-                    gpsInfo = nil // Will set to NSNull below
-                    isLocationCleared = true
-                } else if let loc = value as? CLLocation {
-                    gpsInfo = Metadata.makeGpsDictionary(for: loc)
-                    newLocation = loc
+                finalProperties[MetadataKeys.exifDict] = exif
+            default:
+                let dictKey: String
+                switch policy.container {
+                case .exif: dictKey = MetadataKeys.exifDict
+                case .tiff: dictKey = MetadataKeys.tiffDict
+                case .iptc: dictKey = MetadataKeys.iptcDict
+                default: finalProperties[policy.key] = value; continue
                 }
-            } else {
-                exifInfo[key] = value
+
+                var dict = getDict(dictKey)
+                dict[policy.key] = value
+
+                policy.syncedFields?.forEach { container, syncedKey in
+                    let syncDictKey = container == .iptc ? MetadataKeys.iptcDict : MetadataKeys.tiffDict
+                    var syncDict = getDict(syncDictKey)
+                    syncDict[syncedKey] = value
+                    finalProperties[syncDictKey] = syncDict
+                }
+                finalProperties[dictKey] = dict
             }
         }
 
-        if !tiffInfo.isEmpty {
-            editableProps[MetadataKeys.tiffDict] = tiffInfo
-        }
-        if !exifInfo.isEmpty {
-            editableProps[MetadataKeys.exifDict] = exifInfo
-        }
-
-        if let gps = gpsInfo {
-            editableProps[MetadataKeys.gpsDict] = gps
-        } else if batch.keys.contains(MetadataKeys.location) {
-            editableProps[MetadataKeys.gpsDict] = NSNull()
+        if let location = newLocation {
+            finalProperties[MetadataKeys.gpsDict] = Metadata.makeGpsDictionary(for: location)
+        } else if isLocationCleared {
+            finalProperties[MetadataKeys.gpsDict] = NSNull()
         }
 
-        let finalProps = updateTiff(with: editableProps)
-        let finalLocation = isLocationCleared ? nil : (newLocation ?? rawGPS)
+        // Final Safety Scrub: Remove physical attributes that must be managed by the encoder.
+        let physicalKeys: [String] = [
+            kCGImagePropertyPixelWidth as String, kCGImagePropertyPixelHeight as String,
+            kCGImagePropertyOrientation as String, "PixelWidth", "PixelHeight", "Orientation",
+        ]
+        physicalKeys.forEach { finalProperties.removeValue(forKey: $0) }
+
+        // Ensure identity and color keys are preserved in the final output
+        let criticalKeys = [MetadataKeys.appleDict, MetadataKeys.pngDict, MetadataKeys.iccProfile]
+        for key in criticalKeys {
+            if let val = sourceProperties[key] { finalProperties[key] = val }
+        }
 
         return MetadataUpdateIntent(
-            fileProperties: finalProps,
-            dbLocation: finalLocation,
-            dbDate: newDate
+            fileProperties: finalProperties,
+            dbLocation: isLocationCleared ? nil : (newLocation ?? rawGPS),
+            dbDate: batch.keys.contains(MetadataKeys.dateTimeOriginal) ? newDate : dateTimeOriginal
         )
     }
 
     static func makeGpsDictionary(for location: CLLocation) -> [String: Any] {
-        var dict: [String: Any] = [:]
         let latitude = location.coordinate.latitude
         let longitude = location.coordinate.longitude
-
-        dict[MetadataKeys.gpsLatitudeRef] = latitude < 0 ? "S" : "N"
-        dict[MetadataKeys.gpsLatitude] = abs(latitude)
-
-        dict[MetadataKeys.gpsLongitudeRef] = longitude < 0 ? "W" : "E"
-        dict[MetadataKeys.gpsLongitude] = abs(longitude)
-
-        return dict
+        return [
+            MetadataKeys.gpsLatitudeRef: latitude < 0 ? "S" : "N",
+            MetadataKeys.gpsLatitude: abs(latitude),
+            MetadataKeys.gpsLongitudeRef: longitude < 0 ? "W" : "E",
+            MetadataKeys.gpsLongitude: abs(longitude),
+        ]
     }
 
-    /// update software infomation
-    func updateTiff(with source: [String: Any]) -> [String: Any] {
-        var editableProps = source
-        var tiffInfo = editableProps[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
+    private static func buildMetaProps(source: [String: Any], gps: CLLocation?) -> [(
+        section: MetadataSection,
+        props: [[String: Any]]
+    )] {
+        guard let url = Bundle.main.url(forResource: "MetadataPlus", withExtension: "plist"),
+              let data = try? Data(contentsOf: url),
+              let groups = try? PropertyListDecoder().decode([MetadataGroup].self, from: data) else { return [] }
 
-        // Only set default if Software is not already provided by user or original data
-        if tiffInfo[MetadataKeys.software] == nil {
-            tiffInfo[MetadataKeys.software] = "MetaX"
+        let exif = source[MetadataKeys.exifDict] as? [String: Any] ?? [:]
+        let tiff = source[MetadataKeys.tiffDict] as? [String: Any] ?? [:]
+
+        return groups.compactMap { group in
+            guard let section = MetadataSection(rawValue: group.title) else { return nil }
+            let props = group.props.compactMap { key -> [String: Any]? in
+                if key == MetadataKeys.location { return gps.map { [key: $0] } }
+                if let val = exif[key] ?? tiff[key] ?? source[key] { return [key: val] }
+                return nil
+            }
+            return props.isEmpty ? nil : (section: section, props: props)
         }
+    }
 
-        // Metadata DateTime should be a formatted string, matching the behavior of DateTimeOriginal
-        tiffInfo[MetadataKeys.dateTime] = DateFormatter.yMdHms.string(from: Date())
+    private struct MetadataGroup: Codable {
+        let title: String, props: [String]
+        enum CodingKeys: String, CodingKey { case title = "Title", props = "Props" }
+    }
+}
 
-        editableProps[MetadataKeys.tiffDict] = tiffInfo
-        return editableProps
+// MARK: - MetadataUpdateIntent
+
+struct MetadataUpdateIntent: @unchecked Sendable {
+    let fileProperties: [String: Any]
+    let dbLocation: CLLocation?
+    let dbDate: Date?
+    let forceReencode: Bool
+
+    init(
+        fileProperties: [String: Any],
+        dbLocation: CLLocation? = nil,
+        dbDate: Date? = nil,
+        forceReencode: Bool = false
+    ) {
+        self.fileProperties = fileProperties
+        self.dbLocation = dbLocation
+        self.dbDate = dbDate
+        self.forceReencode = forceReencode
     }
 }

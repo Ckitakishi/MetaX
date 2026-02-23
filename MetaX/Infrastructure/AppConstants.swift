@@ -10,6 +10,7 @@ import Foundation
 enum AppConstants {
     static let appID = "1376589355"
     static let feedbackEmail = "misoshido.team@gmail.com"
+    static let adjustmentFormatID = "ckitakishi.com.MetaX"
 
     static var writeReviewURL: URL? {
         URL(string: "https://apps.apple.com/app/id\(appID)?action=write-review")

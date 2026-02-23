@@ -7,36 +7,81 @@
 //
 
 import CoreImage
+import CoreLocation
 import Photos
 import UniformTypeIdentifiers
 
-/// Protocol defining image save operations
-protocol ImageSaveServiceProtocol: Sendable {
-    /// Create a new asset with modified metadata
-    func saveImageAsNewAsset(
-        asset: PHAsset,
-        newProperties: [String: Any]
-    ) async -> Result<PHAsset, MetaXError>
+// MARK: - Metadata Sync Logic
 
-    /// Edit existing asset metadata using non-destructive editing
-    func editAssetMetadata(
-        asset: PHAsset,
-        newProperties: [String: Any]
-    ) async -> Result<PHAsset, MetaXError>
+public enum MetadataSyncLogic {
+    public static func shouldSyncDate(_ newDate: Date?, with currentDate: Date?) -> Bool {
+        guard let newDate = newDate else { return false }
+        guard let current = currentDate else { return true }
+        return abs(newDate.timeIntervalSince(current)) > 1
+    }
 
-    /// Apply a comprehensive metadata update intent (both file and DB properties)
-    func applyMetadataIntent(
-        _ intent: MetadataUpdateIntent,
-        to asset: PHAsset,
-        mode: SaveWorkflowMode
-    ) async -> Result<PHAsset, MetaXError>
+    public static func shouldSyncLocation(_ newLocation: CLLocation?, with currentLoc: CLLocation?) -> Bool {
+        if let new = newLocation, let current = currentLoc {
+            let latitudeDiff = abs(new.coordinate.latitude - current.coordinate.latitude)
+            let longitudeDiff = abs(new.coordinate.longitude - current.coordinate.longitude)
+            return latitudeDiff > 0.00001 || longitudeDiff > 0.00001
+        }
+        return (newLocation == nil) != (currentLoc == nil)
+    }
 }
 
-/// Service for saving images with modified metadata
+// MARK: - Save Policy
+
+struct SavePolicy {
+    let sourceUTType: UTType
+    let isLivePhoto: Bool
+    let destinationURL: URL?
+
+    var targetUTType: UTType {
+        // 1. Respect the destination URL extension if provided (dictated by Photos or caller)
+        if let ext = destinationURL?.pathExtension, let type = UTType(filenameExtension: ext) {
+            return type
+        }
+        // 2. RAW and Live Photos are standardized to JPEG for metadata stability
+        if sourceUTType.conforms(to: .rawImage) || isLivePhoto {
+            return .jpeg
+        }
+        return sourceUTType
+    }
+
+    var targetExtension: String {
+        targetUTType.preferredFilenameExtension?.uppercased() ?? "JPG"
+    }
+
+    /// Properties that are often stripped by CIImage/CGImage during re-encoding
+    /// but MUST be restored to maintain file identity (e.g., Live Photo pairing).
+    var identityKeys: [String] {
+        [
+            MetadataKeys.appleDict,
+            MetadataKeys.pngDict,
+            MetadataKeys.iccProfile,
+            kCGImagePropertyColorModel as String,
+            kCGImagePropertyProfileName as String,
+        ]
+    }
+
+    func canUseLossless(intent: MetadataUpdateIntent, mustRewriteTIFF: Bool, hasNewTIFF: Bool) -> Bool {
+        !intent.forceReencode && (sourceUTType == targetUTType) && !mustRewriteTIFF && !hasNewTIFF
+    }
+}
+
+// MARK: - Service Protocol
+
+protocol ImageSaveServiceProtocol: Sendable {
+    func saveImageAsNewAsset(asset: PHAsset, intent: MetadataUpdateIntent) async -> Result<PHAsset, MetaXError>
+    func editAssetMetadata(asset: PHAsset, intent: MetadataUpdateIntent) async -> Result<PHAsset, MetaXError>
+    func applyMetadataIntent(_ intent: MetadataUpdateIntent, to asset: PHAsset, mode: SaveWorkflowMode) async
+        -> Result<PHAsset, MetaXError>
+}
+
+// MARK: - Service Implementation
+
 final class ImageSaveService: ImageSaveServiceProtocol {
-
-    // MARK: - Dependencies
-
     private let photoLibraryService: PhotoLibraryServiceProtocol
     private let ciContext: CIContext = {
         if let device = MTLCreateSystemDefaultDevice() {
@@ -45,56 +90,49 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         return CIContext(options: [.useSoftwareRenderer: false])
     }()
 
-    // [String: Any] is not Sendable. Wrap it at the @MainActor boundary before passing to
-    // nonisolated methods. Safe because the value is only read after transfer, never mutated.
-    private struct MetadataBox: @unchecked Sendable {
-        let value: [String: Any]
-    }
-
-    // MARK: - Initialization
-
     init(photoLibraryService: PhotoLibraryServiceProtocol) {
         self.photoLibraryService = photoLibraryService
     }
 
-    // MARK: - Public Methods
+    // MARK: - Public API
 
-    func saveImageAsNewAsset(
-        asset: PHAsset,
-        newProperties: [String: Any]
-    ) async -> Result<PHAsset, MetaXError> {
-        // 1. Generate new image data to temp file.
-        let box = MetadataBox(value: newProperties)
-        let tempURLResult = await generateModifiedImageFile(for: asset, newProperties: box)
-        guard case let .success(tempURL) = tempURLResult else {
-            return .failure(tempURLResult.error ?? .imageSave(.editionFailed))
-        }
+    func saveImageAsNewAsset(asset: PHAsset, intent: MetadataUpdateIntent) async -> Result<PHAsset, MetaXError> {
+        let tempURLResult = await generateModifiedImageFile(for: asset, intent: intent)
+        guard case let .success(tempURL) = tempURLResult
+        else { return .failure(tempURLResult.error ?? .imageSave(.editionFailed)) }
 
-        // 2. Ensure MetaX album exists
-        let albumResult = await photoLibraryService.createAlbumIfNeeded(title: "MetaX")
-        guard case .success = albumResult else {
-            try? FileManager.default.removeItem(at: tempURL)
-            return .failure(.imageSave(.albumCreationFailed))
-        }
-
-        // 3. Create new asset from temp file
+        _ = await photoLibraryService.createAlbumIfNeeded(title: "MetaX")
         let createResult = await createAssetInMetaXAlbum(from: tempURL)
-
-        // 4. Clean up temp file
         try? FileManager.default.removeItem(at: tempURL)
-
         return createResult
     }
 
-    func editAssetMetadata(
-        asset: PHAsset,
-        newProperties: [String: Any]
-    ) async -> Result<PHAsset, MetaXError> {
-        let box = MetadataBox(value: newProperties)
-        if asset.mediaSubtypes.contains(.photoLive) {
-            return await editLivePhotoMetadata(asset: asset, newProperties: box)
+    func editAssetMetadata(asset: PHAsset, intent: MetadataUpdateIntent) async -> Result<PHAsset, MetaXError> {
+        do {
+            let input = try await asset.fetchContentEditingInput(with: makeEditingOptions())
+            guard let imageURL = input.fullSizeImageURL else { return .failure(.imageSave(.editionFailed)) }
+
+            // For Live Photos, updating the still component while preserving the Asset ID
+            // allows the system to maintain the pairing without a video re-render.
+            let output = PHContentEditingOutput(contentEditingInput: input)
+            guard writeModifiedImage(sourceURL: imageURL, destinationURL: output.renderedContentURL, intent: intent)
+            else {
+                return .failure(.imageSave(.editionFailed))
+            }
+
+            output.adjustmentData = makeAdjustmentData()
+
+            return await withCheckedContinuation { continuation in
+                PHPhotoLibrary.shared().performChanges {
+                    PHAssetChangeRequest(for: asset).contentEditingOutput = output
+                } completionHandler: { success, error in
+                    if !success, let error = error { print("[MetaX] performChanges failed: \(error)") }
+                    continuation.resume(returning: success ? .success(asset) : .failure(.imageSave(.editionFailed)))
+                }
+            }
+        } catch {
+            return .failure(.imageSave(.editionFailed))
         }
-        return await editStillPhotoMetadata(asset: asset, newProperties: box)
     }
 
     func applyMetadataIntent(
@@ -107,30 +145,16 @@ final class ImageSaveService: ImageSaveServiceProtocol {
 
         switch mode {
         case .updateOriginal:
-            result = await editAssetMetadata(asset: asset, newProperties: intent.fileProperties)
+            result = await editAssetMetadata(asset: asset, intent: intent)
             originalToDelete = nil
         case let .saveAsCopy(deleteOriginal):
-            result = await saveImageAsNewAsset(asset: asset, newProperties: intent.fileProperties)
+            result = await saveImageAsNewAsset(asset: asset, intent: intent)
             originalToDelete = deleteOriginal ? asset : nil
         }
 
-        switch result {
-        case let .success(newAsset):
-            // 2. Sync database properties (Date and Location) only if changed
-            let dateChanged: Bool = {
-                guard let newDate = intent.dbDate else { return false }
-                guard let current = newAsset.creationDate else { return true }
-                return abs(newDate.timeIntervalSince(current)) > 1
-            }()
-
-            let locationChanged: Bool = {
-                if let newLoc = intent.dbLocation, let curLoc = newAsset.location {
-                    return abs(newLoc.coordinate.latitude - curLoc.coordinate.latitude) > 0.00001
-                        || abs(newLoc.coordinate.longitude - curLoc.coordinate.longitude) > 0.00001
-                }
-                // Handle deletion semantic: intentional nil vs existing location
-                return (intent.dbLocation == nil) != (newAsset.location == nil)
-            }()
+        if case let .success(newAsset) = result {
+            let dateChanged = MetadataSyncLogic.shouldSyncDate(intent.dbDate, with: newAsset.creationDate)
+            let locationChanged = MetadataSyncLogic.shouldSyncLocation(intent.dbLocation, with: newAsset.location)
 
             if dateChanged || locationChanged {
                 _ = await photoLibraryService.updateAssetProperties(
@@ -139,372 +163,183 @@ final class ImageSaveService: ImageSaveServiceProtocol {
                     location: locationChanged ? intent.dbLocation : newAsset.location
                 )
             }
-
-            // 3. Delete original if requested
-            if let oldAsset = originalToDelete {
-                _ = await photoLibraryService.deleteAsset(oldAsset)
-            }
-
+            if let assetToRemove = originalToDelete { _ = await photoLibraryService.deleteAsset(assetToRemove) }
             return .success(newAsset)
-
-        case let .failure(error):
-            return .failure(error)
         }
+        return result
     }
 
-    private nonisolated func editStillPhotoMetadata(
-        asset: PHAsset,
-        newProperties: MetadataBox
-    ) async -> Result<PHAsset, MetaXError> {
-        do {
-            let options = PHContentEditingInputRequestOptions()
-            options.isNetworkAccessAllowed = true
+    // MARK: - Internal Helpers
 
-            let input = try await asset.fetchContentEditingInput(with: options)
-            guard let imageURL = input.fullSizeImageURL else {
-                return .failure(.imageSave(.editionFailed))
-            }
-
-            let output = PHContentEditingOutput(contentEditingInput: input)
-
-            guard writeModifiedImage(
-                sourceURL: imageURL,
-                destinationURL: output.renderedContentURL,
-                newProperties: newProperties.value
-            ) else {
-                return .failure(.imageSave(.editionFailed))
-            }
-
-            output.adjustmentData = Self.makeAdjustmentData()
-
-            return await withCheckedContinuation { (continuation: CheckedContinuation<
-                Result<PHAsset, MetaXError>,
-                Never
-            >) in
-                let onceGuard = OnceGuard(continuation)
-                PHPhotoLibrary.shared().performChanges {
-                    PHAssetChangeRequest(for: asset).contentEditingOutput = output
-                } completionHandler: { success, _ in
-                    if !success {
-                        onceGuard.resume(returning: .failure(.imageSave(.editionFailed)))
-                    } else {
-                        // Return the original pre-change asset object so that
-                        // PHPhotoLibraryChangeObserver.changeDetails(for:) can locate it
-                        // and fire assetContentChanged = true to trigger a metadata reload.
-                        // (changeDetails requires the object to have been fetched before the change.)
-                        // The observer's objectAfterChanges supplies the fresh post-change object.
-                        onceGuard.resume(returning: .success(asset))
-                    }
-                }
-            }
-        } catch {
-            return .failure(.imageSave(.editionFailed))
-        }
+    private func makeEditingOptions() -> PHContentEditingInputRequestOptions {
+        let options = PHContentEditingInputRequestOptions()
+        options.isNetworkAccessAllowed = true
+        options.canHandleAdjustmentData = { $0.formatIdentifier == AppConstants.adjustmentFormatID }
+        return options
     }
 
-    private nonisolated func editLivePhotoMetadata(
-        asset: PHAsset,
-        newProperties: MetadataBox
-    ) async -> Result<PHAsset, MetaXError> {
-        do {
-            let options = PHContentEditingInputRequestOptions()
-            options.isNetworkAccessAllowed = true
-
-            let input = try await asset.fetchContentEditingInput(with: options)
-            guard let context = PHLivePhotoEditingContext(livePhotoEditingInput: input) else {
-                return .failure(.imageSave(.editionFailed))
-            }
-
-            let output = PHContentEditingOutput(contentEditingInput: input)
-
-            // Inject metadata into the still image frame via CIImage.settingProperties.
-            // This lets Photos write the complete Live Photo output (still + video) in one
-            // pass, so the private content-identifier that pairs still and video is never
-            // touched by us and cannot be corrupted.
-            //
-            // NOTE: This is a shallow merge — `newProperties` must contain complete
-            // sub-dicts (e.g. the full {Exif} dict). This is guaranteed because
-            // MetadataService always builds from the full `sourceProperties`.
-            context.frameProcessor = { frame, _ in
-                guard frame.type == .photo else { return frame.image }
-                let image = frame.image
-                var merged = image.properties
-                for (key, value) in newProperties.value { merged[key] = value }
-                return image.settingProperties(merged as [AnyHashable: Any])
-            }
-
-            return await withCheckedContinuation { (continuation: CheckedContinuation<
-                Result<PHAsset, MetaXError>,
-                Never
-            >) in
-                let onceGuard = OnceGuard(continuation)
-                context.saveLivePhoto(to: output) { success, _ in
-                    guard success else {
-                        onceGuard.resume(returning: .failure(.imageSave(.editionFailed)))
-                        return
-                    }
-
-                    output.adjustmentData = Self.makeAdjustmentData()
-
-                    PHPhotoLibrary.shared().performChanges {
-                        PHAssetChangeRequest(for: asset).contentEditingOutput = output
-                    } completionHandler: { success, _ in
-                        onceGuard.resume(returning: success ? .success(asset) : .failure(.imageSave(.editionFailed)))
-                    }
-                }
-            }
-        } catch {
-            return .failure(.imageSave(.editionFailed))
-        }
-    }
-
-    private nonisolated static func makeAdjustmentData() -> PHAdjustmentData {
-        let dataPayload = ["app": "MetaX", "edit": "metadata", "date": Date()] as [String: Any]
-        let archivedData = try? NSKeyedArchiver.archivedData(withRootObject: dataPayload, requiringSecureCoding: false)
+    private func makeAdjustmentData() -> PHAdjustmentData {
+        let payload: [String: Any] = ["app": "MetaX", "edit": "metadata", "date": Date()]
+        let data = try? NSKeyedArchiver.archivedData(withRootObject: payload, requiringSecureCoding: false)
         return PHAdjustmentData(
-            formatIdentifier: Bundle.main.bundleIdentifier ?? "com.yuhan.metax",
+            formatIdentifier: AppConstants.adjustmentFormatID,
             formatVersion: "1.0",
-            data: archivedData ?? "MODIFIED".data(using: .utf8)!
+            data: data ?? Data()
         )
     }
 
-    // MARK: - Private Methods
-
-    private nonisolated func generateModifiedImageFile(
+    nonisolated func generateModifiedImageFile(
         for asset: PHAsset,
-        newProperties: MetadataBox
+        intent: MetadataUpdateIntent
     ) async -> Result<URL, MetaXError> {
         do {
-            let options = PHContentEditingInputRequestOptions()
-            options.isNetworkAccessAllowed = true
+            let input = try await asset.fetchContentEditingInput(with: makeEditingOptions())
+            guard let imageURL = input.fullSizeImageURL else { return .failure(.imageSave(.editionFailed)) }
 
-            let input = try await asset.fetchContentEditingInput(with: options)
-            guard let imageURL = input.fullSizeImageURL else {
-                return .failure(.imageSave(.editionFailed))
-            }
-
-            // Construct a new filename with suffix, avoiding duplicates
             let resources = PHAssetResource.assetResources(for: asset)
-            let originalName = resources.first?.originalFilename ?? "IMG.JPG"
-            let nameURL = URL(fileURLWithPath: originalName)
-            let baseName = nameURL.deletingPathExtension().lastPathComponent
-            let ext = nameURL.pathExtension.isEmpty ? "JPG" : nameURL.pathExtension
-
-            let suffix = "_MetaX"
-            let finalBaseName = baseName.hasSuffix(suffix) ? baseName : (baseName + suffix)
-            let newFileName = "\(finalBaseName).\(ext)"
-
-            let tmpUrl = URL(fileURLWithPath: NSTemporaryDirectory() + newFileName)
-
-            // Remove existing temp file if it exists
-            try? FileManager.default.removeItem(at: tmpUrl)
-
-            let success = writeModifiedImage(
-                sourceURL: imageURL,
-                destinationURL: tmpUrl,
-                newProperties: newProperties.value
+            let utIdentifier = resources.first?.uniformTypeIdentifier
+            let policy = SavePolicy(
+                sourceUTType: utIdentifier.flatMap { UTType($0) } ?? .jpeg,
+                isLivePhoto: asset.isLivePhoto,
+                destinationURL: nil
             )
-            return success ? .success(tmpUrl) : .failure(.imageSave(.editionFailed))
+
+            let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension(policy.targetExtension)
+            return writeModifiedImage(sourceURL: imageURL, destinationURL: tempURL, intent: intent) ? .success(
+                tempURL
+            ) :
+                .failure(.imageSave(.editionFailed))
         } catch {
             return .failure(.imageSave(.editionFailed))
         }
     }
 
-    private nonisolated func writeModifiedImage(
-        sourceURL: URL,
-        destinationURL: URL,
-        newProperties: [String: Any]
-    ) -> Bool {
+    nonisolated func writeModifiedImage(sourceURL: URL, destinationURL: URL, intent: MetadataUpdateIntent) -> Bool {
         guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, nil),
-              let sourceType = CGImageSourceGetType(source)
+              let sourceUTType = (CGImageSourceGetType(source) as String?).flatMap({ UTType($0) }),
+              let sourceProps = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any]
         else { return false }
 
-        // Photos dictates the output format via renderedContentURL's extension (.JPG for all assets).
-        // Derive the encoding type from the destination extension, falling back to the source type.
-        let destExtension = destinationURL.pathExtension.lowercased()
-        let encodingType: CFString
-        let tempExtension: String
-        if !destExtension.isEmpty, let destUTType = UTType(filenameExtension: destExtension) {
-            encodingType = destUTType.identifier as CFString
-            tempExtension = destExtension
+        let policy = SavePolicy(
+            sourceUTType: sourceUTType,
+            isLivePhoto: sourceProps[MetadataKeys.appleDict] != nil,
+            destinationURL: destinationURL
+        )
+        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension(policy.targetExtension)
+        guard let destination = CGImageDestinationCreateWithURL(
+            tempURL as CFURL,
+            policy.targetUTType.identifier as CFString,
+            1,
+            nil
+        ) else { return false }
+
+        let mustRewriteTIFF = isRewritingExistingTIFFText(in: sourceProps, with: intent.fileProperties)
+        if policy.canUseLossless(
+            intent: intent,
+            mustRewriteTIFF: mustRewriteTIFF,
+            hasNewTIFF: isAddingNewTIFF(sourceProps, intent.fileProperties)
+        ) {
+            CGImageDestinationAddImageFromSource(destination, source, 0, intent.fileProperties as CFDictionary)
         } else {
-            encodingType = sourceType
-            tempExtension = UTType(sourceType as String)?.preferredFilenameExtension ?? "jpg"
+            guard let ciImage = CIImage(contentsOf: sourceURL, options: [.applyOrientationProperty: true])
+            else { return false }
+
+            // Preserve wide color space (e.g. Display P3) if present
+            let outputColorSpace = ciImage.colorSpace ?? CGColorSpaceCreateDeviceRGB()
+            guard let cgImage = ciContext.createCGImage(
+                ciImage,
+                from: ciImage.extent,
+                format: .RGBA8,
+                colorSpace: outputColorSpace
+            ) else { return false }
+
+            var cleanProps = stripNulls(from: intent.fileProperties)
+            // Remove physical attributes to let the encoder generate them from new pixels.
+            let forbidden = [
+                kCGImagePropertyPixelWidth, kCGImagePropertyPixelHeight,
+                kCGImagePropertyDPIWidth, kCGImagePropertyDPIHeight,
+                kCGImagePropertyOrientation, kCGImagePropertyJFIFDictionary,
+            ] as [CFString]
+            forbidden.forEach { cleanProps.removeValue(forKey: $0 as String) }
+            ["PixelWidth", "PixelHeight", "Orientation"].forEach { cleanProps.removeValue(forKey: $0) }
+
+            // Orientation is applied to pixels during CIImage load; reset tag to 1.
+            cleanProps[kCGImagePropertyOrientation as String] = 1
+            cleanProps[kCGImageDestinationLossyCompressionQuality as String] = 0.95
+
+            // Restore identity keys to ensure system-level asset pairing (e.g. Live Photo)
+            policy.identityKeys.forEach { if let val = sourceProps[$0] { cleanProps[$0] = val } }
+
+            CGImageDestinationAddImage(destination, cgImage, cleanProps as CFDictionary)
         }
 
-        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension(tempExtension)
-
-        guard let destination = CGImageDestinationCreateWithURL(tempURL as CFURL, encodingType, 1, nil) else {
-            return false
-        }
-
-        let sourceFormatStr = CGImageSourceGetType(source) as String? ?? ""
-        let destFormatStr = encodingType as String
-        let sourceProps = (CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any]) ?? [:]
-        let isJPEG = UTType(sourceFormatStr)?.conforms(to: .jpeg) == true
-
-        // Lossless path (AddImageFromSource) is preferred but has two known ImageIO limitations:
-        // 1. Cannot create a TIFF/IFD0 block from scratch — pixel re-encode required.
-        // 2. Cannot reliably overwrite existing Artist/Copyright values in a JPEG IFD0.
-        let sourceHasTIFF = sourceProps[kCGImagePropertyTIFFDictionary as String] != nil
-        let needsTIFFWrite = newProperties[kCGImagePropertyTIFFDictionary as String] != nil
-        let mustInitTIFF = needsTIFFWrite && !sourceHasTIFF
-        let mustRewriteTIFF = isJPEG && isRewritingExistingTIFFText(in: sourceProps, with: newProperties)
-        let canUseLossless = sourceFormatStr == destFormatStr && !mustInitTIFF && !mustRewriteTIFF
-
-        if canUseLossless {
-            // Lossless: copy pixels verbatim, only patch metadata.
-            let finalProps = mergedProperties(base: sourceProps, overrides: newProperties, removeJFIF: isJPEG)
-            CGImageDestinationAddImageFromSource(destination, source, 0, finalProps as CFDictionary)
-        } else {
-            // Lossy: pixel decode + re-encode at 0.95 quality. Required for format conversion,
-            // missing IFD0 creation, or overwriting existing Artist/Copyright (ImageIO workaround).
-            guard let ciImage = CIImage(contentsOf: sourceURL, options: [.applyOrientationProperty: true]),
-                  let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent)
-            else {
-                try? FileManager.default.removeItem(at: tempURL)
-                return false
-            }
-            let merged = mergedProperties(base: sourceProps, overrides: newProperties, removeJFIF: isJPEG)
-            // For lossy encoding, we must strip NSNull values as they are only used as
-            // removal markers for the lossless (AddImageFromSource) path.
-            var finalProps = stripNulls(from: merged)
-
-            // CIImage bakes orientation into pixels; reset the tag so Photos reads it correctly.
-            finalProps[kCGImagePropertyOrientation as String] = 1
-            finalProps[kCGImageDestinationLossyCompressionQuality as String] = 0.95
-            CGImageDestinationAddImage(destination, cgImage, finalProps as CFDictionary)
-        }
-
-        guard CGImageDestinationFinalize(destination) else {
-            try? FileManager.default.removeItem(at: tempURL)
-            return false
-        }
-
-        do {
-            try FileManager.default.createDirectory(
-                at: destinationURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true,
-                attributes: nil
-            )
-            if FileManager.default.fileExists(atPath: destinationURL.path) {
-                try FileManager.default.removeItem(at: destinationURL)
-            }
-            try FileManager.default.moveItem(at: tempURL, to: destinationURL)
-            return true
-        } catch {
-            try? FileManager.default.removeItem(at: tempURL)
-            return false
-        }
+        guard CGImageDestinationFinalize(destination) else { return false }
+        try? FileManager.default.removeItem(at: destinationURL)
+        return (try? FileManager.default.moveItem(at: tempURL, to: destinationURL)) != nil
     }
 
-    /// Recursively removes NSNull values from a dictionary.
-    private nonisolated func stripNulls(from dict: [String: Any]) -> [String: Any] {
+    // MARK: - Utilities
+
+    nonisolated func stripNulls(from dictionary: [String: Any]) -> [String: Any] {
         var result = [String: Any]()
-        for (key, value) in dict {
-            if value is NSNull { continue }
-            if let subDict = value as? [String: Any] {
-                let strippedSub = stripNulls(from: subDict)
-                if !strippedSub.isEmpty {
-                    result[key] = strippedSub
-                }
-            } else {
-                result[key] = value
-            }
+        for (key, value) in dictionary {
+            if value is NSNull || (value as AnyObject) === kCFNull { continue }
+            if let sub = value as? [String: Any] {
+                let cleaned = stripNulls(from: sub)
+                if !cleaned.isEmpty { result[key] = cleaned }
+            } else { result[key] = value }
         }
         return result
     }
 
-    /// Deep-merges `overrides` into `base`, combining sub-dictionaries key-by-key.
-    /// When `removeJFIF` is true, sets the JFIF key to `kCFNull` so ImageIO removes the APP0 block,
-    /// preventing APP0/APP1 conflicts without pixel re-encoding.
-    private nonisolated func mergedProperties(
-        base: [String: Any],
-        overrides: [String: Any],
-        removeJFIF: Bool
-    ) -> [String: Any] {
-        var result = base
-        for (key, value) in overrides {
-            if var existing = result[key] as? [String: Any], let sub = value as? [String: Any] {
-                for (subKey, subValue) in sub { existing[subKey] = subValue }
-                result[key] = existing
-            } else {
-                result[key] = value
-            }
-        }
-        if removeJFIF {
-            result[kCGImagePropertyJFIFDictionary as String] = kCFNull
-        }
-        return result
+    private nonisolated func isAddingNewTIFF(_ source: [String: Any], _ overrides: [String: Any]) -> Bool {
+        overrides[kCGImagePropertyTIFFDictionary as String] != nil && source[
+            kCGImagePropertyTIFFDictionary as String
+        ] ==
+            nil
     }
 
-    /// Returns true if `newProperties` changes an already-present Artist or Copyright value in `sourceProps`.
-    /// `CGImageDestinationAddImageFromSource` cannot reliably overwrite existing IFD0 string tags in JPEG,
-    /// so this signals that a pixel re-encode is needed.
     private nonisolated func isRewritingExistingTIFFText(
-        in sourceProps: [String: Any],
-        with newProperties: [String: Any]
+        in source: [String: Any],
+        with overrides: [String: Any]
     ) -> Bool {
-        guard let newTIFF = newProperties[kCGImagePropertyTIFFDictionary as String] as? [String: Any],
-              let sourceTIFF = sourceProps[kCGImagePropertyTIFFDictionary as String] as? [String: Any]
-        else { return false }
-
-        let keys = [kCGImagePropertyTIFFArtist, kCGImagePropertyTIFFCopyright] as [CFString]
-        return keys.contains { key in
-            let k = key as String
-            let newValue = newTIFF[k]
-            let oldValue = sourceTIFF[k]
-
-            if newValue is NSNull {
-                return oldValue != nil
-            }
-
-            guard let newStr = newValue as? String,
-                  let oldStr = oldValue as? String else { return false }
-            return newStr != oldStr
-        }
+        guard let newTIFF = overrides[kCGImagePropertyTIFFDictionary as String] as? [String: Any],
+              let sourceTIFF = source[kCGImagePropertyTIFFDictionary as String] as? [String: Any] else { return false }
+        let targetKeys = [
+            kCGImagePropertyTIFFArtist,
+            kCGImagePropertyTIFFCopyright,
+            kCGImagePropertyTIFFMake,
+            kCGImagePropertyTIFFModel,
+            kCGImagePropertyTIFFSoftware,
+            kCGImagePropertyTIFFDateTime,
+        ] as [CFString]
+        return targetKeys.contains { (sourceTIFF[$0 as String] as? String) != (newTIFF[$0 as String] as? String) }
     }
 
-    private nonisolated func createAssetInMetaXAlbum(from tempURL: URL) async -> Result<PHAsset, MetaXError> {
+    private nonisolated func createAssetInMetaXAlbum(from url: URL) async -> Result<PHAsset, MetaXError> {
         var localId = ""
-
         do {
             try await PHPhotoLibrary.shared().performChanges {
-                let request = PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: tempURL)
+                let request = PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: url)
                 localId = request?.placeholderForCreatedAsset?.localIdentifier ?? ""
-
                 let fetchOptions = PHFetchOptions()
                 fetchOptions.predicate = NSPredicate(format: "title = %@", "MetaX")
-                let collection = PHAssetCollection.fetchAssetCollections(
+                if let album = PHAssetCollection.fetchAssetCollections(
                     with: .album,
                     subtype: .any,
                     options: fetchOptions
-                )
-
-                if let album = collection.firstObject,
-                   let placeholder = request?.placeholderForCreatedAsset {
-                    let albumChangeRequest = PHAssetCollectionChangeRequest(for: album)
-                    albumChangeRequest?.addAssets([placeholder] as NSArray)
+                ).firstObject, let placeholder = request?.placeholderForCreatedAsset {
+                    PHAssetCollectionChangeRequest(for: album)?.addAssets([placeholder] as NSArray)
                 }
             }
-
-            let results = PHAsset.fetchAssets(withLocalIdentifiers: [localId], options: nil)
-            guard let asset = results.firstObject else {
-                return .failure(.imageSave(.creationFailed))
-            }
-
-            return .success(asset)
-        } catch {
-            return .failure(.imageSave(.creationFailed))
-        }
+            return PHAsset.fetchAssets(withLocalIdentifiers: [localId], options: nil).firstObject
+                .map { .success($0) } ?? .failure(.imageSave(.creationFailed))
+        } catch { return .failure(.imageSave(.creationFailed)) }
     }
 }
 
 extension Result {
-    fileprivate var error: Failure? {
-        if case let .failure(error) = self { return error }
-        return nil
-    }
+    fileprivate var error: Failure? { if case let .failure(error) = self { return error }; return nil }
 }

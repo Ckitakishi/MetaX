@@ -133,17 +133,30 @@ final class DetailInfoViewModel: NSObject {
     }
 
     var isLivePhoto: Bool {
-        asset?.mediaSubtypes.contains(.photoLive) ?? false
+        asset?.isLivePhoto ?? false
     }
 
     func warning(for mode: SaveWorkflowMode) -> SaveWarning? {
-        if case .saveAsCopy = mode, isLivePhoto {
-            return SaveWarning(
-                title: "Live Photo",
-                message: String(localized: .alertLivePhotoCopyMessage)
-            )
+        guard case .saveAsCopy = mode, let asset = asset else { return nil }
+
+        var messages = [String]()
+        var title = String(localized: .alertLivePhotoCopyTitle) // Default title
+
+        if asset.isRAW {
+            title = String(localized: .alertRawConversionTitle)
+            messages.append(String(localized: .alertRawConversionMessage))
         }
-        return nil
+
+        if asset.isLivePhoto {
+            messages.append(String(localized: .alertLivePhotoCopyMessage))
+        }
+
+        guard !messages.isEmpty else { return nil }
+
+        return SaveWarning(
+            title: title,
+            message: messages.joined(separator: "\n\n")
+        )
     }
 
     // MARK: - Reducer
@@ -300,10 +313,6 @@ final class DetailInfoViewModel: NSObject {
         let result = await photoLibraryService.revertAsset(asset)
         switch result {
         case .success:
-            if let fresh = PHAsset.fetchAssets(withLocalIdentifiers: [asset.localIdentifier], options: nil)
-                .firstObject {
-                self.asset = fresh
-            }
             await loadMetadata()
         case let .failure(error):
             send(.actionFailure(error))
@@ -352,6 +361,12 @@ final class DetailInfoViewModel: NSObject {
             if case let .failure(error) = revertResult {
                 send(.actionFailure(error))
                 return false
+            }
+
+            // Refresh the asset to reflect the reverted state before proceeding to save
+            if let fresh = PHAsset.fetchAssets(withLocalIdentifiers: [asset.localIdentifier], options: nil)
+                .firstObject {
+                self.asset = fresh
             }
         }
 
