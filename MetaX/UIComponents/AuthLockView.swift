@@ -13,7 +13,10 @@ protocol AuthLockViewDelegate: AnyObject {
     func toSetting()
 }
 
-class AuthLockView: UIView {
+/// A view shown when access to the photo library is denied.
+final class AuthLockView: UIView {
+
+    // MARK: - UI Components
 
     private let titleLabel: UILabel = {
         let label = UILabel()
@@ -46,7 +49,7 @@ class AuthLockView: UIView {
         config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 24, bottom: 10, trailing: 24)
         config.baseForegroundColor = .label
         config.background.backgroundColor = Theme.Colors.tagBackground
-        config.background.cornerRadius = 0 // Force sharp corners
+        config.background.cornerRadius = 0
         config.cornerStyle = .fixed
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
             var a = attrs
@@ -58,6 +61,8 @@ class AuthLockView: UIView {
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
+
+    // MARK: - Properties
 
     weak var delegate: AuthLockViewDelegate?
 
@@ -73,6 +78,8 @@ class AuthLockView: UIView {
         didSet { actionButton.configuration?.title = buttonTitle }
     }
 
+    // MARK: - Initialization
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
@@ -82,6 +89,8 @@ class AuthLockView: UIView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
+    // MARK: - UI Setup
 
     private func setupUI() {
         backgroundColor = Theme.Colors.mainBackground
@@ -121,14 +130,12 @@ class AuthLockView: UIView {
         actionButton.addTarget(self, action: #selector(goToAction), for: .touchUpInside)
 
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: AuthLockView, _) in
-            self.updateBorderColors()
+            Theme.Shadows.updateLayerColors(for: self.actionButton.layer)
+            Theme.Shadows.updateLayerColors(for: self.shadowView.layer)
         }
     }
 
-    private func updateBorderColors() {
-        Theme.Shadows.updateLayerColors(for: actionButton.layer)
-        Theme.Shadows.updateLayerColors(for: shadowView.layer)
-    }
+    // MARK: - Actions
 
     @objc private func goToAction() {
         delegate?.toSetting()

@@ -9,6 +9,7 @@ import Observation
 import Photos
 import UIKit
 
+/// Section types for the settings list.
 enum SettingsSection: CaseIterable {
     case preferences
     case general
@@ -25,6 +26,7 @@ enum SettingsSection: CaseIterable {
     }
 }
 
+/// Represents a single item in a settings section.
 struct SettingsItem: Identifiable {
     let id = UUID()
     let type: ItemType
@@ -46,6 +48,7 @@ struct SettingsItem: Identifiable {
     }
 }
 
+/// Model for a section in the settings table.
 struct SettingsSectionModel {
     let section: SettingsSection
     let color: UIColor
@@ -55,7 +58,7 @@ struct SettingsSectionModel {
 @Observable @MainActor
 final class SettingsViewModel {
 
-    // MARK: - Public State
+    // MARK: - Properties
 
     private(set) var sectionModels: [SettingsSectionModel] = []
 
@@ -69,6 +72,8 @@ final class SettingsViewModel {
 
     private let photoLibraryService: PhotoLibraryServiceProtocol
     private var settingsService: SettingsServiceProtocol
+
+    // MARK: - Initialization
 
     init(photoLibraryService: PhotoLibraryServiceProtocol, settingsService: SettingsServiceProtocol) {
         self.photoLibraryService = photoLibraryService
@@ -212,6 +217,8 @@ final class SettingsViewModel {
             ]
         )
     }
+
+    // MARK: - Private Computed Properties
 
     private var photoPermissionStatus: String {
         let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)

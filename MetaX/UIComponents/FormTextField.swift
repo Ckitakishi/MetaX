@@ -8,7 +8,11 @@
 
 import UIKit
 
+/// A custom form field that displays a title, a text field, and an optional character counter.
 final class FormTextField: UIView {
+
+    // MARK: - Properties
+
     let label: UILabel = {
         let l = UILabel()
         l.font = Theme.Typography.footnote
@@ -50,8 +54,10 @@ final class FormTextField: UIView {
         return l
     }()
 
+    // MARK: - Initialization
+
     init(
-        label: String,
+        label labelText: String,
         placeholder: String? = nil,
         keyboardType: UIKeyboardType = .default,
         readOnly: Bool = false,
@@ -60,14 +66,27 @@ final class FormTextField: UIView {
     ) {
         self.maxLength = maxLength
         super.init(frame: .zero)
-        self.label.text = label
+
+        label.text = labelText
         textField.placeholder = placeholder
         textField.keyboardType = keyboardType
 
-        textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 0))
-        textField.leftViewMode = .always
+        setupLayout(readOnly: readOnly, unit: unit)
 
-        if let unit = unit {
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: FormTextField, _) in
+            self.textField.layer.borderColor = Theme.Colors.border.cgColor
+        }
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError()
+    }
+
+    // MARK: - Private Methods
+
+    private func setupLayout(readOnly: Bool, unit: String?) {
+        if let unit {
             unitLabel.text = unit
             let container = UIView()
             container.addSubview(unitLabel)
@@ -85,14 +104,14 @@ final class FormTextField: UIView {
             textField.alpha = 0.45
         }
 
-        addSubview(self.label)
+        addSubview(label)
         addSubview(textField)
 
         var constraints: [NSLayoutConstraint] = [
-            self.label.topAnchor.constraint(equalTo: topAnchor),
-            self.label.leadingAnchor.constraint(equalTo: leadingAnchor),
+            label.topAnchor.constraint(equalTo: topAnchor),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor),
 
-            textField.topAnchor.constraint(equalTo: self.label.bottomAnchor, constant: 6),
+            textField.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 6),
             textField.leadingAnchor.constraint(equalTo: leadingAnchor),
             textField.trailingAnchor.constraint(equalTo: trailingAnchor),
             textField.bottomAnchor.constraint(equalTo: bottomAnchor),
@@ -104,24 +123,15 @@ final class FormTextField: UIView {
             addSubview(counterLabel)
             constraints += [
                 counterLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
-                counterLabel.firstBaselineAnchor.constraint(equalTo: self.label.firstBaselineAnchor),
-                self.label.trailingAnchor.constraint(lessThanOrEqualTo: counterLabel.leadingAnchor, constant: -8),
+                counterLabel.firstBaselineAnchor.constraint(equalTo: label.firstBaselineAnchor),
+                label.trailingAnchor.constraint(lessThanOrEqualTo: counterLabel.leadingAnchor, constant: -8),
             ]
             textField.addTarget(self, action: #selector(updateCounter), for: .editingChanged)
         } else {
-            constraints.append(self.label.trailingAnchor.constraint(equalTo: trailingAnchor))
+            constraints.append(label.trailingAnchor.constraint(equalTo: trailingAnchor))
         }
 
         NSLayoutConstraint.activate(constraints)
-
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: FormTextField, _: UITraitCollection) in
-            self.textField.layer.borderColor = Theme.Colors.border.cgColor
-        }
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError()
     }
 
     @objc private func updateCounter() {

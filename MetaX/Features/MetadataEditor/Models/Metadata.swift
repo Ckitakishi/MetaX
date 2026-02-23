@@ -14,7 +14,7 @@ import UIKit
 
 // MARK: - Metadata Keys & Constants
 
-public enum MetadataKeys {
+enum MetadataKeys {
     // Dictionary Containers
     static let exifDict = kCGImagePropertyExifDictionary as String
     static let tiffDict = kCGImagePropertyTIFFDictionary as String
@@ -61,12 +61,12 @@ public enum MetadataKeys {
     static let location = "Location"
 }
 
-public enum SaveWorkflowMode: Equatable, Sendable {
+enum SaveWorkflowMode: Equatable, Sendable {
     case updateOriginal
     case saveAsCopy(deleteOriginal: Bool)
 }
 
-// MARK: - Metadata Schema & Mapping
+// MARK: - Metadata Schema
 
 private enum MetadataContainer {
     case topLevel, exif, tiff, gps, iptc
@@ -85,7 +85,7 @@ private struct MetadataFieldPolicy {
 }
 
 private enum MetadataSchema {
-    /// Essential keys to preserve during "Clear All" to keep the file structure valid.
+    /// Essential keys to preserve during "Clear All" to maintain file validity.
     static let structuralKeys: Set<String> = [
         kCGImagePropertyPixelWidth as String,
         kCGImagePropertyPixelHeight as String,
@@ -104,16 +104,9 @@ private enum MetadataSchema {
         kCGImagePropertyTIFFYResolution as String,
         kCGImagePropertyTIFFResolutionUnit as String,
         MetadataKeys.iccProfile,
-        "BitsPerComponent",
-        "BitsPerSample",
-        "SamplesPerPixel",
-        "NamedColorSpace",
-        "PrimaryImage",
-        "AuxiliaryImage",
-        "AuxiliaryData",
-        "PixelWidth",
-        "PixelHeight",
-        "Orientation",
+        "BitsPerComponent", "BitsPerSample", "SamplesPerPixel",
+        "NamedColorSpace", "PrimaryImage", "AuxiliaryImage", "AuxiliaryData",
+        "PixelWidth", "PixelHeight", "Orientation",
     ]
 
     private static let policies: [String: MetadataFieldPolicy] = [
@@ -151,21 +144,21 @@ private enum MetadataSchema {
 
 // MARK: - Metadata Model
 
-public struct Metadata: @unchecked Sendable {
-    public let sourceProperties: [String: Any]
-    public let metaProps: [(section: MetadataSection, props: [[String: Any]])]
-    public let rawGPS: CLLocation?
+struct Metadata: @unchecked Sendable {
+    let sourceProperties: [String: Any]
+    let metaProps: [(section: MetadataSection, props: [[String: Any]])]
+    let rawGPS: CLLocation?
 
-    public init?(contentsOf url: URL) {
+    init?(contentsOf url: URL) {
         guard let ciimage = CIImage(contentsOf: url) else { return nil }
         self.init(props: ciimage.properties)
     }
 
-    public init?(ciimage: CIImage, asset: PHAsset? = nil) {
+    init?(ciimage: CIImage, asset: PHAsset? = nil) {
         self.init(props: ciimage.properties, asset: asset)
     }
 
-    public init(props: [String: Any], asset: PHAsset? = nil) {
+    init(props: [String: Any], asset: PHAsset? = nil) {
         sourceProperties = props
         var tmpGPS: CLLocation?
         if let gps = props[MetadataKeys.gpsDict] as? [String: Any],
@@ -182,7 +175,7 @@ public struct Metadata: @unchecked Sendable {
         metaProps = Metadata.buildMetaProps(source: props, gps: tmpGPS)
     }
 
-    public var dateTimeOriginal: Date? {
+    var dateTimeOriginal: Date? {
         let exif = sourceProperties[MetadataKeys.exifDict] as? [String: Any]
         guard let dateString = exif?[MetadataKeys.dateTimeOriginal] as? String else { return nil }
         return DateFormatter.yMdHms.date(from: dateString)
@@ -224,7 +217,7 @@ public struct Metadata: @unchecked Sendable {
 
         var editableProps = extractCleanMetadata(from: sourceProperties)
 
-        if let date = date {
+        if let date {
             let dateString = DateFormatter.yMdHms.string(from: date)
             var exif = editableProps[MetadataKeys.exifDict] as? [String: Any] ?? [:]
             exif[MetadataKeys.dateTimeOriginal] = dateString
@@ -299,14 +292,14 @@ public struct Metadata: @unchecked Sendable {
             finalProperties[MetadataKeys.gpsDict] = NSNull()
         }
 
-        // Final Safety Scrub: Remove physical attributes that must be managed by the encoder.
+        // Final Safety Scrub: Physical attributes must be managed by the encoder.
         let physicalKeys: [String] = [
             kCGImagePropertyPixelWidth as String, kCGImagePropertyPixelHeight as String,
             kCGImagePropertyOrientation as String, "PixelWidth", "PixelHeight", "Orientation",
         ]
         physicalKeys.forEach { finalProperties.removeValue(forKey: $0) }
 
-        // Ensure identity and color keys are preserved in the final output
+        // Ensure identity and color keys are preserved.
         let criticalKeys = [MetadataKeys.appleDict, MetadataKeys.pngDict, MetadataKeys.iccProfile]
         for key in criticalKeys {
             if let val = sourceProperties[key] { finalProperties[key] = val }

@@ -13,11 +13,17 @@ protocol SettingsServiceProtocol {
 
 final class SettingsService: SettingsServiceProtocol {
 
+    // MARK: - Constants
+
     private enum Keys {
         static let userInterfaceStyle = "com.metax.settings.userInterfaceStyle"
     }
 
+    // MARK: - Properties
+
     private let defaults = UserDefaults.standard
+
+    // MARK: - Settings
 
     var userInterfaceStyle: UIUserInterfaceStyle {
         get {
@@ -30,13 +36,14 @@ final class SettingsService: SettingsServiceProtocol {
         }
     }
 
+    // MARK: - Private Methods
+
     private func apply(style: UIUserInterfaceStyle) {
         Task { @MainActor in
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                   let window = windowScene.windows.first(where: { $0.isKeyWindow })
-            else {
-                return
-            }
+            else { return }
+
             window.overrideUserInterfaceStyle = style
         }
     }

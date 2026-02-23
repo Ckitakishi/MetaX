@@ -6,12 +6,16 @@
 //  Copyright © 2018 Yuhan Chen. All rights reserved.
 //
 
+import Foundation
+
+/// Represents a rational number (fraction) with an integer numerator and denominator.
 struct Rational: Sendable {
 
     var num: Int
     var den: Int
 
-    // Reference: https://stackoverflow.com/questions/35895154/decimal-to-fraction-conversion-in-swift
+    /// Approximates a Double value as a fraction with a given precision.
+    /// Reference: https://stackoverflow.com/questions/35895154/decimal-to-fraction-conversion-in-swift
     init(approximationOf doubleNum: Double, withPrecision eps: Double = 1.0e-6) {
         var dNum = doubleNum
         var dNumRoundedDown = dNum.rounded(.down)

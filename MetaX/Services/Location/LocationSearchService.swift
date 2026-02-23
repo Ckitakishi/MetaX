@@ -9,13 +9,19 @@ import MapKit
 
 final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
 
+    // MARK: - Properties
+
     weak var delegate: LocationSearchServiceDelegate?
     private let completer = MKLocalSearchCompleter()
+
+    // MARK: - Initialization
 
     override init() {
         super.init()
         completer.delegate = self
     }
+
+    // MARK: - Search Operations
 
     func search(query: String) {
         if query.isEmpty {
@@ -33,7 +39,8 @@ final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
         guard let completion = completer.results[safe: index] else {
             throw MetaXError.location(.coordinateNotAvailable)
         }
-        // Pre-capture as a value type before search.start, whose callback runs on a background queue
+
+        // Capture as a value type before search.start
         let fallback = LocationModel(title: completion.title, subtitle: completion.subtitle)
         let searchRequest = MKLocalSearch.Request(completion: completion)
         let search = MKLocalSearch(request: searchRequest)
@@ -41,7 +48,7 @@ final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<LocationModel, Error>) in
             let onceGuard = OnceGuard(continuation)
             search.start { response, error in
-                if let error = error {
+                if let error {
                     onceGuard.resume(throwing: error)
                     return
                 }

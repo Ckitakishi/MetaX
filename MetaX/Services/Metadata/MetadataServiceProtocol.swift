@@ -9,30 +9,30 @@
 import CoreLocation
 import Photos
 
-/// Protocol defining metadata operations
+/// Protocol defining metadata operations.
 protocol MetadataServiceProtocol: Sendable {
     // MARK: - Load Metadata
 
-    /// Loads metadata as a stream of events, allowing for progress updates and cancellation.
+    /// Loads metadata as a stream of events.
     func loadMetadataEvents(from asset: PHAsset) -> AsyncStream<MetadataLoadEvent>
 
     // MARK: - Modify Metadata
 
-    /// Update timestamp in metadata, returns structured update intent
+    /// Updates timestamp in metadata.
     func updateTimestamp(_ date: Date, in metadata: Metadata) -> MetadataUpdateIntent
 
-    /// Remove timestamp from metadata, returns structured update intent
+    /// Removes timestamp from metadata.
     func removeTimestamp(from metadata: Metadata) -> MetadataUpdateIntent
 
-    /// Update location in metadata, returns structured update intent
+    /// Updates location in metadata.
     func updateLocation(_ location: CLLocation, in metadata: Metadata) -> MetadataUpdateIntent
 
-    /// Remove location from metadata, returns structured update intent
+    /// Removes location from metadata.
     func removeLocation(from metadata: Metadata) -> MetadataUpdateIntent
 
-    /// Remove all metadata except orientation, returns structured update intent
+    /// Removes all metadata except orientation.
     func removeAllMetadata(from metadata: Metadata) -> MetadataUpdateIntent
 
-    /// Update multiple metadata fields at once, returns structured update intent
+    /// Updates multiple metadata fields at once.
     func updateMetadata(with batch: [String: Any], in metadata: Metadata) -> MetadataUpdateIntent
 }

@@ -445,8 +445,8 @@ class DetailInfoViewController: UIViewController, ViewModelObserving {
         }
 
         observe(viewModel: viewModel, property: { $0.asset }) { [weak self] _ in
-            guard let self = self, self.isViewLoaded, self.view.window != nil else { return }
-            self.viewModel.loadHeroContent(targetSize: self.targetSize)
+            guard let self = self, isViewLoaded, view.window != nil else { return }
+            viewModel.loadHeroContent(targetSize: targetSize)
         }
     }
 

@@ -35,7 +35,7 @@ final class MetadataEditViewModel {
         var copyright: String?
 
         static func == (lhs: Fields, rhs: Fields) -> Bool {
-            return lhs.make == rhs.make &&
+            lhs.make == rhs.make &&
                 lhs.model == rhs.model &&
                 lhs.lensMake == rhs.lensMake &&
                 lhs.lensModel == rhs.lensModel &&
@@ -57,17 +57,19 @@ final class MetadataEditViewModel {
 
         static func isLocationEqual(_ l1: CLLocation?, _ l2: CLLocation?) -> Bool {
             if l1 == nil && l2 == nil { return true }
-            guard let l1 = l1, let l2 = l2 else { return false }
+            guard let l1, let l2 else { return false }
             return l1.coordinate.latitude == l2.coordinate.latitude &&
                 l1.coordinate.longitude == l2.coordinate.longitude &&
                 l1.altitude == l2.altitude
         }
     }
 
-    /// Single source of truth for the form data
+    // MARK: - Properties
+
+    /// Single source of truth for the form data.
     var fields: Fields
 
-    // Read-only display fields (not part of editable state)
+    // Read-only display fields (not part of editable state).
     let pixelWidth: String?
     let pixelHeight: String?
     let profileName: String?
@@ -80,6 +82,8 @@ final class MetadataEditViewModel {
     private let geocoder = CLGeocoder()
     private var geocodingTask: Task<Void, Never>?
 
+    // MARK: - Initialization
+
     init(metadata: Metadata) {
         let props = metadata.sourceProperties
         let exif = props[MetadataKeys.exifDict] as? [String: Any] ?? [:]
@@ -89,7 +93,7 @@ final class MetadataEditViewModel {
         pixelHeight = (props[MetadataField.pixelHeight.key] as? Int).map { "\($0)" }
         profileName = props[MetadataField.profileName.key] as? String
 
-        // Temporary variables for construction
+        // Temporary variables for construction.
         let make = tiff[MetadataKeys.make] as? String
         let model = tiff[MetadataKeys.model] as? String
         let lensMake = exif[MetadataKeys.lensMake] as? String
@@ -167,11 +171,13 @@ final class MetadataEditViewModel {
         }
     }
 
+    // MARK: - State Management
+
     var isModified: Bool {
-        return fields != initialFields
+        fields != initialFields
     }
 
-    /// Centralized update method to avoid switch-cases in the ViewController.
+    /// Centralized update method for form fields.
     func updateValue(_ value: Any?, for field: MetadataField) {
         switch field {
         case .make: fields.make = value as? String
@@ -195,6 +201,8 @@ final class MetadataEditViewModel {
         default: break
         }
     }
+
+    // MARK: - Geocoding
 
     func reverseGeocode(_ loc: CLLocation) {
         fields.location = loc
@@ -227,21 +235,19 @@ final class MetadataEditViewModel {
     }
 
     private static func formatValue(_ value: Double) -> String {
-        return value.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", value) : String(
-            format: "%.1f",
-            value
-        )
+        value.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", value) : String(format: "%.1f", value)
     }
+
+    // MARK: - Field Preparation
 
     func getPreparedFields() -> [MetadataField: MetadataFieldValue] {
-        return prepareFields(from: fields)
+        prepareFields(from: fields)
     }
 
-    /// Converts raw UI inputs into a metadata fields dictionary, only including fields that have changed.
+    /// Converts raw UI inputs into a metadata fields dictionary, only including changes.
     private func prepareFields(from raw: Fields) -> [MetadataField: MetadataFieldValue] {
         var fieldsDict: [MetadataField: MetadataFieldValue] = [:]
 
-        /// Simple String fields helper
         func addIfChanged(_ field: MetadataField, current: String?, initial: String?) {
             if (current ?? "") != (initial ?? "") {
                 fieldsDict[field] = (current?.isEmpty ?? true) ? .null : .string(current!)
@@ -350,14 +356,16 @@ final class MetadataEditViewModel {
         return fieldsDict
     }
 
-    /// Pure logic to validate if a string change should be allowed for a specific field.
+    // MARK: - Validation
+
+    /// Validates if a string change should be allowed for a specific field.
     func validateInput(
         currentText: String,
         range: NSRange,
         replacementString string: String,
         for field: MetadataField
     ) -> Bool {
-        if string.isEmpty { return true } // Always allow backspace
+        if string.isEmpty { return true } // Always allow backspace.
 
         guard let stringRange = Range(range, in: currentText) else { return false }
         let updatedText = currentText.replacingCharacters(in: stringRange, with: string)

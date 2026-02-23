@@ -10,10 +10,12 @@ import Foundation
 import MapKit
 import Observation
 
-/// ViewModel for LocationSearchViewController
+/// ViewModel for LocationSearchViewController.
 @MainActor
 @Observable
 final class LocationSearchViewModel: LocationSearchServiceDelegate {
+
+    // MARK: - Nested Types
 
     enum RowType {
         case history(HistoryLocation)
@@ -25,7 +27,7 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
         let rows: [RowType]
     }
 
-    // MARK: - Properties (Public State)
+    // MARK: - Properties
 
     private(set) var sections: [Section] = []
     var onError: ((Error) -> Void)?
@@ -35,12 +37,10 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
     }
 
     var searchText: String = "" {
-        didSet {
-            performSearch(query: searchText)
-        }
+        didSet { performSearch(query: searchText) }
     }
 
-    // MARK: - Internal State
+    // MARK: - Private Properties
 
     private var searchResults: [SearchCompletion] = []
     private var history: [HistoryLocation] = []
@@ -71,6 +71,7 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
         searchService.cancel()
     }
 
+    /// Resolves and returns a full LocationModel for the selected item.
     func selectItem(at indexPath: IndexPath) async -> LocationModel? {
         guard let row = sections[safe: indexPath.section]?.rows[safe: indexPath.row] else { return nil }
 
@@ -85,7 +86,7 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
             model.street = item.street
             model.houseNumber = item.houseNumber
 
-            // Move to top
+            // Update history to move this item to the top.
             historyService.save(item)
             history = historyService.fetchAll()
             updateSections()
@@ -109,7 +110,6 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
                     )
                     historyService.save(historyItem)
                     history = historyService.fetchAll()
-                    // No need to call updateSections here as resolving a location usually leads to dismissal
                 }
                 return locationModel
             } catch {
@@ -131,8 +131,9 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
         }
 
         searchTask = Task {
+            // Debounce search requests.
             try? await Task.sleep(nanoseconds: 300 * 1_000_000)
-            if Task.isCancelled { return }
+            guard !Task.isCancelled else { return }
             searchService.search(query: query)
         }
     }
@@ -152,18 +153,16 @@ final class LocationSearchViewModel: LocationSearchServiceDelegate {
 
     // MARK: - LocationSearchServiceDelegate
 
-    /// nonisolated to satisfy the nonisolated protocol requirement.
-    /// Dispatches to @MainActor via Task to safely update state regardless of calling thread.
     nonisolated func didUpdate(results: [SearchCompletion]) {
-        Task { @MainActor [weak self] in
-            self?.searchResults = results
-            self?.updateSections()
+        Task { @MainActor in
+            searchResults = results
+            updateSections()
         }
     }
 
     nonisolated func didFail(with error: Error) {
-        Task { @MainActor [weak self] in
-            self?.onError?(error)
+        Task { @MainActor in
+            onError?(error)
         }
     }
 }

@@ -8,8 +8,7 @@
 
 import Foundation
 
-/// Central dependency injection container
-/// Manages lifecycle of all services used throughout the app
+/// Central dependency injection container managing the lifecycle of app services.
 @MainActor
 final class DependencyContainer {
 
@@ -26,6 +25,7 @@ final class DependencyContainer {
 
     init() {
         let photoLibrary = PhotoLibraryService()
+
         photoLibraryService = photoLibrary
         metadataService = MetadataService()
         imageSaveService = ImageSaveService(photoLibraryService: photoLibrary)

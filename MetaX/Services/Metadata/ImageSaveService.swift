@@ -13,17 +13,21 @@ import UniformTypeIdentifiers
 
 // MARK: - Metadata Sync Logic
 
-public enum MetadataSyncLogic {
-    public static func shouldSyncDate(_ newDate: Date?, with currentDate: Date?) -> Bool {
+enum MetadataSyncLogic {
+    /// Determines if a date update is necessary by comparing with current metadata.
+    static func shouldSyncDate(_ newDate: Date?, with currentDate: Date?) -> Bool {
         guard let newDate = newDate else { return false }
         guard let current = currentDate else { return true }
+        // Only sync if difference is more than 1 second to avoid jitter.
         return abs(newDate.timeIntervalSince(current)) > 1
     }
 
-    public static func shouldSyncLocation(_ newLocation: CLLocation?, with currentLoc: CLLocation?) -> Bool {
+    /// Determines if a location update is necessary based on coordinate proximity.
+    static func shouldSyncLocation(_ newLocation: CLLocation?, with currentLoc: CLLocation?) -> Bool {
         if let new = newLocation, let current = currentLoc {
             let latitudeDiff = abs(new.coordinate.latitude - current.coordinate.latitude)
             let longitudeDiff = abs(new.coordinate.longitude - current.coordinate.longitude)
+            // Approx. 1 meter precision check.
             return latitudeDiff > 0.00001 || longitudeDiff > 0.00001
         }
         return (newLocation == nil) != (currentLoc == nil)
@@ -38,11 +42,11 @@ struct SavePolicy {
     let destinationURL: URL?
 
     var targetUTType: UTType {
-        // 1. Respect the destination URL extension if provided (dictated by Photos or caller)
+        // 1. Respect the destination URL extension if provided.
         if let ext = destinationURL?.pathExtension, let type = UTType(filenameExtension: ext) {
             return type
         }
-        // 2. RAW and Live Photos are standardized to JPEG for metadata stability
+        // 2. RAW and Live Photos are standardized to JPEG for metadata stability.
         if sourceUTType.conforms(to: .rawImage) || isLivePhoto {
             return .jpeg
         }
@@ -53,8 +57,7 @@ struct SavePolicy {
         targetUTType.preferredFilenameExtension?.uppercased() ?? "JPG"
     }
 
-    /// Properties that are often stripped by CIImage/CGImage during re-encoding
-    /// but MUST be restored to maintain file identity (e.g., Live Photo pairing).
+    /// Properties that must be restored to maintain file identity (e.g., Live Photo pairing).
     var identityKeys: [String] {
         [
             MetadataKeys.appleDict,
@@ -98,8 +101,9 @@ final class ImageSaveService: ImageSaveServiceProtocol {
 
     func saveImageAsNewAsset(asset: PHAsset, intent: MetadataUpdateIntent) async -> Result<PHAsset, MetaXError> {
         let tempURLResult = await generateModifiedImageFile(for: asset, intent: intent)
-        guard case let .success(tempURL) = tempURLResult
-        else { return .failure(tempURLResult.error ?? .imageSave(.editionFailed)) }
+        guard case let .success(tempURL) = tempURLResult else {
+            return .failure(tempURLResult.error ?? .imageSave(.editionFailed))
+        }
 
         _ = await photoLibraryService.createAlbumIfNeeded(title: "MetaX")
         let createResult = await createAssetInMetaXAlbum(from: tempURL)
@@ -163,7 +167,9 @@ final class ImageSaveService: ImageSaveServiceProtocol {
                     location: locationChanged ? intent.dbLocation : newAsset.location
                 )
             }
-            if let assetToRemove = originalToDelete { _ = await photoLibraryService.deleteAsset(assetToRemove) }
+            if let assetToRemove = originalToDelete {
+                _ = await photoLibraryService.deleteAsset(assetToRemove)
+            }
             return .success(newAsset)
         }
         return result
@@ -188,7 +194,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         )
     }
 
-    nonisolated func generateModifiedImageFile(
+    private func generateModifiedImageFile(
         for asset: PHAsset,
         intent: MetadataUpdateIntent
     ) async -> Result<URL, MetaXError> {
@@ -204,8 +210,10 @@ final class ImageSaveService: ImageSaveServiceProtocol {
                 destinationURL: nil
             )
 
-            let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+            let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
+                .appendingPathComponent(UUID().uuidString)
                 .appendingPathExtension(policy.targetExtension)
+
             return writeModifiedImage(sourceURL: imageURL, destinationURL: tempURL, intent: intent) ? .success(
                 tempURL
             ) :
@@ -215,7 +223,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         }
     }
 
-    nonisolated func writeModifiedImage(sourceURL: URL, destinationURL: URL, intent: MetadataUpdateIntent) -> Bool {
+    func writeModifiedImage(sourceURL: URL, destinationURL: URL, intent: MetadataUpdateIntent) -> Bool {
         guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, nil),
               let sourceUTType = (CGImageSourceGetType(source) as String?).flatMap({ UTType($0) }),
               let sourceProps = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any]
@@ -226,8 +234,11 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             isLivePhoto: sourceProps[MetadataKeys.appleDict] != nil,
             destinationURL: destinationURL
         )
-        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+
+        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent(UUID().uuidString)
             .appendingPathExtension(policy.targetExtension)
+
         guard let destination = CGImageDestinationCreateWithURL(
             tempURL as CFURL,
             policy.targetUTType.identifier as CFString,
@@ -243,10 +254,11 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         ) {
             CGImageDestinationAddImageFromSource(destination, source, 0, intent.fileProperties as CFDictionary)
         } else {
-            guard let ciImage = CIImage(contentsOf: sourceURL, options: [.applyOrientationProperty: true])
-            else { return false }
+            guard let ciImage = CIImage(contentsOf: sourceURL, options: [.applyOrientationProperty: true]) else {
+                return false
+            }
 
-            // Preserve wide color space (e.g. Display P3) if present
+            // Preserve wide color space (e.g. Display P3) if present.
             let outputColorSpace = ciImage.colorSpace ?? CGColorSpaceCreateDeviceRGB()
             guard let cgImage = ciContext.createCGImage(
                 ciImage,
@@ -269,7 +281,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             cleanProps[kCGImagePropertyOrientation as String] = 1
             cleanProps[kCGImageDestinationLossyCompressionQuality as String] = 0.95
 
-            // Restore identity keys to ensure system-level asset pairing (e.g. Live Photo)
+            // Restore identity keys to ensure system-level asset pairing (e.g. Live Photo).
             policy.identityKeys.forEach { if let val = sourceProps[$0] { cleanProps[$0] = val } }
 
             CGImageDestinationAddImage(destination, cgImage, cleanProps as CFDictionary)
@@ -282,7 +294,7 @@ final class ImageSaveService: ImageSaveServiceProtocol {
 
     // MARK: - Utilities
 
-    nonisolated func stripNulls(from dictionary: [String: Any]) -> [String: Any] {
+    func stripNulls(from dictionary: [String: Any]) -> [String: Any] {
         var result = [String: Any]()
         for (key, value) in dictionary {
             if value is NSNull || (value as AnyObject) === kCFNull { continue }
@@ -294,14 +306,14 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         return result
     }
 
-    private nonisolated func isAddingNewTIFF(_ source: [String: Any], _ overrides: [String: Any]) -> Bool {
+    private func isAddingNewTIFF(_ source: [String: Any], _ overrides: [String: Any]) -> Bool {
         overrides[kCGImagePropertyTIFFDictionary as String] != nil && source[
             kCGImagePropertyTIFFDictionary as String
         ] ==
             nil
     }
 
-    private nonisolated func isRewritingExistingTIFFText(
+    private func isRewritingExistingTIFFText(
         in source: [String: Any],
         with overrides: [String: Any]
     ) -> Bool {
@@ -318,12 +330,13 @@ final class ImageSaveService: ImageSaveServiceProtocol {
         return targetKeys.contains { (sourceTIFF[$0 as String] as? String) != (newTIFF[$0 as String] as? String) }
     }
 
-    private nonisolated func createAssetInMetaXAlbum(from url: URL) async -> Result<PHAsset, MetaXError> {
+    private func createAssetInMetaXAlbum(from url: URL) async -> Result<PHAsset, MetaXError> {
         var localId = ""
         do {
             try await PHPhotoLibrary.shared().performChanges {
                 let request = PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: url)
                 localId = request?.placeholderForCreatedAsset?.localIdentifier ?? ""
+
                 let fetchOptions = PHFetchOptions()
                 fetchOptions.predicate = NSPredicate(format: "title = %@", "MetaX")
                 if let album = PHAssetCollection.fetchAssetCollections(
@@ -336,10 +349,15 @@ final class ImageSaveService: ImageSaveServiceProtocol {
             }
             return PHAsset.fetchAssets(withLocalIdentifiers: [localId], options: nil).firstObject
                 .map { .success($0) } ?? .failure(.imageSave(.creationFailed))
-        } catch { return .failure(.imageSave(.creationFailed)) }
+        } catch {
+            return .failure(.imageSave(.creationFailed))
+        }
     }
 }
 
 extension Result {
-    fileprivate var error: Failure? { if case let .failure(error) = self { return error }; return nil }
+    fileprivate var error: Failure? {
+        if case let .failure(error) = self { return error }
+        return nil
+    }
 }

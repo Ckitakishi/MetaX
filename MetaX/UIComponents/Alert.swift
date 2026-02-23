@@ -12,18 +12,10 @@ final class Alert {
     private init() {}
 
     /// Presents a confirmation dialog with "Continue" and "Cancel" buttons.
-    /// - Parameters:
-    ///   - title: The title of the alert.
-    ///   - message: The message of the alert.
-    ///   - presenter: The view controller to present the alert on.
-    /// - Returns: `true` if the user chose "Continue", `false` if "Cancel" or dismissed.
+    /// Returns `true` if the user chose "Continue", `false` otherwise.
     static func confirm(title: String, message: String, on presenter: UIViewController) async -> Bool {
         await withCheckedContinuation { continuation in
-            let alert = UIAlertController(
-                title: title,
-                message: message,
-                preferredStyle: .alert
-            )
+            let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
 
             let continueAction = UIAlertAction(title: String(localized: .alertContinue), style: .default) { _ in
                 continuation.resume(returning: true)

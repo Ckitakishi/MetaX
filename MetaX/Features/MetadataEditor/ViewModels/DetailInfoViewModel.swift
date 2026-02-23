@@ -11,21 +11,25 @@ import Observation
 import Photos
 import UIKit
 
+/// Represents the type of content shown in the hero header.
 enum HeroContent {
     case photo(UIImage)
     case livePhoto(PHLivePhoto)
 }
 
+/// Represents a warning message for destructive operations.
 struct SaveWarning {
     let title: String
     let message: String
 }
 
-/// ViewModel for DetailInfoViewController
+/// ViewModel for DetailInfoViewController.
 @Observable @MainActor
 final class DetailInfoViewModel: NSObject {
 
-    /// Represents the exhaustive states of the detail session.
+    // MARK: - Nested Types
+
+    /// Exhaustive states of the detail session.
     enum SessionState {
         case loading(progress: Double)
         case ready(Metadata)
@@ -35,15 +39,17 @@ final class DetailInfoViewModel: NSObject {
         case failure(MetaXError)
 
         var metadata: Metadata? {
-            if case let .ready(meta) = self { return meta }
-            if case let .saving(meta) = self { return meta }
-            return nil
+            switch self {
+            case let .ready(meta), let .saving(meta): return meta
+            default: return nil
+            }
         }
 
         var isSaving: Bool {
-            if case .saving = self { return true }
-            if case .deleting = self { return true }
-            return false
+            switch self {
+            case .saving, .deleting: return true
+            default: return false
+            }
         }
 
         var isLoading: Bool {
@@ -75,14 +81,14 @@ final class DetailInfoViewModel: NSObject {
         case updateLoadingProgress(Double)
         case loadSuccess(Metadata)
         case loadFailure(MetaXError)
-        case actionFailure(MetaXError) // Transient error for actions (save/revert)
+        case actionFailure(MetaXError)
         case prepareSave(Metadata)
         case markAsDeleted
         case dismissError
     }
 
     struct RowModel: Identifiable {
-        let id: String // Use raw key as ID
+        let id: String
         let type: RowType
         let model: DetailCellModel
 
@@ -110,8 +116,6 @@ final class DetailInfoViewModel: NSObject {
     private(set) var ui = UIModel()
     private(set) var hasMetaXEdit: Bool = false
 
-    // MARK: - Computed Properties (UI Bindings)
-
     var metadata: Metadata? { state.metadata }
     var heroContent: HeroContent? { ui.heroContent }
     var currentLocation: CLLocation? { ui.currentLocation }
@@ -136,29 +140,6 @@ final class DetailInfoViewModel: NSObject {
         asset?.isLivePhoto ?? false
     }
 
-    func warning(for mode: SaveWorkflowMode) -> SaveWarning? {
-        guard case .saveAsCopy = mode, let asset = asset else { return nil }
-
-        var messages = [String]()
-        var title = String(localized: .alertLivePhotoCopyTitle) // Default title
-
-        if asset.isRAW {
-            title = String(localized: .alertRawConversionTitle)
-            messages.append(String(localized: .alertRawConversionMessage))
-        }
-
-        if asset.isLivePhoto {
-            messages.append(String(localized: .alertLivePhotoCopyMessage))
-        }
-
-        guard !messages.isEmpty else { return nil }
-
-        return SaveWarning(
-            title: title,
-            message: messages.joined(separator: "\n\n")
-        )
-    }
-
     // MARK: - Reducer
 
     private func send(_ action: Action) {
@@ -178,7 +159,7 @@ final class DetailInfoViewModel: NSObject {
 
         case let (.saving(meta), .actionFailure(error)):
             actionError = error
-            state = .ready(meta) // Restore content view
+            state = .ready(meta)
 
         case let (_, .prepareSave(meta)):
             state = .saving(meta)
@@ -193,7 +174,6 @@ final class DetailInfoViewModel: NSObject {
                     state = .ready(meta)
                 } else {
                     state = .loading(progress: 0)
-                    // If metadata is nil and we were in failure, caller must trigger loadMetadata
                 }
             }
 
@@ -239,10 +219,29 @@ final class DetailInfoViewModel: NSObject {
         self.asset = asset
     }
 
-    // MARK: - Load Methods
+    // MARK: - Public API
+
+    func warning(for mode: SaveWorkflowMode) -> SaveWarning? {
+        guard case .saveAsCopy = mode, let asset else { return nil }
+
+        var messages = [String]()
+        var title = String(localized: .alertLivePhotoCopyTitle)
+
+        if asset.isRAW {
+            title = String(localized: .alertRawConversionTitle)
+            messages.append(String(localized: .alertRawConversionMessage))
+        }
+
+        if asset.isLivePhoto {
+            messages.append(String(localized: .alertLivePhotoCopyMessage))
+        }
+
+        guard !messages.isEmpty else { return nil }
+        return SaveWarning(title: title, message: messages.joined(separator: "\n\n"))
+    }
 
     func loadHeroContent(targetSize: CGSize) {
-        guard let asset = asset else { return }
+        guard let asset else { return }
 
         heroLoadTask?.cancel()
         heroLoadTask = Task { @MainActor in
@@ -252,12 +251,12 @@ final class DetailInfoViewModel: NSObject {
                     targetSize: targetSize
                 ) {
                     guard !Task.isCancelled else { break }
-                    if let livePhoto { self.ui.heroContent = .livePhoto(livePhoto) }
+                    if let livePhoto { ui.heroContent = .livePhoto(livePhoto) }
                 }
             } else {
                 for await (image, _) in photoLibraryService.requestThumbnailStream(for: asset, targetSize: targetSize) {
                     guard !Task.isCancelled else { break }
-                    if let image { self.ui.heroContent = .photo(image) }
+                    if let image { ui.heroContent = .photo(image) }
                 }
             }
         }
@@ -266,12 +265,11 @@ final class DetailInfoViewModel: NSObject {
     func loadMetadata() async {
         guard let assetId = asset?.localIdentifier else { return }
 
-        // Refresh the asset from the library to ensure we have the latest properties
         if let freshAsset = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil).firstObject {
-            self.asset = freshAsset
+            asset = freshAsset
         }
 
-        guard let asset = asset else {
+        guard let asset else {
             send(.loadFailure(.photoLibrary(.assetNotFound)))
             return
         }
@@ -296,8 +294,6 @@ final class DetailInfoViewModel: NSObject {
         }
     }
 
-    // MARK: - Revert
-
     func revertToOriginal() async {
         guard let asset else { return }
         guard let currentMeta = metadata else {
@@ -319,60 +315,34 @@ final class DetailInfoViewModel: NSObject {
         }
     }
 
-    private func refreshMetaXEditStatus() async {
-        guard let asset else { hasMetaXEdit = false; return }
-        hasMetaXEdit = await Self.fetchMetaXEditStatus(for: asset)
-    }
-
-    private nonisolated static func fetchMetaXEditStatus(for asset: PHAsset) async -> Bool {
-        let options = PHContentEditingInputRequestOptions()
-        options.isNetworkAccessAllowed = false
-        options.canHandleAdjustmentData = { adjustmentData in
-            adjustmentData.formatIdentifier == Bundle.main.bundleIdentifier
-        }
-
-        do {
-            let input = try await asset.fetchContentEditingInput(with: options)
-            return input.adjustmentData?.formatIdentifier == Bundle.main.bundleIdentifier
-        } catch {
-            return false
-        }
-    }
-
-    // MARK: - Edit Methods
-
     @discardableResult
     func clearAllMetadata(
         saveMode: SaveWorkflowMode,
         confirm: ((SaveWarning) async -> Bool)? = nil
     ) async -> Bool {
-        guard let metadata = metadata else { return false }
+        guard let metadata else { return false }
 
-        // 1. Ask for confirmation FIRST before any destructive action
-        if let warning = warning(for: saveMode), let confirm = confirm {
+        if let warning = warning(for: saveMode), let confirm {
             guard await confirm(warning) else { return false }
         }
 
         send(.prepareSave(metadata))
 
-        // 2. Perform revert if needed
-        if hasMetaXEdit, case .updateOriginal = saveMode, let asset = asset {
+        if hasMetaXEdit, case .updateOriginal = saveMode, let asset {
             let revertResult = await photoLibraryService.revertAsset(asset)
             if case let .failure(error) = revertResult {
                 send(.actionFailure(error))
                 return false
             }
 
-            // Refresh the asset to reflect the reverted state before proceeding to save
             if let fresh = PHAsset.fetchAssets(withLocalIdentifiers: [asset.localIdentifier], options: nil)
                 .firstObject {
                 self.asset = fresh
             }
         }
 
-        // 3. Save new metadata
         let intent = metadataService.removeAllMetadata(from: metadata)
-        return await performSaveOperation(intent: intent, mode: saveMode, confirm: nil) // Already confirmed
+        return await performSaveOperation(intent: intent, mode: saveMode, confirm: nil)
     }
 
     @discardableResult
@@ -381,13 +351,11 @@ final class DetailInfoViewModel: NSObject {
         saveMode: SaveWorkflowMode,
         confirm: ((SaveWarning) async -> Bool)? = nil
     ) async -> Bool {
-        guard let metadata = metadata else { return false }
+        guard let metadata else { return false }
         let batch = Dictionary(uniqueKeysWithValues: fields.map { ($0.key.key, $0.value.rawValue) })
         let intent = metadataService.updateMetadata(with: batch, in: metadata)
         return await performSaveOperation(intent: intent, mode: saveMode, confirm: confirm)
     }
-
-    // MARK: - Cancel Requests
 
     func cancelRequests() {
         heroLoadTask?.cancel()
@@ -409,9 +377,9 @@ final class DetailInfoViewModel: NSObject {
         mode: SaveWorkflowMode,
         confirm: ((SaveWarning) async -> Bool)? = nil
     ) async -> Bool {
-        guard let asset = asset, let currentMeta = metadata else { return false }
+        guard let asset, let currentMeta = metadata else { return false }
 
-        if let warning = warning(for: mode), let confirm = confirm {
+        if let warning = warning(for: mode), let confirm {
             guard await confirm(warning) else { return false }
         }
 
@@ -457,7 +425,7 @@ final class DetailInfoViewModel: NSObject {
 
     private func reverseGeocodeLocation(_ location: CLLocation) {
         geocodingTask?.cancel()
-        geocoder.cancelGeocode() // Cancel the underlying CLGeocoder request, not just the Swift Task
+        geocoder.cancelGeocode()
         geocodingTask = Task {
             guard let placemarks = try? await geocoder.reverseGeocodeLocation(location),
                   !Task.isCancelled,
@@ -486,6 +454,26 @@ final class DetailInfoViewModel: NSObject {
         }
     }
 
+    private func refreshMetaXEditStatus() async {
+        guard let asset else { hasMetaXEdit = false; return }
+        hasMetaXEdit = await Self.fetchMetaXEditStatus(for: asset)
+    }
+
+    private nonisolated static func fetchMetaXEditStatus(for asset: PHAsset) async -> Bool {
+        let options = PHContentEditingInputRequestOptions()
+        options.isNetworkAccessAllowed = false
+        options.canHandleAdjustmentData = { adjustmentData in
+            adjustmentData.formatIdentifier == Bundle.main.bundleIdentifier
+        }
+
+        do {
+            let input = try await asset.fetchContentEditingInput(with: options)
+            return input.adjustmentData?.formatIdentifier == Bundle.main.bundleIdentifier
+        } catch {
+            return false
+        }
+    }
+
     // MARK: - Photo Library Observer
 
     func registerPhotoLibraryObserver() {
@@ -502,22 +490,19 @@ final class DetailInfoViewModel: NSObject {
 extension DetailInfoViewModel: PHPhotoLibraryChangeObserver {
     nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
         Task { @MainActor in
-            // Protect during active modification sessions
-            guard !self.state.isSaving else { return }
-
-            guard let curAsset = self.asset,
-                  let details = changeInstance.changeDetails(for: curAsset) else { return }
+            guard !state.isSaving else { return }
+            guard let curAsset = asset, let details = changeInstance.changeDetails(for: curAsset) else { return }
 
             let newAsset = details.objectAfterChanges
-            self.updateAsset(newAsset)
+            updateAsset(newAsset)
 
-            if details.objectWasDeleted || self.asset == nil {
-                self.send(.markAsDeleted)
+            if details.objectWasDeleted || asset == nil {
+                send(.markAsDeleted)
                 return
             }
 
             if details.assetContentChanged {
-                await self.loadMetadata()
+                await loadMetadata()
             }
         }
     }

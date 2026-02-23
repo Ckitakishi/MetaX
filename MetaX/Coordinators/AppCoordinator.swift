@@ -10,11 +10,16 @@ import UIKit
 /// The central coordinator that owns all navigation and flow orchestration.
 @MainActor
 final class AppCoordinator: NSObject, Coordinator {
+
+    // MARK: - Properties
+
     var childCoordinators: [Coordinator] = []
     var navigationController: UINavigationController = .init()
 
     private let splitViewController = UISplitViewController(style: .doubleColumn)
     private let container: DependencyContainer
+
+    // MARK: - Initialization
 
     init(container: DependencyContainer) {
         self.container = container
@@ -22,8 +27,10 @@ final class AppCoordinator: NSObject, Coordinator {
         setupSplitView()
     }
 
+    // MARK: - Coordinator Flow
+
     func rootViewController() -> UIViewController {
-        return splitViewController
+        splitViewController
     }
 
     func start() {
@@ -40,11 +47,12 @@ final class AppCoordinator: NSObject, Coordinator {
         navigationController.viewControllers.first as? AlbumViewController
     }
 
+    // MARK: - Private Methods
+
     private func setupSplitView() {
         splitViewController.delegate = self
         splitViewController.preferredDisplayMode = .oneBesideSecondary
         splitViewController.preferredSplitBehavior = .tile
-
         splitViewController.setViewController(navigationController, for: .primary)
     }
 }
@@ -52,11 +60,13 @@ final class AppCoordinator: NSObject, Coordinator {
 // MARK: - UISplitViewControllerDelegate
 
 extension AppCoordinator: UISplitViewControllerDelegate {
+
     func splitViewController(
         _ splitViewController: UISplitViewController,
         collapseSecondary secondaryViewController: UIViewController,
         onto primaryViewController: UIViewController
     ) -> Bool {
-        return true
+        // Always collapse onto primary on initial launch for compact devices.
+        true
     }
 }

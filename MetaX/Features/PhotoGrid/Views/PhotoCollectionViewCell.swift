@@ -49,7 +49,8 @@ class PhotoCollectionViewCell: UICollectionViewCell {
 
     override var isHighlighted: Bool {
         didSet {
-            UIView.animate(withDuration: 0.1) {
+            UIView.animate(withDuration: 0.1) { [weak self] in
+                guard let self else { return }
                 Theme.Shadows.applyPressEffect(to: self.containerView, isPressed: self.isHighlighted)
             }
         }
@@ -114,8 +115,8 @@ class PhotoCollectionViewCell: UICollectionViewCell {
         imageLoadTask?.cancel()
         imageLoadTask = Task { @MainActor in
             for await (image, _) in imageStream {
-                guard !Task.isCancelled, self.representedAssetIdentifier == model.identifier else { break }
-                self.imageView.image = image
+                guard !Task.isCancelled, representedAssetIdentifier == model.identifier else { break }
+                imageView.image = image
             }
         }
     }

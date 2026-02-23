@@ -11,6 +11,8 @@ import UIKit
 @Observable @MainActor
 final class SaveOptionsViewModel {
 
+    // MARK: - Nested Types
+
     enum Step: Sendable {
         case initial
         case deletionInquiry
@@ -24,14 +26,20 @@ final class SaveOptionsViewModel {
         let action: @MainActor @Sendable () -> Void
     }
 
+    // MARK: - Properties
+
     private(set) var currentStep: Step = .initial
     private(set) var options: [Option] = []
 
     var onSelect: ((SaveWorkflowMode) -> Void)?
 
+    // MARK: - Initialization
+
     init() {
         showInitialStep()
     }
+
+    // MARK: - Public Methods
 
     func showInitialStep() {
         currentStep = .initial
@@ -54,6 +62,8 @@ final class SaveOptionsViewModel {
             },
         ]
     }
+
+    // MARK: - Private Methods
 
     private func showDeletionInquiry() {
         currentStep = .deletionInquiry

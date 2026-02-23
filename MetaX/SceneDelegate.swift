@@ -10,10 +10,14 @@ import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
+    // MARK: - Properties
+
     var window: UIWindow?
     private var splashWindow: UIWindow?
     private var container: DependencyContainer?
     private var coordinator: AppCoordinator?
+
+    // MARK: - Scene Lifecycle
 
     func scene(
         _ scene: UIScene,
@@ -42,6 +46,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
     }
 
+    // MARK: - Private Methods
+
     private func setupSplashWindow(in scene: UIWindowScene, dismissalTrigger: AlbumViewController) {
         let splashWindow = UIWindow(windowScene: scene)
         splashWindow.windowLevel = .normal + 1
@@ -56,7 +62,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.splashWindow = splashWindow
 
         dismissalTrigger.splashDismissHandler = { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             UIView.animate(withDuration: Theme.Animation.splashFade, delay: 0, options: .curveEaseOut) {
                 self.splashWindow?.alpha = 0
             } completion: { _ in

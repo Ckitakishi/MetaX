@@ -22,18 +22,15 @@ final class PhotoGridViewModel: NSObject {
     // MARK: - Properties
 
     private(set) var fetchResult: PHFetchResult<PHAsset>?
-
     private(set) var assetCollection: PHAssetCollection?
+
     private var previousPreheatRect = CGRect.zero
     private var thumbnailSize: CGSize = .zero
-
     private var pendingFetchResult: PHFetchResult<PHAsset>?
     private var libraryChangeTask: Task<Void, Never>?
 
     var currentSortOrder: PhotoSortOrder {
-        didSet {
-            refreshPhotos()
-        }
+        didSet { refreshPhotos() }
     }
 
     // MARK: - Dependencies
@@ -72,8 +69,8 @@ final class PhotoGridViewModel: NSObject {
     }
 
     func refreshPhotos() {
-        if let collection = assetCollection {
-            fetchResult = photoLibraryService.fetchAssets(in: collection, sortedBy: currentSortOrder)
+        if let assetCollection {
+            fetchResult = photoLibraryService.fetchAssets(in: assetCollection, sortedBy: currentSortOrder)
         } else {
             fetchResult = photoLibraryService.fetchAllPhotos(sortedBy: currentSortOrder)
         }
@@ -103,7 +100,7 @@ final class PhotoGridViewModel: NSObject {
     }
 
     func asset(at index: Int) -> PHAsset? {
-        guard let fetchResult = fetchResult, index < fetchResult.count else { return nil }
+        guard let fetchResult, index < fetchResult.count else { return nil }
         return fetchResult.object(at: index)
     }
 
@@ -128,8 +125,8 @@ final class PhotoGridViewModel: NSObject {
         guard thumbnailSize != .zero else { return }
 
         let preheatRect = visibleRect.insetBy(dx: 0, dy: -0.5 * visibleRect.height)
-
         let delta = abs(preheatRect.midY - previousPreheatRect.midY)
+
         guard delta > viewBoundsHeight / 3 else { return }
 
         let (addedRects, removedRects) = differencesBetweenRects(previousPreheatRect, preheatRect)
@@ -180,30 +177,21 @@ extension PhotoGridViewModel: PHPhotoLibraryChangeObserver {
 
     nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
         Task { @MainActor in
-            // Always diff against the latest accumulated result, not the last committed one.
-            guard let base = self.pendingFetchResult ?? self.fetchResult,
+            guard let base = pendingFetchResult ?? fetchResult,
                   let changes = changeInstance.changeDetails(for: base) else { return }
 
-            self.pendingFetchResult = changes.fetchResultAfterChanges
+            pendingFetchResult = changes.fetchResultAfterChanges
 
             // Dual-strategy Debounce/Throttle:
-            // 1. Structural changes (insert/delete/move) get a 500ms high-priority debounce.
-            // 2. Property updates (like iCloud downloads) get a 1200ms low-priority throttle.
-
-            let isStructural = changes.insertedObjects.count > 0 ||
-                changes.removedObjects.count > 0 ||
-                changes.hasMoves
+            // 1. Structural changes (insert/delete/move) get a 500ms debounce.
+            // 2. Property updates (like iCloud downloads) get a 5000ms throttle.
+            let isStructural = changes.insertedObjects.count > 0 || changes.removedObjects.count > 0 || changes.hasMoves
 
             if isStructural {
-                // For structural changes, we always reset the timer to ensure a timely update.
                 libraryChangeTask?.cancel()
                 startRefreshTask(delay: 500)
-            } else {
-                // For property updates, if a task is already pending, don't reset it.
-                // This "coalesces" rapid property notifications into one refresh.
-                if libraryChangeTask == nil {
-                    startRefreshTask(delay: 5000)
-                }
+            } else if libraryChangeTask == nil {
+                startRefreshTask(delay: 5000)
             }
         }
     }
@@ -211,10 +199,11 @@ extension PhotoGridViewModel: PHPhotoLibraryChangeObserver {
     private func startRefreshTask(delay: Int) {
         libraryChangeTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(delay))
-            guard !Task.isCancelled, let pending = self.pendingFetchResult else { return }
-            self.fetchResult = pending
-            self.pendingFetchResult = nil
-            self.libraryChangeTask = nil
+            guard !Task.isCancelled, let pending = pendingFetchResult else { return }
+
+            fetchResult = pending
+            pendingFetchResult = nil
+            libraryChangeTask = nil
         }
     }
 }

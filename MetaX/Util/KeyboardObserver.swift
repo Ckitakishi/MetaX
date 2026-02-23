@@ -8,10 +8,16 @@
 import os
 import UIKit
 
+/// An observer that adjusts a scroll view's content insets in response to keyboard frame changes.
 @MainActor
 final class KeyboardObserver {
+
+    // MARK: - Properties
+
     private weak var scrollView: UIScrollView?
     private let tasks = OSAllocatedUnfairLock(initialState: [Task<Void, Never>]())
+
+    // MARK: - Initialization
 
     init(scrollView: UIScrollView) {
         self.scrollView = scrollView
@@ -20,6 +26,8 @@ final class KeyboardObserver {
     deinit {
         tasks.withLock { $0.forEach { $0.cancel() } }
     }
+
+    // MARK: - Observation
 
     func startObserving() {
         stopObserving()
@@ -39,6 +47,8 @@ final class KeyboardObserver {
             $0.removeAll()
         }
     }
+
+    // MARK: - Private Methods
 
     private func handleKeyboard(notification: Notification) {
         guard let scrollView, let userInfo = notification.userInfo else { return }

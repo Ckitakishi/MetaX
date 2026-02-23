@@ -14,7 +14,8 @@ enum Theme {
         static let accent = UIColor(named: "greenSea") ?? .systemTeal
         static let launchBackground = UIColor(named: "LaunchBackground") ?? .systemBackground
 
-        // Settings Colors (Matched with Rolog)
+        // MARK: Settings Colors
+
         static let settingsAppearance = UIColor(named: "SettingsAppearance") ?? .systemPurple
         static let settingsGeneral = UIColor(named: "SettingsGeneral") ?? .systemBlue
         static let settingsSupport = UIColor(named: "SettingsSupport") ?? .systemGreen
@@ -44,20 +45,18 @@ enum Theme {
         static let stackSpacing: CGFloat = 24
         static let sectionHeaderHeight: CGFloat = 60
         static let horizontalMargin: CGFloat = 20
-        /// Standard album thumbnail size in points (displayed as a square)
+        /// Standard album thumbnail size.
         static let thumbnailSize: CGFloat = 96
-        /// 16:9 aspect ratio multiplier used for hero image views
+        /// 16:9 aspect ratio for hero images.
         static let heroAspectRatio: CGFloat = 0.5625
-        /// Initial height for the detail view image header (updated dynamically per asset)
+        /// Base height for asset detail headers.
         static let heroHeaderHeight: CGFloat = 320
     }
 
     // MARK: - Animation
 
     enum Animation {
-        /// Duration for card press/highlight feedback
         static let pressEffect: TimeInterval = 0.1
-        /// Duration for splash screen fade-out
         static let splashFade: TimeInterval = 0.35
     }
 
@@ -68,7 +67,7 @@ enum Theme {
         static let layerOffset: CGFloat = 4
         static let pressedTranslation: CGFloat = 4
 
-        /// Adds a stacked layer behind the card for Neo-Brutalist depth effect
+        /// Adds a stacked layer behind the card for a Neo-Brutalist depth effect.
         @discardableResult
         static func applyStackedLayer(to cardView: UIView, in parentView: UIView, color: UIColor? = nil) -> UIView {
             let layerView = UIView()
@@ -107,27 +106,27 @@ enum Theme {
     // MARK: - Typography
 
     enum Typography {
-        /// For display-level titles (e.g. empty state, lock views)
+        /// Display titles (e.g., empty state).
         static let title = UIFont.systemFont(ofSize: 24, weight: .bold)
-        /// Compact monospaced brand logotype for navigation bars
+        /// Monospaced logotype for navigation bars.
         static let navBrand = UIFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold)
-        /// For the most prominent titles (originally cardTitle)
+        /// Prominent headline titles.
         static let headline = UIFont.systemFont(ofSize: 14, weight: .semibold)
-        /// For secondary titles or Section Headers
+        /// Section headers.
         static let subheadline = UIFont.systemFont(ofSize: 18, weight: .bold)
-        /// For callout-sized body text (16pt)
+        /// Standard callout text.
         static let callout = UIFont.systemFont(ofSize: 16)
-        /// Standard body text - medium weight (originally bodyMedium)
+        /// Standard body text (medium).
         static let bodyMedium = UIFont.systemFont(ofSize: 15, weight: .medium)
-        /// Standard body text - regular weight (originally bodyRegular)
+        /// Standard body text (regular).
         static let body = UIFont.systemFont(ofSize: 15, weight: .regular)
-        /// For supplementary info and labels (originally caption, propLabel)
+        /// Supplementary info and labels.
         static let footnote = UIFont.systemFont(ofSize: 13, weight: .regular)
-        /// Monospaced font for metadata display (originally metaMono)
+        /// Monospaced font for metadata display.
         static let captionMono = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
-        /// Monospaced font for Header indices
+        /// Monospaced font for header indices.
         static let indexMono = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .bold)
-        /// Small font for hint/caption text
+        /// Hint or caption text.
         static let hint = UIFont.systemFont(ofSize: 12, weight: .regular)
     }
 }

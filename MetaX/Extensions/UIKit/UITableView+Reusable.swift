@@ -8,23 +8,20 @@
 
 import UIKit
 
+/// Protocol to provide easy reuse identifiers for cells.
 protocol Reusable: AnyObject {
     static var reuseIdentifier: String { get }
     static var nib: UINib? { get }
 }
 
 extension Reusable {
-    static var reuseIdentifier: String {
-        return String(describing: Self.self)
-    }
-
-    static var nib: UINib? {
-        return nil
-    }
+    static var reuseIdentifier: String { String(describing: Self.self) }
+    static var nib: UINib? { nil }
 }
 
 extension UITableView {
 
+    /// Registers a reusable cell type.
     func registerReusableCell<T: UITableViewCell & Reusable>(_: T.Type) {
         if let nib = T.nib {
             register(nib, forCellReuseIdentifier: T.reuseIdentifier)
@@ -33,12 +30,11 @@ extension UITableView {
         }
     }
 
+    /// Dequeues a reusable cell type for a specific indexPath.
     func dequeueReusableCell<T: UITableViewCell & Reusable>(indexPath: IndexPath) -> T {
         guard let cell = dequeueReusableCell(withIdentifier: T.reuseIdentifier, for: indexPath) as? T else {
-            assertionFailure(
-                "Failed to dequeue cell with identifier: \(T.reuseIdentifier). Did you forget to register it?"
-            )
-            return T() // Fallback to avoid crash in production, though UI will be wrong
+            assertionFailure("Failed to dequeue cell with identifier: \(T.reuseIdentifier)")
+            return T()
         }
         return cell
     }

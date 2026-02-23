@@ -10,10 +10,7 @@ import Photos
 
 extension PHImageRequestOptions {
 
-    /// Standard options used throughout the app for image requests.
-    /// - `opportunistic`: delivers a fast degraded frame first, then replaces
-    ///   it with the full-quality result once available.
-    /// - `isNetworkAccessAllowed`: enables iCloud photo downloads.
+    /// Standard options used for Photo Library requests.
     static var standard: PHImageRequestOptions {
         let options = PHImageRequestOptions()
         options.deliveryMode = .opportunistic

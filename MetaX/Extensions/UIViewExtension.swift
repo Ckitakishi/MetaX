@@ -10,8 +10,8 @@ import UIKit
 
 extension UIView {
 
+    /// Adds a border layer to specified edges of the view.
     func addBorder(_ edge: UIRectEdge, color: UIColor, thickness: CGFloat) {
-
         let edgeBit = UInt8(edge.rawValue)
 
         let topBit = UInt8(UIRectEdge.top.rawValue)
@@ -41,7 +41,7 @@ extension UIView {
         }
     }
 
-    fileprivate func borderLayerMake(_ rect: CGRect, color: UIColor) -> CALayer {
+    private func borderLayerMake(_ rect: CGRect, color: UIColor) -> CALayer {
         let layer = CALayer()
         layer.backgroundColor = color.cgColor
         layer.frame = rect

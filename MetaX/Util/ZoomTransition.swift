@@ -8,35 +8,35 @@
 
 import UIKit
 
+/// A custom transition providing a zoom effect between a source frame and a target view controller.
 @MainActor
 class ZoomTransition: NSObject, UIViewControllerAnimatedTransitioning {
+
+    // MARK: - Properties
 
     let duration = 0.5
     var presenting = true
     var originFrame = CGRect.zero
 
+    // MARK: - Transitioning Delegate
+
     func transitionDuration(using transitionContext: UIViewControllerContextTransitioning?) -> TimeInterval {
-        return duration
+        duration
     }
 
     func animateTransition(using transitionContext: UIViewControllerContextTransitioning) {
         let containerView = transitionContext.containerView
-        let toView = transitionContext.view(forKey: .to)!
-        let detailView = presenting ? toView :
-            transitionContext.view(forKey: .from)!
+        guard let toView = transitionContext.view(forKey: .to),
+              let fromView = transitionContext.view(forKey: .from) else { return }
+
+        let detailView = presenting ? toView : fromView
 
         let initialFrame = presenting ? originFrame : detailView.frame
         let finalFrame = presenting ? detailView.frame : originFrame
 
-        let xScaleFactor = presenting ?
-
-            initialFrame.width / finalFrame.width :
-            finalFrame.width / initialFrame.width
-
-        let yScaleFactor = presenting ?
-
-            initialFrame.height / finalFrame.height :
-            finalFrame.height / initialFrame.height
+        let xScaleFactor = presenting ? initialFrame.width / finalFrame.width : finalFrame.width / initialFrame.width
+        let yScaleFactor = presenting ? initialFrame.height / finalFrame.height : finalFrame.height / initialFrame
+            .height
 
         let scaleTransform = CGAffineTransform(scaleX: xScaleFactor, y: yScaleFactor)
 
@@ -45,10 +45,7 @@ class ZoomTransition: NSObject, UIViewControllerAnimatedTransitioning {
 
         if presenting {
             detailView.transform = scaleTransform
-            detailView.center = CGPoint(
-                x: initialFrame.midX,
-                y: initialFrame.midY
-            )
+            detailView.center = CGPoint(x: initialFrame.midX, y: initialFrame.midY)
             detailView.clipsToBounds = true
         }
 
@@ -57,9 +54,9 @@ class ZoomTransition: NSObject, UIViewControllerAnimatedTransitioning {
             delay: 0.0,
             usingSpringWithDamping: 0.4,
             initialSpringVelocity: 0.0,
-            animations: {
-                detailView.transform = self.presenting ?
-                    CGAffineTransform.identity : scaleTransform
+            animations: { [weak self] in
+                guard let self else { return }
+                detailView.transform = self.presenting ? .identity : scaleTransform
                 detailView.center = CGPoint(x: finalFrame.midX, y: finalFrame.midY)
             },
             completion: { _ in

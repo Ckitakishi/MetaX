@@ -10,6 +10,9 @@ import UIKit
 
 @MainActor
 final class PhotoFlowCoordinator: NSObject, Coordinator {
+
+    // MARK: - Properties
+
     var childCoordinators: [Coordinator] = []
     var navigationController: UINavigationController
     private let container: DependencyContainer
@@ -26,6 +29,8 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
         case locationMap(location: CLLocation)
     }
 
+    // MARK: - Initialization
+
     init(
         navigationController: UINavigationController,
         splitViewController: UISplitViewController,
@@ -36,10 +41,12 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
         self.container = container
     }
 
+    // MARK: - Flow Control
+
     func start() {
         navigate(to: .albumList)
 
-        // On iPad, default to All Photos grid in the secondary column on startup
+        // On iPad, default to All Photos grid in the secondary column on startup.
         if UIDevice.current.userInterfaceIdiom == .pad {
             let fetchResult = container.photoLibraryService.fetchAllPhotos()
             navigate(to: .photoGrid(
@@ -111,7 +118,7 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
         let vc = DetailInfoViewController(viewModel: viewModel)
         vc.onRequestEdit = { [weak self, weak vc] metadata in
             guard let self, let vc else { return }
-            self.navigate(to: .metadataEdit(metadata: metadata, source: vc))
+            navigate(to: .metadataEdit(metadata: metadata, source: vc))
         }
         vc.onRequestLocationMap = { [weak self] location in
             self?.navigate(to: .locationMap(location: location))
@@ -171,6 +178,7 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
         let viewModel = MetadataEditViewModel(metadata: metadata)
         let vc = MetadataEditViewController(metadata: metadata, viewModel: viewModel)
         let nav = UINavigationController(rootViewController: vc)
+
         if UIDevice.current.userInterfaceIdiom == .pad {
             nav.modalPresentationStyle = .fullScreen
         }
@@ -216,7 +224,7 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
 
     private func pickSaveMode(on presenter: UIViewController? = nil) async -> SaveWorkflowMode? {
         let host = presenter ?? navigationController
-        return await withCheckedContinuation { (continuation: CheckedContinuation<SaveWorkflowMode?, Never>) in
+        return await withCheckedContinuation { continuation in
             let onceGuard = OnceGuard(continuation)
             let vc = SaveOptionsViewController()
             if UIDevice.current.userInterfaceIdiom == .pad {
@@ -236,10 +244,7 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
         on vc: MetadataEditViewController,
         source: UIViewController
     ) async -> [MetadataField: MetadataFieldValue]? {
-        await withCheckedContinuation { (continuation: CheckedContinuation<
-            [MetadataField: MetadataFieldValue]?,
-            Never
-        >) in
+        await withCheckedContinuation { continuation in
             let onceGuard = OnceGuard(continuation)
             vc.onSave = { fields in
                 onceGuard.resume(returning: fields)

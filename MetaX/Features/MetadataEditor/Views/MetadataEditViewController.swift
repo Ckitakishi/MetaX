@@ -218,7 +218,7 @@ final class MetadataEditViewController: UIViewController, UITextFieldDelegate,
         }
         observe(viewModel: viewModel, property: { $0.locationAddress }) { [weak self] addr in
             guard let self, let loc = viewModel.fields.location else { return }
-            (fieldViews[.location] as? LocationCardField)?.setLocation(loc, title: addr)
+            (self.fieldViews[.location] as? LocationCardField)?.setLocation(loc, title: addr)
         }
 
         observe(viewModel: viewModel, property: { $0.fields.make }) { tf(.make)?.text = $0 }

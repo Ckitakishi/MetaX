@@ -7,8 +7,10 @@
 
 import UIKit
 
-/// A reusable container that implements MetaX's Neo-Brutalist section-based border logic.
+/// A reusable container implementing Neo-Brutalist border and separator logic.
 final class NeoBrutalistContainerView: UIView {
+
+    // MARK: - UI Components
 
     private let topBorder = makeBorderView()
     private let bottomBorder = makeBorderView()
@@ -29,7 +31,11 @@ final class NeoBrutalistContainerView: UIView {
         return v
     }()
 
+    // MARK: - Properties
+
     private let contentPadding: CGFloat
+
+    // MARK: - Initialization
 
     init(contentPadding: CGFloat = 16) {
         self.contentPadding = contentPadding
@@ -41,6 +47,8 @@ final class NeoBrutalistContainerView: UIView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
+    // MARK: - UI Setup
 
     private static func makeBorderView() -> UIView {
         let v = UIView()
@@ -91,7 +99,9 @@ final class NeoBrutalistContainerView: UIView {
         ])
     }
 
-    /// Updates the visibility of borders and separators based on the row position.
+    // MARK: - Public Methods
+
+    /// Updates visibility of borders and separators based on row position.
     func updateBorders(isFirst: Bool, isLast: Bool) {
         topBorder.isHidden = !isFirst
         bottomBorder.isHidden = !isLast

@@ -9,13 +9,15 @@
 import Photos
 
 extension PHAssetCollection {
+
+    /// Returns the total count of images in the collection.
     var imagesCount: Int {
         let options = PHFetchOptions()
         options.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
         return PHAsset.fetchAssets(in: self, options: options).count
     }
 
-    /// Cheap existence check — fetches at most 1 asset.
+    /// Returns true if the collection contains at least one image.
     var hasImages: Bool {
         let options = PHFetchOptions()
         options.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
@@ -23,7 +25,7 @@ extension PHAssetCollection {
         return PHAsset.fetchAssets(in: self, options: options).count > 0
     }
 
-    /// Returns the most recently created image, fetching only 1 asset from the DB.
+    /// Returns the most recently created image in the collection.
     func newestImage() -> PHAsset? {
         let options = PHFetchOptions()
         options.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)

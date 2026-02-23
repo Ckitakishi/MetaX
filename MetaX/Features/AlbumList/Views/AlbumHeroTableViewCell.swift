@@ -10,7 +10,13 @@ import UIKit
 
 class AlbumHeroTableViewCell: UITableViewCell {
 
+    // MARK: - Properties
+
     private var stackedLayer: UIView?
+    var representedIdentifier: String?
+    var imageLoadTask: Task<Void, Never>?
+
+    // MARK: - UI Components
 
     private let cardView: UIView = {
         let view = UIView()
@@ -65,15 +71,13 @@ class AlbumHeroTableViewCell: UITableViewCell {
         return label
     }()
 
-    var representedIdentifier: String?
-    var imageLoadTask: Task<Void, Never>?
+    // MARK: - Data Bindings
 
     var title: String? {
         didSet {
-            guard let title = title else { return }
-            let text = title
-            let attributedString = NSMutableAttributedString(string: text)
-            attributedString.addAttribute(.kern, value: 2.0, range: NSRange(location: 0, length: text.count))
+            guard let title else { return }
+            let attributedString = NSMutableAttributedString(string: title)
+            attributedString.addAttribute(.kern, value: 2.0, range: NSRange(location: 0, length: title.count))
             titleLabel.attributedText = attributedString
         }
     }
@@ -86,6 +90,8 @@ class AlbumHeroTableViewCell: UITableViewCell {
         didSet { thumbnailImageView.image = thumbnail }
     }
 
+    // MARK: - Initialization
+
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupUI()
@@ -96,14 +102,13 @@ class AlbumHeroTableViewCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: - UI Setup
+
     private func setupUI() {
         selectionStyle = .none
         backgroundColor = .clear
 
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (
-            cell: AlbumHeroTableViewCell,
-            _: UITraitCollection
-        ) in
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (cell: AlbumHeroTableViewCell, _) in
             Theme.Shadows.updateLayerColors(for: cell.cardView.layer)
             Theme.Shadows.updateLayerColors(for: cell.thumbnailImageView.layer)
             Theme.Shadows.updateLayerColors(for: cell.countTagView.layer)
@@ -169,6 +174,8 @@ class AlbumHeroTableViewCell: UITableViewCell {
         ])
     }
 
+    // MARK: - Lifecycle
+
     override func prepareForReuse() {
         super.prepareForReuse()
         imageLoadTask?.cancel()
@@ -180,9 +187,9 @@ class AlbumHeroTableViewCell: UITableViewCell {
 
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         super.setHighlighted(highlighted, animated: animated)
-        UIView.animate(withDuration: Theme.Animation.pressEffect) {
+        UIView.animate(withDuration: Theme.Animation.pressEffect) { [weak self] in
+            guard let self else { return }
             Theme.Shadows.applyPressEffect(to: self.cardView, isPressed: highlighted)
         }
     }
-
 }

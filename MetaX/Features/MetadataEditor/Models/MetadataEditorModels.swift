@@ -9,16 +9,17 @@
 import CoreLocation
 import UIKit
 
-// MARK: - Metadata Section (UI Grouping)
+// MARK: - Metadata Section
 
-public enum MetadataSection: String, Sendable {
+/// UI grouping for metadata fields.
+enum MetadataSection: String, Sendable {
     case basicInfo = "BASIC INFO"
     case gear = "GEAR"
     case exposure = "EXPOSURE"
     case fileInfo = "FILE INFO"
     case copyright = "COPYRIGHT"
 
-    public var localizedTitle: String {
+    var localizedTitle: String {
         switch self {
         case .basicInfo: return String(localized: .editGroupBasicInfo)
         case .gear: return String(localized: .editGroupGear)
@@ -31,15 +32,16 @@ public enum MetadataSection: String, Sendable {
 
 // MARK: - Metadata Load Event
 
-public enum MetadataLoadEvent: Sendable {
+enum MetadataLoadEvent: Sendable {
     case progress(Double)
     case success(Metadata)
     case failure(MetaXError)
 }
 
-// MARK: - Metadata Field Value (Data Transfer)
+// MARK: - Metadata Field Value
 
-public enum MetadataFieldValue: Sendable {
+/// Container for transferring metadata values between layers.
+enum MetadataFieldValue: Sendable {
     case null
     case string(String)
     case double(Double)
@@ -48,7 +50,7 @@ public enum MetadataFieldValue: Sendable {
     case date(Date)
     case location(CLLocation)
 
-    /// Converts back to `Any` for the metadata service layer.
+    /// Converts back to Any for low-level ImageIO operations.
     var rawValue: Any {
         switch self {
         case .null: return NSNull()
@@ -62,9 +64,10 @@ public enum MetadataFieldValue: Sendable {
     }
 }
 
-// MARK: - Metadata Field (UI Configuration)
+// MARK: - Metadata Field
 
-public enum MetadataField: CaseIterable, Sendable {
+/// Configuration for individual metadata fields in the UI.
+enum MetadataField: CaseIterable, Sendable {
     case make, model, lensMake, lensModel
     case aperture, shutter, iso, focalLength, focalLength35, exposureBias
     case exposureProgram, meteringMode, whiteBalance, flash
@@ -72,7 +75,7 @@ public enum MetadataField: CaseIterable, Sendable {
     case pixelWidth, pixelHeight, profileName // Read-only
     case dateTimeOriginal, location // Special handling
 
-    public var key: String {
+    var key: String {
         switch self {
         case .make: return MetadataKeys.make
         case .model: return MetadataKeys.model
@@ -98,7 +101,7 @@ public enum MetadataField: CaseIterable, Sendable {
         }
     }
 
-    public var label: String {
+    var label: String {
         switch self {
         case .make: return String(localized: .make)
         case .model: return String(localized: .model)
@@ -124,7 +127,7 @@ public enum MetadataField: CaseIterable, Sendable {
         }
     }
 
-    public var unit: String? {
+    var unit: String? {
         switch self {
         case .focalLength, .focalLength35: return "mm"
         case .exposureBias: return "EV"
@@ -134,7 +137,7 @@ public enum MetadataField: CaseIterable, Sendable {
         }
     }
 
-    public var keyboardType: UIKeyboardType {
+    var keyboardType: UIKeyboardType {
         switch self {
         case .iso, .focalLength35: return .numberPad
         case .aperture, .focalLength, .exposureBias, .shutter: return .decimalPad
@@ -142,10 +145,10 @@ public enum MetadataField: CaseIterable, Sendable {
         }
     }
 
-    public var placeholder: String? {
+    var placeholder: String? {
         switch self {
-        case .artist: return "Artist name"
-        case .copyright: return "Copyright notice"
+        case .artist: return "e.g. \(AppConstants.appName)"
+        case .copyright: return "e.g. © 2026 \(AppConstants.appName)"
         case .make, .lensMake: return "SONY"
         case .model: return "ILCE-7C"
         case .lensModel: return "FE 50mm F1.4 GM"

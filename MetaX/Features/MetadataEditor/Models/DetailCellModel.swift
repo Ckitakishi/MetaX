@@ -16,11 +16,13 @@ protocol DetailCellModelRepresentable {
 
 struct DetailCellModel: DetailCellModelRepresentable {
 
+    // MARK: - Properties
+
     let prop: String
     let value: String
     let rawKey: String
 
-    // MARK: - EXIF Enum Mappings
+    // MARK: - EXIF Mappings
 
     private struct ExifMapping: Codable {
         let tags: [String: TagInfo]
@@ -35,6 +37,8 @@ struct DetailCellModel: DetailCellModelRepresentable {
               let mapping = try? JSONDecoder().decode(ExifMapping.self, from: data) else { return [:] }
         return mapping.tags.mapValues { $0.values }
     }()
+
+    // MARK: - Initialization
 
     init(prop: String, value: String, rawKey: String = "") {
         self.prop = prop
@@ -81,34 +85,31 @@ struct DetailCellModel: DetailCellModelRepresentable {
 
         prop = localizedProp
 
-        let rawValue = DetailCellModel.formatValue(rawValue: firstProp.value, forProp: rawProp)
-        value = DetailCellModel.applySymbol(toValue: rawValue, forProp: rawProp)
+        let rawValue = Self.formatValue(rawValue: firstProp.value, forProp: rawProp)
+        value = Self.applySymbol(toValue: rawValue, forProp: rawProp)
     }
 
+    // MARK: - Formatting
+
     private static func formatValue(rawValue: Any, forProp prop: String) -> String {
-        // Handle CLLocation
         if let location = rawValue as? CLLocation {
             return String(format: "%.4f, %.4f", location.coordinate.latitude, location.coordinate.longitude)
         }
 
-        // Try EXIF enum lookup first
         if let enumFormatted = formatEnumValue(rawValue, forProp: prop) {
             return enumFormatted
         }
 
-        // DateTimeOriginal special formatting
         if prop == MetadataKeys.dateTimeOriginal, let dateStr = rawValue as? String {
             if let date = DateFormatter.yMdHms.date(from: dateStr) {
                 return date.formatted(date: .abbreviated, time: .shortened)
             }
         }
 
-        // ExposureBiasValue special formatting
         if prop == MetadataKeys.exposureBiasValue, let val = rawValue as? Double {
             return formatExposureBias(val)
         }
 
-        // Generic formatting
         if let val = rawValue as? Int {
             return String(val)
         } else if let val = rawValue as? Double {
@@ -127,9 +128,10 @@ struct DetailCellModel: DetailCellModelRepresentable {
     }
 
     private static func formatEnumValue(_ rawValue: Any, forProp prop: String) -> String? {
-        guard let mappings = exifEnumMappings[prop] else { return nil }
-        guard let intVal = rawValue as? Int else { return nil }
-        guard let specName = mappings[String(intVal)] else { return nil }
+        guard let mappings = exifEnumMappings[prop],
+              let intVal = rawValue as? Int,
+              let specName = mappings[String(intVal)] else { return nil }
+
         let locKey = prop + "." + specName
         return String(localized: LocalizedStringResource(stringLiteral: locKey))
     }

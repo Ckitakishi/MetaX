@@ -8,7 +8,10 @@
 
 import UIKit
 
+/// A view shown during app launch while initial data is being loaded.
 final class SplashView: UIView {
+
+    // MARK: - UI Components
 
     private let iconImageView: UIImageView = {
         let iv = UIImageView()
@@ -20,11 +23,16 @@ final class SplashView: UIView {
         return iv
     }()
 
+    // MARK: - Initialization
+
     override init(frame: CGRect) {
         super.init(frame: frame)
+
         backgroundColor = Theme.Colors.launchBackground
         iconImageView.image = UIImage(named: "LaunchLogo")
+
         addSubview(iconImageView)
+
         NSLayoutConstraint.activate([
             iconImageView.centerXAnchor.constraint(equalTo: centerXAnchor),
             iconImageView.centerYAnchor.constraint(equalTo: centerYAnchor),

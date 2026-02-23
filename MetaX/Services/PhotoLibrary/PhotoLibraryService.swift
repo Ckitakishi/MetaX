@@ -9,7 +9,7 @@
 import Photos
 import UIKit
 
-/// Service for photo library operations
+/// Implementation of PhotoLibraryServiceProtocol using the system PHCachingImageManager.
 /// @unchecked Sendable: only holds `let imageManager` (PHCachingImageManager is thread-safe).
 final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendable {
 
@@ -69,6 +69,10 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendabl
         PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .any, options: nil)
     }
 
+    func fetchUserCollections() -> PHFetchResult<PHCollection> {
+        PHCollectionList.fetchTopLevelUserCollections(with: nil)
+    }
+
     private func imageFetchOptions(sortedBy sortOrder: PhotoSortOrder) -> PHFetchOptions {
         let options = PHFetchOptions()
         options.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
@@ -76,19 +80,13 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendabl
         return options
     }
 
-    func fetchUserCollections() -> PHFetchResult<PHCollection> {
-        PHCollectionList.fetchTopLevelUserCollections(with: nil)
-    }
-
     // MARK: - Album Management
 
     func createAlbumIfNeeded(title: String) async -> Result<PHAssetCollection, MetaXError> {
-        // Check if album already exists
         if let existingAlbum = findAlbum(title: title) {
             return .success(existingAlbum)
         }
 
-        // Create new album
         do {
             var albumPlaceholder: PHObjectPlaceholder?
             try await PHPhotoLibrary.shared().performChanges {
@@ -130,7 +128,7 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendabl
         targetSize: CGSize,
         completion: @escaping (UIImage?, Bool) -> Void
     ) -> PHImageRequestID {
-        return imageManager.requestImage(
+        imageManager.requestImage(
             for: asset,
             targetSize: targetSize,
             contentMode: .aspectFill,
@@ -138,6 +136,27 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendabl
         ) { image, info in
             let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
             completion(image, isDegraded)
+        }
+    }
+
+    @discardableResult
+    func requestLivePhoto(
+        for asset: PHAsset,
+        targetSize: CGSize,
+        completion: @escaping (PHLivePhoto?, Bool) -> Void
+    ) -> PHImageRequestID {
+        let options = PHLivePhotoRequestOptions()
+        options.deliveryMode = .opportunistic
+        options.isNetworkAccessAllowed = true
+
+        return imageManager.requestLivePhoto(
+            for: asset,
+            targetSize: targetSize,
+            contentMode: .aspectFit,
+            options: options
+        ) { livePhoto, info in
+            let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+            completion(livePhoto, isDegraded)
         }
     }
 
@@ -161,26 +180,6 @@ final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendabl
 
     func stopCachingAllThumbnails() {
         imageManager.stopCachingImagesForAllAssets()
-    }
-
-    @discardableResult
-    func requestLivePhoto(
-        for asset: PHAsset,
-        targetSize: CGSize,
-        completion: @escaping (PHLivePhoto?, Bool) -> Void
-    ) -> PHImageRequestID {
-        let options = PHLivePhotoRequestOptions()
-        options.deliveryMode = .opportunistic
-        options.isNetworkAccessAllowed = true
-        return imageManager.requestLivePhoto(
-            for: asset,
-            targetSize: targetSize,
-            contentMode: .aspectFit,
-            options: options
-        ) { livePhoto, info in
-            let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
-            completion(livePhoto, isDegraded)
-        }
     }
 
     func requestThumbnailStream(for asset: PHAsset, targetSize: CGSize) -> AsyncStream<(UIImage?, Bool)> {

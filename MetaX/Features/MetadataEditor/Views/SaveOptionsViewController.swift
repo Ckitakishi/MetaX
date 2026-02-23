@@ -74,7 +74,8 @@ final class SaveOptionsViewController: UIViewController, ViewModelObserving {
     private func renderOptions(_ options: [SaveOptionsViewModel.Option]) {
         let isTransition = !containerStack.arrangedSubviews.isEmpty
 
-        let updateBlock = {
+        let updateBlock = { [weak self] in
+            guard let self else { return }
             self.containerStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
             for option in options {
                 let card = OptionCardView(
@@ -198,16 +199,17 @@ private final class OptionCardView: UIView {
     }
 
     @objc private func handleTap() {
-        UIView.animate(withDuration: Theme.Animation.pressEffect, animations: {
+        UIView.animate(withDuration: Theme.Animation.pressEffect, animations: { [weak self] in
+            guard let self else { return }
             self.transform = CGAffineTransform(
                 translationX: Theme.Shadows.pressedTranslation,
                 y: Theme.Shadows.pressedTranslation
             )
-        }) { _ in
-            UIView.animate(withDuration: Theme.Animation.pressEffect) {
-                self.transform = .identity
+        }) { [weak self] _ in
+            UIView.animate(withDuration: Theme.Animation.pressEffect) { [weak self] in
+                self?.transform = .identity
             }
-            self.onTap?()
+            self?.onTap?()
         }
     }
 }

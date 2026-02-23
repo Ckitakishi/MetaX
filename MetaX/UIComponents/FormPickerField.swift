@@ -10,6 +10,7 @@ import UIKit
 
 typealias ExifOption = (rawValue: Int, displayName: String)
 
+/// Predefined options for EXIF metadata pickers.
 enum ExifPickerOptions {
     static let exposureProgram: [ExifOption] = [
         (0, String(localized: .exposureProgramNotDefined)),
@@ -71,9 +72,16 @@ enum ExifPickerOptions {
     ]
 }
 
+/// A custom form field that displays a title and a button which opens a picker menu.
 final class FormPickerField: UIView {
+
+    // MARK: - Properties
+
     private(set) var selectedRawValue: Int?
     var onValueChanged: (() -> Void)?
+    private let options: [ExifOption]
+
+    // MARK: - UI Components
 
     private let label: UILabel = {
         let l = UILabel()
@@ -88,7 +96,7 @@ final class FormPickerField: UIView {
         config.background.backgroundColor = Theme.Colors.tagBackground
         config.background.strokeColor = Theme.Colors.border
         config.background.strokeWidth = 1.0
-        config.background.cornerRadius = 0 // Force sharp corners
+        config.background.cornerRadius = 0
         config.cornerStyle = .fixed
         config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)
         let btn = UIButton(configuration: config)
@@ -98,7 +106,7 @@ final class FormPickerField: UIView {
         return btn
     }()
 
-    private let options: [ExifOption]
+    // MARK: - Initialization
 
     init(label labelText: String, options: [ExifOption]) {
         self.options = options
@@ -123,8 +131,8 @@ final class FormPickerField: UIView {
             button.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
         ])
 
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: FormPickerField, _: UITraitCollection) in
-            var config = self.button.configuration ?? UIButton.Configuration.plain()
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: FormPickerField, _) in
+            var config = self.button.configuration ?? .plain()
             config.background.backgroundColor = Theme.Colors.tagBackground
             config.background.strokeColor = Theme.Colors.border
             self.button.configuration = config
@@ -136,17 +144,23 @@ final class FormPickerField: UIView {
         fatalError()
     }
 
+    // MARK: - Public Methods
+
     func select(rawValue: Int) {
         selectedRawValue = rawValue
         let name = options.first(where: { $0.rawValue == rawValue })?.displayName ?? "\(rawValue)"
-        var config = button.configuration ?? UIButton.Configuration.plain()
+
+        var config = button.configuration ?? .plain()
         var attrs = AttributeContainer()
         attrs.font = Theme.Typography.bodyMedium
         attrs.foregroundColor = Theme.Colors.text
         config.attributedTitle = AttributedString(name, attributes: attrs)
         button.configuration = config
+
         onValueChanged?()
     }
+
+    // MARK: - Private Methods
 
     private func buildMenu() -> UIMenu {
         let actions = options.map { option in

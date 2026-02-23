@@ -10,7 +10,7 @@ import CoreLocation
 import Photos
 
 /// High-level service for loading and generating metadata update intents.
-/// This service acts as a facade, bridging the UI requests to the underlying Metadata model logic.
+/// This service acts as a facade, bridging UI requests to the underlying Metadata model logic.
 final class MetadataService: MetadataServiceProtocol, @unchecked Sendable {
 
     // MARK: - Initialization
@@ -19,18 +19,20 @@ final class MetadataService: MetadataServiceProtocol, @unchecked Sendable {
 
     // MARK: - Load Metadata
 
+    /// Loads metadata for the specified asset asynchronously via a stream of events.
     func loadMetadataEvents(from asset: PHAsset) -> AsyncStream<MetadataLoadEvent> {
         AsyncStream<MetadataLoadEvent> { continuation in
             let options = PHImageRequestOptions()
             options.isNetworkAccessAllowed = true
             options.deliveryMode = .highQualityFormat
-            options.version = .current // Always request the latest rendered version
+            options.version = .current // Always request the latest rendered version (e.g. from iCloud)
 
             options.progressHandler = { progress, _, _, _ in
                 guard progress < 1.0 else { return }
                 continuation.yield(.progress(progress))
             }
 
+            // Request raw image data to extract CGImage properties.
             let requestId = PHImageManager.default()
                 .requestImageDataAndOrientation(for: asset, options: options) { imageData, _, _, info in
 
@@ -62,7 +64,7 @@ final class MetadataService: MetadataServiceProtocol, @unchecked Sendable {
         }
     }
 
-    // MARK: - Intent Generation Bridge
+    // MARK: - Metadata Operations
 
     func updateTimestamp(_ date: Date, in metadata: Metadata) -> MetadataUpdateIntent {
         metadata.writeTimeOriginal(date)

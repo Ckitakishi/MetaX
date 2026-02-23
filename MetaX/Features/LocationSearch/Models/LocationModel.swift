@@ -15,33 +15,33 @@ protocol LocationModelRepresentable {
     var coordinate: CLLocationCoordinate2D? { get }
 }
 
+// MARK: - MKLocalSearchCompletion Extension
+
 extension MKLocalSearchCompletion: LocationModelRepresentable {
-    var name: String {
-        title
-    }
-
-    var shortPlacemark: String {
-        subtitle
-    }
-
-    var coordinate: CLLocationCoordinate2D? {
-        nil
-    }
+    var name: String { title }
+    var shortPlacemark: String { subtitle }
+    var coordinate: CLLocationCoordinate2D? { nil }
 }
 
+// MARK: - Location Model
+
 struct LocationModel: LocationModelRepresentable {
+
+    // MARK: - Properties
 
     var name: String
     var shortPlacemark: String
     var coordinate: CLLocationCoordinate2D?
 
-    // Rich Data
+    // Rich Data for persistence
     var country: String?
     var countryCode: String?
     var state: String? // administrativeArea
     var city: String? // locality
     var street: String? // thoroughfare
     var houseNumber: String? // subThoroughfare
+
+    // MARK: - Initialization
 
     init(title: String, subtitle: String) {
         name = title

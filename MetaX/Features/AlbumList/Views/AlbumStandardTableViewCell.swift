@@ -10,7 +10,13 @@ import UIKit
 
 class AlbumStandardTableViewCell: UITableViewCell {
 
+    // MARK: - Properties
+
     private var stackedLayer: UIView?
+    var representedIdentifier: String?
+    var imageLoadTask: Task<Void, Never>?
+
+    // MARK: - UI Components
 
     private let cardView: UIView = {
         let view = UIView()
@@ -71,8 +77,7 @@ class AlbumStandardTableViewCell: UITableViewCell {
         return label
     }()
 
-    var representedIdentifier: String?
-    var imageLoadTask: Task<Void, Never>?
+    // MARK: - Data Bindings
 
     var title: String? {
         didSet { titleLabel.text = title }
@@ -86,6 +91,8 @@ class AlbumStandardTableViewCell: UITableViewCell {
         didSet { thumbnailImageView.image = thumbnail }
     }
 
+    // MARK: - Initialization
+
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupUI()
@@ -96,14 +103,13 @@ class AlbumStandardTableViewCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: - UI Setup
+
     private func setupUI() {
         selectionStyle = .none
         backgroundColor = .clear
 
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (
-            cell: AlbumStandardTableViewCell,
-            _: UITraitCollection
-        ) in
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (cell: AlbumStandardTableViewCell, _) in
             Theme.Shadows.updateLayerColors(for: cell.cardView.layer)
             Theme.Shadows.updateLayerColors(for: cell.countTagView.layer)
             if let layer = cell.stackedLayer {
@@ -149,9 +155,9 @@ class AlbumStandardTableViewCell: UITableViewCell {
             imageRightBorder.topAnchor.constraint(equalTo: cardView.topAnchor),
             imageRightBorder.bottomAnchor.constraint(equalTo: cardView.bottomAnchor),
             imageRightBorder.leadingAnchor.constraint(equalTo: thumbnailImageView.trailingAnchor),
-            imageRightBorder.widthAnchor.constraint(equalToConstant: 1.0), // Reduced to 1.0
+            imageRightBorder.widthAnchor.constraint(equalToConstant: 1.0),
 
-            // Vertically Centered Info Stack
+            // Info Stack
             infoStack.leadingAnchor.constraint(
                 equalTo: imageRightBorder.trailingAnchor,
                 constant: Theme.Layout.standardPadding
@@ -171,6 +177,8 @@ class AlbumStandardTableViewCell: UITableViewCell {
         ])
     }
 
+    // MARK: - Lifecycle
+
     override func prepareForReuse() {
         super.prepareForReuse()
         imageLoadTask?.cancel()
@@ -182,9 +190,9 @@ class AlbumStandardTableViewCell: UITableViewCell {
 
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         super.setHighlighted(highlighted, animated: animated)
-        UIView.animate(withDuration: Theme.Animation.pressEffect) {
+        UIView.animate(withDuration: Theme.Animation.pressEffect) { [weak self] in
+            guard let self else { return }
             Theme.Shadows.applyPressEffect(to: self.cardView, isPressed: highlighted)
         }
     }
-
 }

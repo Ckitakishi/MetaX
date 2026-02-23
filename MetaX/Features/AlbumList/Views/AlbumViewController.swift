@@ -24,9 +24,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
     // MARK: - Properties
 
     var splashDismissHandler: (() -> Void)? {
-        didSet {
-            checkSplashDismissal()
-        }
+        didSet { checkSplashDismissal() }
     }
 
     private var isHeroImageLoaded = false
@@ -139,8 +137,9 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
                 title: option.title,
                 state: viewModel.sortOption == option ? .on : .off
             ) { [weak self] _ in
-                self?.viewModel.sortOption = option
-                self?.navigationItem.rightBarButtonItem?.menu = self?.makeSortMenu()
+                guard let self else { return }
+                viewModel.sortOption = option
+                navigationItem.rightBarButtonItem?.menu = makeSortMenu()
             }
         }
         return UIMenu(title: String(localized: .sortMenuTitle), children: actions)
@@ -155,12 +154,12 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
 
         observe(viewModel: viewModel, property: { $0.isSearchAvailable }) { [weak self] isAvailable in
             guard let self else { return }
-            self.navigationItem.searchController = isAvailable ? self.searchController : nil
+            navigationItem.searchController = isAvailable ? searchController : nil
         }
 
         observe(viewModel: viewModel, property: { $0.reloadToken }) { [weak self] _ in
-            guard let self, self.viewModel.allPhotos != nil else { return }
-            self.tableView.reloadData()
+            guard let self, viewModel.allPhotos != nil else { return }
+            tableView.reloadData()
         }
 
         observe(viewModel: viewModel, property: { $0.pendingLoadsCount }) { [weak self] count in
@@ -196,7 +195,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
             if success {
                 handleInitialLoad()
             } else {
-                // Allow dismissal if unauthorized so lock view can show
+                // Allow dismissal if unauthorized so lock view can show.
                 isInitialDataLoaded = true
                 isHeroImageLoaded = true
                 checkSplashDismissal()
@@ -233,7 +232,7 @@ class AlbumViewController: UITableViewController, ViewModelObserving {
 extension AlbumViewController {
 
     override func numberOfSections(in tableView: UITableView) -> Int {
-        return AlbumSection.count
+        AlbumSection.count
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -291,7 +290,7 @@ extension AlbumViewController {
             cell.count = count
             cell.thumbnail = nil
 
-            // Show cached cover immediately if available
+            // Show cached cover immediately if available.
             if let asset {
                 cell.imageLoadTask?.cancel()
                 cell.imageLoadTask = Task { @MainActor [weak self, weak cell] in
@@ -307,7 +306,7 @@ extension AlbumViewController {
                 }
             }
 
-            // Async-load count + thumbnail if not yet cached (no-op when already cached).
+            // Async-load count + thumbnail if not yet cached.
             viewModel
                 .loadCellDataIfNeeded(at: indexPath, thumbnailSize: standardThumbnailSize) { [weak cell] count, image in
                     guard let cell, cell.representedIdentifier == collectionId else { return }
@@ -338,18 +337,18 @@ extension AlbumViewController {
     }
 
     override func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
-        return nil
+        nil
     }
 
     override func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
-        return section == 0 ? Theme.Layout.stackSpacing : 0.1
+        section == 0 ? Theme.Layout.stackSpacing : 0.1
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
 
         let (fetchResult, collection, title) = viewModel.fetchResult(for: indexPath)
-        guard let fetchResult = fetchResult, let title = title else { return }
+        guard let fetchResult, let title else { return }
         onSelectAlbum?(fetchResult, collection, title)
     }
 }

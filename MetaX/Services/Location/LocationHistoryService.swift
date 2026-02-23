@@ -8,13 +8,13 @@
 import Foundation
 import MapKit
 
+/// Represents a location saved in the search history.
 struct HistoryLocation: Codable, Equatable, Sendable {
     let title: String
     let subtitle: String
     let latitude: Double
     let longitude: Double
 
-    // Rich Data for persistence
     var country: String?
     var countryCode: String?
     var state: String?
@@ -22,28 +22,32 @@ struct HistoryLocation: Codable, Equatable, Sendable {
     var street: String?
     var houseNumber: String?
 
-    /// Unique identity based on address text
+    /// Unique identity based on address text.
     var identifier: String {
-        return "\(title)|\(subtitle)"
+        "\(title)|\(subtitle)"
     }
 }
 
 final class LocationHistoryService: LocationHistoryServiceProtocol {
+    // MARK: - Constants
+
     private let key = "com.metax.recent_locations"
     private let maxCount = 10
 
+    // MARK: - Initialization
+
     init() {}
+
+    // MARK: - Persistence
 
     func save(_ location: HistoryLocation) {
         var history = fetchAll()
 
-        // Remove existing item with same identifier to avoid duplicates and handle re-ordering
+        // Remove existing item to avoid duplicates and handle re-ordering.
         history.removeAll { $0.identifier == location.identifier }
 
-        // Insert at beginning
+        // Insert at beginning and limit size.
         history.insert(location, at: 0)
-
-        // Limit size
         if history.count > maxCount {
             history = Array(history.prefix(maxCount))
         }
@@ -65,6 +69,7 @@ final class LocationHistoryService: LocationHistoryServiceProtocol {
     func delete(at index: Int) {
         var history = fetchAll()
         guard index < history.count else { return }
+
         history.remove(at: index)
         if let data = try? JSONEncoder().encode(history) {
             UserDefaults.standard.set(data, forKey: key)
