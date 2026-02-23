@@ -1,42 +1,52 @@
 # MetaX
 
-A simple iOS app that helps you check, edit and delete metadata of photos, including but not limited to EXIF, TIFF...
+![Platform](https://img.shields.io/badge/Platform-iOS%2017.0+-black.svg?style=flat-square)
+![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg?style=flat-square)
+![UI](https://img.shields.io/badge/UI-Neo--Brutalist-green.svg?style=flat-square)
 
-## Feature
+MetaX is an iOS tool for viewing and editing photo metadata. It runs entirely on-device and focuses on privacy, performance, and a distinct Neo-Brutalist aesthetic.
 
-- [x] List main metadata (e.g. ISO, Shutter Speed, Aperture, FNumber and so on)
-- [x] Remove all metadata
-- [x] Edit date (yyyy/mm/dd)
-- [x] Edit location
-- [x] Support HEIF
-- [x] Download image from iCloud
-- [x] "MetaX" album will be created
-- [x] Localization (zh-Hans, en, ja)
-- [x] Support iPhone and iPad (Horizontal & Vertical)
-- [ ] Search nearby location
-- [ ] Batch editing
+## 🚀 Key Features
 
-###
+* **Metadata Editor:** Edit EXIF, TIFF, and GPS data. Uses a transactional engine for reliable timestamp and location updates.
+* **Privacy First:** One-tap metadata removal. All processing happens locally; no data is uploaded.
+* **Save-as-Copy:** Supports both non-destructive "Save as Copy" and direct overwriting.
+* **Automatic Organization:** Edited photos are automatically saved to a dedicated "MetaX" album.
+* **Performance:** Lazy-loading and async thumbnail rendering for fast browsing of large libraries.
+* **Universal UI:** Adaptive layout for iPhone and iPad in all orientations.
 
-- We know, when using **iOS 11** on new devices ([Reference](https://support.apple.com/en-us/HT207022)), we can view, edit, or duplicate **HEIF** media. Normally, edited photos will be saved as original format, but if using *MetaX* on a older device, and editing **HEIF** photo downloaded from iCloud, new photo will be saved as **JPG** format. 
+## 🛠 Architecture & Implementation
 
-- If **Live Photos** has been edited, the new photo will be saved as normal photo.
+The project follows modern Swift standards and architectural patterns:
 
-### Supported Media Types
+* **Swift 6 Concurrency:** Full migration to Swift 6 with actors and strict concurrency checking.
+* **MVVM-C:** Uses the Coordinator pattern to separate navigation from view logic.
+* **Observation Framework:** Powered by `@Observable` for efficient UI updates.
+* **Dependency Injection:** Centralized `DependencyContainer` for managing service lifecycles.
+* **Programmatic UI:** 100% UIKit without Storyboards or XIBs.
 
-- [x] Image
-- [ ] Video
+## 🎨 Design: Neo-Brutalism
 
-### Screenshots
+* **High Contrast:** Bold borders and "Green Sea" accents.
+* **Stacked Layers:** Offset shadows and layers instead of standard blurs.
+* **Monospace Type:** Used for logotypes and technical data to emphasize precision.
+* **Adaptive Components:** Responsive layout that adjusts to any screen size.
 
-|   iPhone   | iPad (Vertical) |
-| ---------- | ---------- | 
-| ![Screenshots1](Screenshots/iPhone_en.png) | ![Screenshots1](Screenshots/iPad_en.png) |
+## 📸 Screenshots
 
-## Download
+| iPhone | iPad |
+| :---: | :---: |
+| ![iPhone](Screenshots/iPhone_en.png) | ![iPad](Screenshots/iPad_en.png) |
 
-[![Download MetaX on the App Store](http://linkmaker.itunes.apple.com/images/badges/en-us/badge_appstore-lrg.svg)](https://itunes.apple.com/us/app/metax/id1376589355)
+## 📄 License
 
-## 三言两语
+MetaX is licensed under the **MIT License + Commons Clause**.
 
-[关于 MetaX 的三言两语](http://ckitakishi.com/2018/04/29/%E5%85%B3%E4%BA%8E-MetaX-%E7%9A%84%E4%B8%89%E8%A8%80%E4%B8%A4%E8%AF%AD/)
+**What does this mean?**
+You are free to explore the code, learn from the architecture, and use small snippets in your own projects. However, **direct cloning and distribution on the App Store (or any commercial sale) is strictly prohibited.**
+
+See the [LICENSE](LICENSE) file for the full legal text.
+
+## 📲 Download
+
+[Download MetaX on the App Store](https://itunes.apple.com/us/app/metax/id1376589355)
