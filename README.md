@@ -47,6 +47,7 @@ You are free to explore the code, learn from the architecture, and use small sni
 
 See the [LICENSE](LICENSE) file for the full legal text.
 
-## 📲 Download
+## 🔗 Links
 
-[Download MetaX on the App Store](https://itunes.apple.com/us/app/metax/id1376589355)
+* [Product Page](https://misoshido.com/metax/)
+* [Download on the App Store](https://itunes.apple.com/us/app/metax/id1376589355)
