@@ -12,6 +12,12 @@
 		11E84E62208CD635003A8F88 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11E84E3E208CD635003A8F88 /* Assets.xcassets */; };
 		5635357F2F39E79200CEE027 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 5635357E2F39E79200CEE027 /* AppIcon.icon */; };
 		563535E92F3B855100CEE027 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 563535E82F3B855100CEE027 /* LaunchScreen.storyboard */; };
+		56C4919A2F4EDBAC00E5D9FF /* MetaXDebug.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 56C491992F4EDBAC00E5D9FF /* MetaXDebug.storekit */; };
+		56C4919E2F4EE5AD00E5D9FF /* TippingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56C4919C2F4EE5AD00E5D9FF /* TippingManager.swift */; };
+		56C4919F2F4EE5AD00E5D9FF /* StoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56C4919B2F4EE5AD00E5D9FF /* StoreService.swift */; };
+		56C491A12F4EEEE500E5D9FF /* SupportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56C491A02F4EEEE500E5D9FF /* SupportViewModel.swift */; };
+		56C491A32F4EEEEB00E5D9FF /* SupportViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56C491A22F4EEEEB00E5D9FF /* SupportViewController.swift */; };
+		56C491A52F4EFD7A00E5D9FF /* NeoBrutalistPressable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56C491A42F4EFD7A00E5D9FF /* NeoBrutalistPressable.swift */; };
 		56D07E3D2F31000000000030 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D07E3C2F31000000000030 /* SceneDelegate.swift */; };
 		56D07EA02F37000000000001 /* (null) in Sources */ = {isa = PBXBuildFile; };
 		56E6F19D2F42D491002D0CAA /* SaveOptionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F16A2F42D491002D0CAA /* SaveOptionsViewController.swift */; };
@@ -113,6 +119,12 @@
 		11E84E3E208CD635003A8F88 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		5635357E2F39E79200CEE027 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		563535E82F3B855100CEE027 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = MetaX/LaunchScreen.storyboard; sourceTree = SOURCE_ROOT; };
+		56C491992F4EDBAC00E5D9FF /* MetaXDebug.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = MetaXDebug.storekit; sourceTree = "<group>"; };
+		56C4919B2F4EE5AD00E5D9FF /* StoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreService.swift; sourceTree = "<group>"; };
+		56C4919C2F4EE5AD00E5D9FF /* TippingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TippingManager.swift; sourceTree = "<group>"; };
+		56C491A02F4EEEE500E5D9FF /* SupportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportViewModel.swift; sourceTree = "<group>"; };
+		56C491A22F4EEEEB00E5D9FF /* SupportViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportViewController.swift; sourceTree = "<group>"; };
+		56C491A42F4EFD7A00E5D9FF /* NeoBrutalistPressable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeoBrutalistPressable.swift; sourceTree = "<group>"; };
 		56D07E3C2F31000000000030 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		56E6F1422F42D491002D0CAA /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		56E6F1432F42D491002D0CAA /* Coordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coordinator.swift; sourceTree = "<group>"; };
@@ -249,6 +261,7 @@
 				56EBC8202F36FD0D009AF511 /* InfoPlist.xcstrings */,
 				563535E82F3B855100CEE027 /* LaunchScreen.storyboard */,
 				646A635100A346878D8DF79D /* ExifEnumMappings.json */,
+				56C491992F4EDBAC00E5D9FF /* MetaXDebug.storekit */,
 			);
 			path = MetaX;
 			sourceTree = "<group>";
@@ -273,6 +286,15 @@
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		56C4919D2F4EE5AD00E5D9FF /* Store */ = {
+			isa = PBXGroup;
+			children = (
+				56C4919B2F4EE5AD00E5D9FF /* StoreService.swift */,
+				56C4919C2F4EE5AD00E5D9FF /* TippingManager.swift */,
+			);
+			path = Store;
 			sourceTree = "<group>";
 		};
 		56E6F1452F42D491002D0CAA /* Coordinators */ = {
@@ -443,6 +465,7 @@
 		56E6F1742F42D491002D0CAA /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				56C491A02F4EEEE500E5D9FF /* SupportViewModel.swift */,
 				56E6F1732F42D491002D0CAA /* SettingsViewModel.swift */,
 			);
 			path = ViewModels;
@@ -451,6 +474,7 @@
 		56E6F1772F42D491002D0CAA /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				56C491A22F4EEEEB00E5D9FF /* SupportViewController.swift */,
 				56E6F1752F42D491002D0CAA /* SettingsTableViewCell.swift */,
 				56E6F1762F42D491002D0CAA /* SettingsViewController.swift */,
 			);
@@ -536,6 +560,7 @@
 				56E6F18A2F42D491002D0CAA /* Metadata */,
 				56E6F18D2F42D491002D0CAA /* PhotoLibrary */,
 				56E6F18F2F42D491002D0CAA /* Settings */,
+				56C4919D2F4EE5AD00E5D9FF /* Store */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -543,6 +568,7 @@
 		56E6F19A2F42D491002D0CAA /* UIComponents */ = {
 			isa = PBXGroup;
 			children = (
+				56C491A42F4EFD7A00E5D9FF /* NeoBrutalistPressable.swift */,
 				56E6F1912F42D491002D0CAA /* Alert.swift */,
 				56E6F1922F42D491002D0CAA /* AuthLockView.swift */,
 				56E6F1932F42D491002D0CAA /* FormPickerField.swift */,
@@ -674,6 +700,7 @@
 				56EBC8212F36FD0D009AF511 /* InfoPlist.xcstrings in Resources */,
 				56EBC81D2F36FD08009AF511 /* Localizable.xcstrings in Resources */,
 				56E6F1DA2F42D491002D0CAA /* MetadataPlus.plist in Resources */,
+				56C4919A2F4EDBAC00E5D9FF /* MetaXDebug.storekit in Resources */,
 				B1A53635B2CA4D0AAB1A8083 /* ExifEnumMappings.json in Resources */,
 				563535E92F3B855100CEE027 /* LaunchScreen.storyboard in Resources */,
 				11E84E62208CD635003A8F88 /* Assets.xcassets in Resources */,
@@ -706,7 +733,9 @@
 				56E6F1A02F42D491002D0CAA /* AlbumHeroTableViewCell.swift in Sources */,
 				56E6F1A12F42D491002D0CAA /* PhotoLibraryServiceProtocol.swift in Sources */,
 				56E6F1A22F42D491002D0CAA /* ViewModelObserving.swift in Sources */,
+				56C491A12F4EEEE500E5D9FF /* SupportViewModel.swift in Sources */,
 				56E6F1EC2F460E2A002D0CAA /* AlbumViewModel.swift in Sources */,
+				56C491A32F4EEEEB00E5D9FF /* SupportViewController.swift in Sources */,
 				56E6F1A32F42D491002D0CAA /* LocationModel.swift in Sources */,
 				56E6F1A42F42D491002D0CAA /* LocationTableViewCell.swift in Sources */,
 				56E6F1A52F42D491002D0CAA /* LocationCardField.swift in Sources */,
@@ -722,6 +751,8 @@
 				56E6F1AF2F42D491002D0CAA /* AuthLockView.swift in Sources */,
 				56E6F1B02F42D491002D0CAA /* DetailInfoViewModel.swift in Sources */,
 				56E6F1B12F42D491002D0CAA /* MetadataEditViewModel.swift in Sources */,
+				56C4919E2F4EE5AD00E5D9FF /* TippingManager.swift in Sources */,
+				56C4919F2F4EE5AD00E5D9FF /* StoreService.swift in Sources */,
 				56E6F1B22F42D491002D0CAA /* SettingsViewModel.swift in Sources */,
 				56E6F1B32F42D491002D0CAA /* KeyboardObserver.swift in Sources */,
 				56E6F1B42F42D491002D0CAA /* ImageSaveService.swift in Sources */,
@@ -753,6 +784,7 @@
 				56E6F1DC2F42EA73002D0CAA /* SaveOptionsViewModel.swift in Sources */,
 				56E6F1CD2F42D491002D0CAA /* LocationHistoryService.swift in Sources */,
 				56E6F1CE2F42D491002D0CAA /* SettingsService.swift in Sources */,
+				56C491A52F4EFD7A00E5D9FF /* NeoBrutalistPressable.swift in Sources */,
 				56E6F1CF2F42D491002D0CAA /* LocationSearchServiceProtocol.swift in Sources */,
 				56E6F1D02F42D491002D0CAA /* LocationHistoryServiceProtocol.swift in Sources */,
 				56E6F1D12F42D491002D0CAA /* DependencyContainer.swift in Sources */,
@@ -940,7 +972,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ckitakishi.com.MetaX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
@@ -977,7 +1009,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ckitakishi.com.MetaX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";

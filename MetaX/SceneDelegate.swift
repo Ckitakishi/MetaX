@@ -26,9 +26,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
+        // Bootstrap the dependency graph and record this launch for tipping logic.
         let container = DependencyContainer()
         self.container = container
+        container.tippingManager.recordLaunch()
 
+        // Wire up the coordinator and root window.
         let coordinator = AppCoordinator(container: container)
         self.coordinator = coordinator
 
@@ -41,6 +44,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         coordinator.start()
 
+        // Show splash over the main window until the photo library is ready.
         if let albumVC = coordinator.albumViewController {
             setupSplashWindow(in: windowScene, dismissalTrigger: albumVC)
         }
@@ -67,6 +71,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 self.splashWindow?.alpha = 0
             } completion: { _ in
                 self.splashWindow = nil
+
+                Task {
+                    try? await Task.sleep(for: .seconds(1))
+                    await self.coordinator?.showTippingAlertIfNeeded()
+                }
             }
         }
     }

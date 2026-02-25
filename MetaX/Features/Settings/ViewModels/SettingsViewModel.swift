@@ -7,6 +7,7 @@
 
 import Observation
 import Photos
+import StoreKit
 import UIKit
 
 /// Section types for the settings list.
@@ -15,6 +16,9 @@ enum SettingsSection: CaseIterable {
     case general
     case support
     case about
+    #if DEBUG
+        case debug
+    #endif
 
     var title: String {
         switch self {
@@ -22,6 +26,9 @@ enum SettingsSection: CaseIterable {
         case .general: return String(localized: .settingsGeneral)
         case .support: return String(localized: .settingsSupport)
         case .about: return String(localized: .settingsAbout)
+        #if DEBUG
+            case .debug: return "Debug"
+        #endif
         }
     }
 }
@@ -42,9 +49,14 @@ struct SettingsItem: Identifiable {
         case photoPermissions
         case writeReview
         case sendFeedback
+        case supportPage
+        case sourceCode
         case termsOfService
         case privacyPolicy
         case version
+        #if DEBUG
+            case debugTippingAlert
+        #endif
     }
 }
 
@@ -62,6 +74,9 @@ final class SettingsViewModel {
 
     private(set) var sectionModels: [SettingsSectionModel] = []
 
+    /// Callback triggered when navigation to the dedicated support page is requested.
+    var onNavigateToSupport: (() -> Void)?
+
     let appearanceOptions: [(title: String, icon: String, style: UIUserInterfaceStyle)] = [
         (String(localized: .settingsAppearanceSystem), "circle.lefthalf.filled", .unspecified),
         (String(localized: .settingsAppearanceLight), "sun.max", .light),
@@ -71,25 +86,35 @@ final class SettingsViewModel {
     // MARK: - Dependencies
 
     private let photoLibraryService: PhotoLibraryServiceProtocol
-    private var settingsService: SettingsServiceProtocol
+    private let settingsService: SettingsServiceProtocol
+    private let storeService: StoreServiceProtocol
 
     // MARK: - Initialization
 
-    init(photoLibraryService: PhotoLibraryServiceProtocol, settingsService: SettingsServiceProtocol) {
+    init(
+        photoLibraryService: PhotoLibraryServiceProtocol,
+        settingsService: SettingsServiceProtocol,
+        storeService: StoreServiceProtocol
+    ) {
         self.photoLibraryService = photoLibraryService
         self.settingsService = settingsService
+        self.storeService = storeService
         refresh()
     }
 
     // MARK: - Public Methods
 
     func refresh() {
-        sectionModels = [
+        var models = [
             buildPreferencesSection(),
             buildGeneralSection(),
             buildSupportSection(),
             buildAboutSection(),
         ]
+        #if DEBUG
+            models.append(buildDebugSection())
+        #endif
+        sectionModels = models
     }
 
     func updateAppearance(_ style: UIUserInterfaceStyle) {
@@ -113,14 +138,41 @@ final class SettingsViewModel {
             if let url = AppConstants.feedbackEmailURL {
                 UIApplication.shared.open(url)
             }
+        case .supportPage:
+            onNavigateToSupport?()
+        case .sourceCode:
+            UIApplication.shared.open(AppConstants.githubURL)
         case .termsOfService:
             UIApplication.shared.open(AppConstants.termsOfServiceURL)
         case .privacyPolicy:
             UIApplication.shared.open(AppConstants.privacyPolicyURL)
+        #if DEBUG
+            case .debugTippingAlert:
+                settingsService.debugAlwaysShowTipAlert.toggle()
+                refresh()
+        #endif
         }
     }
 
     // MARK: - Private Builders
+
+    #if DEBUG
+        private func buildDebugSection() -> SettingsSectionModel {
+            SettingsSectionModel(
+                section: .debug,
+                color: .systemOrange,
+                items: [
+                    SettingsItem(
+                        type: .debugTippingAlert,
+                        icon: "sparkles",
+                        iconColor: .systemOrange,
+                        title: "Force Tipping Alert",
+                        value: settingsService.debugAlwaysShowTipAlert ? "Enabled" : "Disabled"
+                    ),
+                ]
+            )
+        }
+    #endif
 
     private func buildPreferencesSection() -> SettingsSectionModel {
         SettingsSectionModel(
@@ -165,26 +217,30 @@ final class SettingsViewModel {
 
     private func buildSupportSection() -> SettingsSectionModel {
         let green = Theme.Colors.settingsSupport
-        return SettingsSectionModel(
-            section: .support,
-            color: green,
-            items: [
-                SettingsItem(
-                    type: .writeReview,
-                    icon: "star",
-                    iconColor: green,
-                    title: String(localized: .settingsWriteReview),
-                    isExternal: true
-                ),
-                SettingsItem(
-                    type: .sendFeedback,
-                    icon: "envelope",
-                    iconColor: green,
-                    title: String(localized: .settingsSendFeedback),
-                    isExternal: true
-                ),
-            ]
-        )
+        let items = [
+            SettingsItem(
+                type: .supportPage,
+                icon: "heart",
+                iconColor: green,
+                title: String(localized: .settingsSupportMetaX)
+            ),
+            SettingsItem(
+                type: .writeReview,
+                icon: "star",
+                iconColor: green,
+                title: String(localized: .settingsWriteReview),
+                isExternal: true
+            ),
+            SettingsItem(
+                type: .sendFeedback,
+                icon: "envelope",
+                iconColor: green,
+                title: String(localized: .settingsSendFeedback),
+                isExternal: true
+            ),
+        ]
+
+        return SettingsSectionModel(section: .support, color: green, items: items)
     }
 
     private func buildAboutSection() -> SettingsSectionModel {
@@ -193,6 +249,13 @@ final class SettingsViewModel {
             section: .about,
             color: gray,
             items: [
+                SettingsItem(
+                    type: .sourceCode,
+                    icon: "link",
+                    iconColor: gray,
+                    title: String(localized: .settingsSourceCode),
+                    isExternal: true
+                ),
                 SettingsItem(
                     type: .termsOfService,
                     icon: "doc.text",

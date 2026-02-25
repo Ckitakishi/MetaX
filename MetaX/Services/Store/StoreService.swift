@@ -24,6 +24,15 @@ final class StoreService: StoreServiceProtocol {
     private let transactionListenerTask: Task<Void, Never>
 
     init() {
+        // Finish any transactions left unfinished from a previous app session.
+        Task.detached {
+            for await verificationResult in Transaction.unfinished {
+                if case let .verified(transaction) = verificationResult {
+                    await transaction.finish()
+                }
+            }
+        }
+
         transactionListenerTask = Task.detached {
             for await verificationResult in Transaction.updates {
                 switch verificationResult {

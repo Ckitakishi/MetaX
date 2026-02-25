@@ -58,7 +58,7 @@ final class SupportViewModel {
     }
 
     func purchase(id: String) {
-        guard let product = storeProducts.first(where: { $0.id == id }) else { return }
+        guard !isPurchasing, let product = storeProducts.first(where: { $0.id == id }) else { return }
         isPurchasing = true
         Task {
             defer { isPurchasing = false }
@@ -93,9 +93,18 @@ final class SupportViewModel {
         if let skError = error as? SKError, skError.code == .paymentCancelled {
             return
         }
+
+        let message: String
+        if let metaXError = error as? MetaXError {
+            message = metaXError.localizedDescription
+        } else {
+            // Provide a more user-friendly prefix for raw StoreKit errors.
+            message = "\(String(localized: .errorStoreFailed)) (\(error.localizedDescription))"
+        }
+
         alertItem = SupportAlertItem(
-            title: String(localized: .alertConfirm),
-            message: error.localizedDescription
+            title: String(localized: .errorTitle),
+            message: message
         )
     }
 }
