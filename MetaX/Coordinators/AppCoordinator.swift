@@ -43,6 +43,27 @@ final class AppCoordinator: NSObject, Coordinator {
         photoCoordinator.start()
     }
 
+    /// Presents the tipping alert if conditions are met, then navigates to the support page if confirmed.
+    func showTippingAlertIfNeeded() async {
+        guard container.tippingManager.shouldShowTippingAlert() else { return }
+        container.tippingManager.markAlertShown()
+        let confirmed = await Alert.confirm(
+            title: String(localized: .settingsSupportMetaX),
+            message: String(localized: .supportMessage),
+            confirmTitle: String(localized: .supportAction),
+            cancelTitle: String(localized: .supportMaybeLater),
+            on: navigationController
+        )
+        if confirmed { showSupport() }
+    }
+
+    func showSupport() {
+        let viewModel = SupportViewModel(storeService: container.storeService)
+        let viewController = SupportViewController(viewModel: viewModel)
+        let nav = UINavigationController(rootViewController: viewController)
+        navigationController.present(nav, animated: true)
+    }
+
     var albumViewController: AlbumViewController? {
         navigationController.viewControllers.first as? AlbumViewController
     }

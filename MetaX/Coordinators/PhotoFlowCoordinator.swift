@@ -24,6 +24,7 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
         case photoGrid(fetchResult: PHFetchResult<PHAsset>, collection: PHAssetCollection?, title: String)
         case assetDetail(asset: PHAsset, collection: PHAssetCollection?, source: UIViewController)
         case settings(from: UIViewController)
+        case support(from: UIViewController)
         case metadataEdit(metadata: Metadata, source: DetailInfoViewController)
         case locationSearch(source: MetadataEditViewController)
         case locationMap(location: CLLocation)
@@ -68,6 +69,8 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
             showAssetDetail(asset: asset, collection: collection, from: source)
         case let .settings(source):
             showSettings(from: source)
+        case let .support(source):
+            showSupport(from: source)
         case let .metadataEdit(metadata, source):
             Task { await startEditFlow(for: metadata, from: source) }
         case let .locationSearch(source):
@@ -134,11 +137,28 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
     private func showSettings(from source: UIViewController) {
         let viewModel = SettingsViewModel(
             photoLibraryService: container.photoLibraryService,
-            settingsService: container.settingsService
+            settingsService: container.settingsService,
+            storeService: container.storeService
         )
         let vc = SettingsViewController(viewModel: viewModel)
+        viewModel.onNavigateToSupport = { [weak self, weak vc] in
+            guard let self, let vc else { return }
+            self.navigate(to: .support(from: vc))
+        }
         let wrapper = UINavigationController(rootViewController: vc)
         source.present(wrapper, animated: true)
+    }
+
+    private func showSupport(from source: UIViewController) {
+        let viewModel = SupportViewModel(storeService: container.storeService)
+        let vc = SupportViewController(viewModel: viewModel)
+
+        if let nav = source.navigationController {
+            nav.pushViewController(vc, animated: true)
+        } else {
+            let wrapper = UINavigationController(rootViewController: vc)
+            source.present(wrapper, animated: true)
+        }
     }
 
     private func openLocationMap(for location: CLLocation) {

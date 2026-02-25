@@ -101,11 +101,26 @@ enum Theme {
                 .transform = isPressed ? CGAffineTransform(translationX: pressedTranslation, y: pressedTranslation) :
                 .identity
         }
+
+        /// Provides a unified animation for Neo-Brutalist press feedback.
+        static func animatePress(for view: UIView, isPressed: Bool, completion: (() -> Void)? = nil) {
+            UIView.animate(
+                withDuration: Animation.pressEffect,
+                delay: 0,
+                options: [.allowUserInteraction, .beginFromCurrentState],
+                animations: {
+                    applyPressEffect(to: view, isPressed: isPressed)
+                },
+                completion: { _ in completion?() }
+            )
+        }
     }
 
     // MARK: - Typography
 
     enum Typography {
+        /// Large poster/display title (e.g., Support page header).
+        static let poster = UIFont.systemFont(ofSize: 32, weight: .bold)
         /// Display titles (e.g., empty state).
         static let title = UIFont.systemFont(ofSize: 24, weight: .bold)
         /// Monospaced logotype for navigation bars.
