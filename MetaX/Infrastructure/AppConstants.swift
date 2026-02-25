@@ -34,6 +34,14 @@ enum AppConstants {
 
     static let termsOfServiceURL = URL(string: "https://misoshido.com/metax/terms/")!
     static let privacyPolicyURL = URL(string: "https://misoshido.com/metax/privacy/")!
+    static let githubURL = URL(string: "https://github.com/ckitakishi/MetaX")!
+
+    // MARK: - IAP (Tips)
+
+    static let tipAppleJuiceID = "com.ckitakishi.metax.tip.apple_juice"
+    static let tipApplePieID = "com.ckitakishi.metax.tip.apple_pie"
+
+    static let allTipProductIDs = [tipAppleJuiceID, tipApplePieID]
 }
 
 // MARK: - Bundle Extension

@@ -14,6 +14,7 @@ enum MetaXError: Error, Sendable {
     case metadata(Metadata)
     case imageSave(ImageSave)
     case location(Location)
+    case store(Store)
     case unknown(underlying: Error?)
 
     enum PhotoLibrary: Sendable {
@@ -42,6 +43,13 @@ enum MetaXError: Error, Sendable {
         case accessDenied
         case geocodingFailed
         case coordinateNotAvailable
+    }
+
+    enum Store: Sendable {
+        case productNotFound
+        case purchaseFailed
+        case purchaseRestricted
+        case restoreFailed
     }
 }
 
@@ -79,6 +87,13 @@ extension MetaXError {
             case .geocodingFailed: return 1031
             case .coordinateNotAvailable: return 1032
             }
+        case let .store(error):
+            switch error {
+            case .productNotFound: return 1040
+            case .purchaseFailed: return 1041
+            case .purchaseRestricted: return 1042
+            case .restoreFailed: return 1043
+            }
         case .unknown:
             return 1090
         }
@@ -111,6 +126,8 @@ extension MetaXError: LocalizedError {
             message = String(localized: .alertPhotoAccess)
         case .location(.geocodingFailed), .location(.coordinateNotAvailable):
             message = String(localized: .errorCoordinateFetch)
+        case .store:
+            message = String(localized: .errorStoreFailed)
         case .unknown:
             message = String(localized: .errorImageSaveUnknown)
         }

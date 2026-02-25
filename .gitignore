@@ -61,5 +61,8 @@ fastlane/test_output
 # R.Swift
 *.generated.swift
 
+# StoreKit
+*.storekit
+
 # Fabric Key
 fabrickey.txt

@@ -7,8 +7,13 @@
 
 import UIKit
 
-protocol SettingsServiceProtocol {
+protocol SettingsServiceProtocol: AnyObject {
     var userInterfaceStyle: UIUserInterfaceStyle { get set }
+    var launchCount: Int { get set }
+    var hasShownTipAlert: Bool { get set }
+    #if DEBUG
+        var debugAlwaysShowTipAlert: Bool { get set }
+    #endif
 }
 
 final class SettingsService: SettingsServiceProtocol {
@@ -17,6 +22,11 @@ final class SettingsService: SettingsServiceProtocol {
 
     private enum Keys {
         static let userInterfaceStyle = "com.metax.settings.userInterfaceStyle"
+        static let launchCount = "com.metax.settings.launchCount"
+        static let hasShownTipAlert = "com.metax.settings.hasShownTipAlert"
+        #if DEBUG
+            static let debugAlwaysShowTipAlert = "com.metax.settings.debugAlwaysShowTipAlert"
+        #endif
     }
 
     // MARK: - Properties
@@ -35,6 +45,23 @@ final class SettingsService: SettingsServiceProtocol {
             apply(style: newValue)
         }
     }
+
+    var launchCount: Int {
+        get { defaults.integer(forKey: Keys.launchCount) }
+        set { defaults.set(newValue, forKey: Keys.launchCount) }
+    }
+
+    var hasShownTipAlert: Bool {
+        get { defaults.bool(forKey: Keys.hasShownTipAlert) }
+        set { defaults.set(newValue, forKey: Keys.hasShownTipAlert) }
+    }
+
+    #if DEBUG
+        var debugAlwaysShowTipAlert: Bool {
+            get { defaults.bool(forKey: Keys.debugAlwaysShowTipAlert) }
+            set { defaults.set(newValue, forKey: Keys.debugAlwaysShowTipAlert) }
+        }
+    #endif
 
     // MARK: - Private Methods
 
