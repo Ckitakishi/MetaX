@@ -61,6 +61,17 @@ struct BatchEditTests {
         #expect(viewModel.getPreparedFields()[.copyright] == nil)
     }
 
+    @Test("Enabling a text field without input marks it for clearing")
+    func enablingTextFieldWithoutInputCreatesClearDraft() {
+        let viewModel = BatchMetadataEditViewModel()
+
+        viewModel.setFieldEnabled(true, for: .artist)
+
+        #expect(viewModel.hasAnyField == true)
+        #expect(viewModel.artist == "")
+        #expect(viewModel.getPreparedFields()[.artist]?.rawValue is NSNull)
+    }
+
     @Test("Batch editor preserves explicit date and location patches")
     func batchEditorDateAndLocationPatches() {
         let viewModel = BatchMetadataEditViewModel()
@@ -93,6 +104,16 @@ struct BatchEditTests {
 
         #expect(viewModel.getPreparedFields()[.dateTimeOriginal] == nil)
         #expect(viewModel.dateTimeOriginal.timeIntervalSinceNow > -5)
+    }
+
+    @Test("Disabled fields ignore incoming value updates")
+    func disabledFieldsIgnoreValueUpdates() {
+        let viewModel = BatchMetadataEditViewModel()
+
+        viewModel.updateValue(.string("Sony"), for: .make)
+
+        #expect(viewModel.make == nil)
+        #expect(viewModel.getPreparedFields().isEmpty)
     }
 
     @Test("Batch save options disable copy flow")
