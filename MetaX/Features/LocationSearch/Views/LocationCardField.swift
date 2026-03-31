@@ -10,6 +10,12 @@ import MapKit
 import UIKit
 
 final class LocationCardField: UIView {
+    var onToggleEnabled: ((Bool) -> Void)?
+
+    private let showsToggle: Bool
+    private var isFieldEnabled = true
+    private var toggleHeader: ToggleHeaderView?
+
     let label: UILabel = {
         let l = UILabel()
         l.font = Theme.Typography.footnote
@@ -59,11 +65,26 @@ final class LocationCardField: UIView {
 
     private var buttonHeightConstraint: NSLayoutConstraint?
 
-    init(label: String) {
+    init(label: String, showsToggle: Bool = false) {
+        self.showsToggle = showsToggle
         super.init(frame: .zero)
         self.label.text = label
 
-        addSubview(self.label)
+        let headerAnchor: UIView
+        if showsToggle {
+            let header = ToggleHeaderView.make(text: label) { [weak self] isEnabled in
+                guard let self else { return }
+                isFieldEnabled = isEnabled
+                applyFieldEnabledState()
+                onToggleEnabled?(isEnabled)
+            }
+            toggleHeader = header
+            addSubview(header)
+            headerAnchor = header
+        } else {
+            addSubview(self.label)
+            headerAnchor = self.label
+        }
         addSubview(button)
 
         button.addSubview(contentLabel)
@@ -74,11 +95,11 @@ final class LocationCardField: UIView {
         buttonHeightConstraint?.isActive = true
 
         NSLayoutConstraint.activate([
-            self.label.topAnchor.constraint(equalTo: topAnchor),
-            self.label.leadingAnchor.constraint(equalTo: leadingAnchor),
-            self.label.trailingAnchor.constraint(equalTo: trailingAnchor),
+            headerAnchor.topAnchor.constraint(equalTo: topAnchor),
+            headerAnchor.leadingAnchor.constraint(equalTo: leadingAnchor),
+            headerAnchor.trailingAnchor.constraint(equalTo: trailingAnchor),
 
-            button.topAnchor.constraint(equalTo: self.label.bottomAnchor, constant: 6),
+            button.topAnchor.constraint(equalTo: headerAnchor.bottomAnchor, constant: 6),
             button.leadingAnchor.constraint(equalTo: leadingAnchor),
             button.trailingAnchor.constraint(equalTo: trailingAnchor),
             button.bottomAnchor.constraint(equalTo: bottomAnchor),
@@ -103,6 +124,8 @@ final class LocationCardField: UIView {
             self.button.layer.borderColor = Theme.Colors.border.cgColor
             self.midDivider.backgroundColor = Theme.Colors.border.withAlphaComponent(0.3)
         }
+
+        setFieldEnabled(!showsToggle)
     }
 
     @available(*, unavailable)
@@ -140,5 +163,17 @@ final class LocationCardField: UIView {
             contentLabel.textColor = Theme.Colors.text.withAlphaComponent(0.4)
             buttonHeightConstraint?.isActive = true
         }
+    }
+
+    func setFieldEnabled(_ enabled: Bool) {
+        isFieldEnabled = enabled
+        toggleHeader?.setEnabled(enabled)
+        applyFieldEnabledState()
+    }
+
+    private func applyFieldEnabledState() {
+        button.isUserInteractionEnabled = isFieldEnabled
+        button.alpha = isFieldEnabled || !showsToggle ? 1.0 : 0.6
+        label.alpha = isFieldEnabled || !showsToggle ? 1.0 : 0.6
     }
 }

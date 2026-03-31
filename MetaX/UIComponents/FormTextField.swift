@@ -13,6 +13,8 @@ final class FormTextField: UIView {
 
     // MARK: - Properties
 
+    var onToggleEnabled: ((Bool) -> Void)?
+
     let label: UILabel = {
         let l = UILabel()
         l.font = Theme.Typography.footnote
@@ -44,6 +46,10 @@ final class FormTextField: UIView {
     }()
 
     private let maxLength: Int?
+    private let isReadOnly: Bool
+    private let showsToggle: Bool
+    private var isFieldEnabled = true
+    private var toggleHeader: ToggleHeaderView?
 
     private lazy var counterLabel: UILabel = {
         let l = UILabel()
@@ -62,9 +68,12 @@ final class FormTextField: UIView {
         keyboardType: UIKeyboardType = .default,
         readOnly: Bool = false,
         maxLength: Int? = nil,
-        unit: String? = nil
+        unit: String? = nil,
+        showsToggle: Bool = false
     ) {
         self.maxLength = maxLength
+        isReadOnly = readOnly
+        self.showsToggle = showsToggle
         super.init(frame: .zero)
 
         label.text = labelText
@@ -72,6 +81,7 @@ final class FormTextField: UIView {
         textField.keyboardType = keyboardType
 
         setupLayout(readOnly: readOnly, unit: unit)
+        setFieldEnabled(!showsToggle)
 
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: FormTextField, _) in
             self.textField.layer.borderColor = Theme.Colors.border.cgColor
@@ -104,19 +114,36 @@ final class FormTextField: UIView {
             textField.alpha = 0.45
         }
 
-        addSubview(label)
+        let headerAnchor: UIView
+        if showsToggle {
+            let header = ToggleHeaderView.make(text: label.text ?? "") { [weak self] isEnabled in
+                guard let self else { return }
+                isFieldEnabled = isEnabled
+                applyFieldEnabledState()
+                onToggleEnabled?(isEnabled)
+            }
+            toggleHeader = header
+            addSubview(header)
+            headerAnchor = header
+        } else {
+            addSubview(label)
+            headerAnchor = label
+        }
         addSubview(textField)
 
         var constraints: [NSLayoutConstraint] = [
-            label.topAnchor.constraint(equalTo: topAnchor),
-            label.leadingAnchor.constraint(equalTo: leadingAnchor),
-
-            textField.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 6),
+            textField.topAnchor.constraint(equalTo: headerAnchor.bottomAnchor, constant: 6),
             textField.leadingAnchor.constraint(equalTo: leadingAnchor),
             textField.trailingAnchor.constraint(equalTo: trailingAnchor),
             textField.bottomAnchor.constraint(equalTo: bottomAnchor),
             textField.heightAnchor.constraint(equalToConstant: 50),
+            headerAnchor.topAnchor.constraint(equalTo: topAnchor),
+            headerAnchor.leadingAnchor.constraint(equalTo: leadingAnchor),
         ]
+
+        if showsToggle {
+            constraints.append(headerAnchor.trailingAnchor.constraint(equalTo: trailingAnchor))
+        }
 
         if let max = maxLength {
             counterLabel.text = "0/\(max)"
@@ -128,7 +155,9 @@ final class FormTextField: UIView {
             ]
             textField.addTarget(self, action: #selector(updateCounter), for: .editingChanged)
         } else {
-            constraints.append(label.trailingAnchor.constraint(equalTo: trailingAnchor))
+            if !showsToggle {
+                constraints.append(label.trailingAnchor.constraint(equalTo: trailingAnchor))
+            }
         }
 
         NSLayoutConstraint.activate(constraints)
@@ -139,5 +168,18 @@ final class FormTextField: UIView {
         let count = textField.text?.count ?? 0
         counterLabel.text = "\(count)/\(max)"
         counterLabel.textColor = count >= max - 20 ? .secondaryLabel : .tertiaryLabel
+    }
+
+    func setFieldEnabled(_ enabled: Bool) {
+        isFieldEnabled = enabled
+        toggleHeader?.setEnabled(enabled)
+        applyFieldEnabledState()
+    }
+
+    private func applyFieldEnabledState() {
+        let canInteract = isFieldEnabled && !isReadOnly
+        textField.isUserInteractionEnabled = canInteract
+        textField.alpha = canInteract || !showsToggle ? 1.0 : 0.6
+        label.alpha = isFieldEnabled || !showsToggle ? 1.0 : 0.6
     }
 }

@@ -11,7 +11,7 @@ import Observation
 import UIKit
 
 @Observable @MainActor
-final class MetadataEditViewModel {
+final class MetadataEditViewModel: MetadataFormEditing {
 
     /// A consolidated structure representing all editable fields.
     struct Fields: Equatable {
@@ -178,26 +178,30 @@ final class MetadataEditViewModel {
     }
 
     /// Centralized update method for form fields.
-    func updateValue(_ value: Any?, for field: MetadataField) {
+    func updateValue(_ value: MetadataFieldValue?, for field: MetadataField) {
         switch field {
-        case .make: fields.make = value as? String
-        case .model: fields.model = value as? String
-        case .lensMake: fields.lensMake = value as? String
-        case .lensModel: fields.lensModel = value as? String
-        case .aperture: fields.aperture = value as? String
-        case .shutter: fields.shutter = value as? String
-        case .iso: fields.iso = value as? String
-        case .focalLength: fields.focalLength = value as? String
-        case .exposureBias: fields.exposureBias = value as? String
-        case .focalLength35: fields.focalLength35 = value as? String
-        case .exposureProgram: fields.exposureProgram = value as? Int
-        case .meteringMode: fields.meteringMode = value as? Int
-        case .whiteBalance: fields.whiteBalance = value as? Int
-        case .flash: fields.flash = value as? Int
-        case .artist: fields.artist = value as? String
-        case .copyright: fields.copyright = value as? String
-        case .dateTimeOriginal: if let d = value as? Date { fields.dateTimeOriginal = min(d, Date()) }
-        case .location: if let l = value as? CLLocation { fields.location = l }
+        case .make: fields.make = value?.stringValue
+        case .model: fields.model = value?.stringValue
+        case .lensMake: fields.lensMake = value?.stringValue
+        case .lensModel: fields.lensModel = value?.stringValue
+        case .aperture: fields.aperture = value?.stringValue
+        case .shutter: fields.shutter = value?.stringValue
+        case .iso: fields.iso = value?.stringValue
+        case .focalLength: fields.focalLength = value?.stringValue
+        case .exposureBias: fields.exposureBias = value?.stringValue
+        case .focalLength35: fields.focalLength35 = value?.stringValue
+        case .exposureProgram: fields.exposureProgram = value?.intValue
+        case .meteringMode: fields.meteringMode = value?.intValue
+        case .whiteBalance: fields.whiteBalance = value?.intValue
+        case .flash: fields.flash = value?.intValue
+        case .artist: fields.artist = value?.stringValue
+        case .copyright: fields.copyright = value?.stringValue
+        case .dateTimeOriginal:
+            if let date = value?.dateValue {
+                fields.dateTimeOriginal = min(date, Date())
+            }
+        case .location:
+            fields.location = value?.locationValue
         default: break
         }
     }
@@ -212,26 +216,11 @@ final class MetadataEditViewModel {
         locationAddress = "..."
 
         geocodingTask = Task {
-            do {
-                let placemarks = try await geocoder.reverseGeocodeLocation(loc)
-                guard !Task.isCancelled else { return }
-                isGeocoding = false
-                if let p = placemarks.first {
-                    let infos = [p.thoroughfare, p.locality, p.administrativeArea, p.country]
-                    locationAddress = infos.compactMap { $0 }.joined(separator: ", ")
-                } else {
-                    locationAddress = Self.coordinateFallback(for: loc)
-                }
-            } catch {
-                guard !Task.isCancelled else { return }
-                isGeocoding = false
-                locationAddress = Self.coordinateFallback(for: loc)
-            }
+            let address = await ReverseGeocodingFormatter.resolveAddress(for: loc, using: geocoder)
+            guard !Task.isCancelled else { return }
+            isGeocoding = false
+            locationAddress = address
         }
-    }
-
-    private static func coordinateFallback(for location: CLLocation) -> String {
-        String(format: "%.4f, %.4f", location.coordinate.latitude, location.coordinate.longitude)
     }
 
     private static func formatValue(_ value: Double) -> String {
@@ -273,18 +262,7 @@ final class MetadataEditViewModel {
         // Shutter Speed
         if raw.shutter != initialFields.shutter {
             if let val = raw.shutter, !val.isEmpty {
-                if val.contains("/") {
-                    let parts = val.components(separatedBy: "/")
-                    if parts.count == 2, let n = Double(parts[0]), let d = Double(parts[1]), d != 0 {
-                        fieldsDict[.shutter] = .double(n / d)
-                    } else {
-                        fieldsDict[.shutter] = .null
-                    }
-                } else if let d = Double(val) {
-                    fieldsDict[.shutter] = .double(d)
-                } else {
-                    fieldsDict[.shutter] = .null
-                }
+                fieldsDict[.shutter] = MetadataFieldConverter.parseShutter(val)
             } else {
                 fieldsDict[.shutter] = .null
             }
@@ -365,59 +343,11 @@ final class MetadataEditViewModel {
         replacementString string: String,
         for field: MetadataField
     ) -> Bool {
-        if string.isEmpty { return true } // Always allow backspace.
-
-        guard let stringRange = Range(range, in: currentText) else { return false }
-        let updatedText = currentText.replacingCharacters(in: stringRange, with: string)
-
-        // 1. Character length limits
-        let maxLength: Int
-        switch field {
-        case .iso, .focalLength35, .aperture, .focalLength, .exposureBias: maxLength = 10
-        case .shutter: maxLength = 15
-        case .artist, .make, .model, .lensMake, .lensModel: maxLength = 64
-        case .copyright: maxLength = 200
-        default: maxLength = 100
-        }
-        if updatedText.count > maxLength { return false }
-
-        switch field {
-        case .iso, .focalLength35:
-            // Positive Integers
-            let allowedCharset = CharacterSet.decimalDigits
-            return updatedText.rangeOfCharacter(from: allowedCharset.inverted) == nil
-
-        case .aperture, .focalLength:
-            // Positive Decimals
-            let allowedCharset = CharacterSet(charactersIn: "0123456789.")
-            if updatedText.rangeOfCharacter(from: allowedCharset.inverted) != nil { return false }
-            let dotCount = updatedText.filter { $0 == "." }.count
-            return dotCount <= 1
-
-        case .shutter:
-            // Fractions or Decimals
-            let allowedCharset = CharacterSet(charactersIn: "0123456789./")
-            if updatedText.rangeOfCharacter(from: allowedCharset.inverted) != nil { return false }
-            let slashCount = updatedText.filter { $0 == "/" }.count
-            let dotCount = updatedText.filter { $0 == "." }.count
-            return slashCount <= 1 && dotCount <= 1
-
-        case .exposureBias:
-            // Signed Decimals
-            let allowedCharset = CharacterSet(charactersIn: "0123456789.+-")
-            if updatedText.rangeOfCharacter(from: allowedCharset.inverted) != nil { return false }
-
-            if updatedText.filter({ $0 == "." }).count > 1 { return false }
-
-            let signs = updatedText.filter { $0 == "+" || $0 == "-" }
-            if signs.count > 1 { return false }
-            if signs.count == 1 {
-                return updatedText.hasPrefix("+") || updatedText.hasPrefix("-")
-            }
-            return true
-
-        default:
-            return true
-        }
+        MetadataFieldValidator.validate(
+            currentText: currentText,
+            range: range,
+            replacementString: string,
+            for: field
+        )
     }
 }

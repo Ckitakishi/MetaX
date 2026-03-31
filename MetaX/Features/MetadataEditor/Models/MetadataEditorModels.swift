@@ -62,12 +62,61 @@ enum MetadataFieldValue: Sendable {
         case let .location(l): return l
         }
     }
+
+    var stringValue: String? {
+        guard case let .string(value) = self else { return nil }
+        return value
+    }
+
+    var intValue: Int? {
+        guard case let .int(value) = self else { return nil }
+        return value
+    }
+
+    var dateValue: Date? {
+        guard case let .date(value) = self else { return nil }
+        return value
+    }
+
+    var locationValue: CLLocation? {
+        guard case let .location(value) = self else { return nil }
+        return value
+    }
+}
+
+// MARK: - Reverse Geocoding
+
+enum ReverseGeocodingFormatter {
+    @MainActor
+    static func resolveAddress(for location: CLLocation, using geocoder: CLGeocoder) async -> String {
+        do {
+            let placemarks = try await geocoder.reverseGeocodeLocation(location)
+            if let placemark = placemarks.first {
+                let components = [
+                    placemark.thoroughfare,
+                    placemark.locality,
+                    placemark.administrativeArea,
+                    placemark.country,
+                ]
+                let address = components.compactMap { $0 }.joined(separator: ", ")
+                if !address.isEmpty {
+                    return address
+                }
+            }
+        } catch {}
+
+        return coordinateFallback(for: location)
+    }
+
+    static func coordinateFallback(for location: CLLocation) -> String {
+        String(format: "%.4f, %.4f", location.coordinate.latitude, location.coordinate.longitude)
+    }
 }
 
 // MARK: - Metadata Field
 
 /// Configuration for individual metadata fields in the UI.
-enum MetadataField: CaseIterable, Sendable {
+enum MetadataField: CaseIterable, Sendable, Hashable {
     case make, model, lensMake, lensModel
     case aperture, shutter, iso, focalLength, focalLength35, exposureBias
     case exposureProgram, meteringMode, whiteBalance, flash

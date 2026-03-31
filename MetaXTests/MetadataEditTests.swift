@@ -100,24 +100,24 @@ struct MetadataEditTests {
     @Test("Modification tracking (Dirty state detection)")
     func modificationTracking() {
         #expect(viewModel.isModified == false)
-        viewModel.updateValue("Sony", for: .make)
+        viewModel.updateValue(.string("Sony"), for: .make)
         #expect(viewModel.isModified == true)
-        viewModel.updateValue("Apple", for: .make)
+        viewModel.updateValue(.string("Apple"), for: .make)
         #expect(viewModel.isModified == false)
     }
 
     @Test("Shutter speed conversion (String to Double)")
     func shutterSpeedConversion() {
-        viewModel.updateValue("1/1000", for: .shutter)
+        viewModel.updateValue(.string("1/1000"), for: .shutter)
         #expect(viewModel.getPreparedFields()[.shutter]?.rawValue as? Double == 0.001)
 
-        viewModel.updateValue("0.5", for: .shutter)
+        viewModel.updateValue(.string("0.5"), for: .shutter)
         #expect(viewModel.getPreparedFields()[.shutter]?.rawValue as? Double == 0.5)
     }
 
     @Test("ISO numeric extraction as Array")
     func isoArrayFormatting() {
-        viewModel.updateValue("400", for: .iso)
+        viewModel.updateValue(.string("400"), for: .iso)
         #expect(viewModel.getPreparedFields()[.iso]?.rawValue as? [Int] == [400])
     }
 
@@ -142,9 +142,9 @@ struct MetadataEditTests {
 
     @Test("Empty string fields produce NSNull in prepared output")
     func preparedFieldsNullCoercion() {
-        viewModel.updateValue("", for: .make)
-        viewModel.updateValue("", for: .aperture)
-        viewModel.updateValue("not_a_number", for: .shutter)
+        viewModel.updateValue(.string(""), for: .make)
+        viewModel.updateValue(.string(""), for: .aperture)
+        viewModel.updateValue(.string("not_a_number"), for: .shutter)
 
         let prepared = viewModel.getPreparedFields()
 
@@ -192,7 +192,7 @@ struct MetadataEditTests {
         #expect(viewModel.getPreparedFields().isEmpty)
 
         // Modify one field
-        viewModel.updateValue("New Artist", for: .artist)
+        viewModel.updateValue(.string("New Artist"), for: .artist)
         let prepared = viewModel.getPreparedFields()
 
         #expect(prepared.count == 1)
@@ -202,11 +202,11 @@ struct MetadataEditTests {
 
     @Test("Differential update: Resetting to initial removes from prepared")
     func differentialUpdateReset() {
-        viewModel.updateValue("Sony", for: .make)
+        viewModel.updateValue(.string("Sony"), for: .make)
         #expect(viewModel.getPreparedFields().count == 1)
 
         // Reset to initial "Apple"
-        viewModel.updateValue("Apple", for: .make)
+        viewModel.updateValue(.string("Apple"), for: .make)
         #expect(viewModel.getPreparedFields().isEmpty)
     }
 

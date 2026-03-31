@@ -79,7 +79,12 @@ final class FormPickerField: UIView {
 
     private(set) var selectedRawValue: Int?
     var onValueChanged: (() -> Void)?
+    var onToggleEnabled: ((Bool) -> Void)?
     private let options: [ExifOption]
+    private let placeholderTitle: String?
+    private let showsToggle: Bool
+    private var isFieldEnabled = true
+    private var toggleHeader: ToggleHeaderView?
 
     // MARK: - UI Components
 
@@ -108,23 +113,41 @@ final class FormPickerField: UIView {
 
     // MARK: - Initialization
 
-    init(label labelText: String, options: [ExifOption]) {
+    init(label labelText: String, options: [ExifOption], placeholderTitle: String? = nil, showsToggle: Bool = false) {
         self.options = options
+        self.placeholderTitle = placeholderTitle
+        self.showsToggle = showsToggle
         super.init(frame: .zero)
 
         label.text = labelText
         button.showsMenuAsPrimaryAction = true
         button.menu = buildMenu()
+        applyPlaceholder()
+        setFieldEnabled(!showsToggle)
 
-        addSubview(label)
+        let headerAnchor: UIView
+        if showsToggle {
+            let header = ToggleHeaderView.make(text: labelText) { [weak self] isEnabled in
+                guard let self else { return }
+                isFieldEnabled = isEnabled
+                applyFieldEnabledState()
+                onToggleEnabled?(isEnabled)
+            }
+            toggleHeader = header
+            addSubview(header)
+            headerAnchor = header
+        } else {
+            addSubview(label)
+            headerAnchor = label
+        }
         addSubview(button)
 
         NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: topAnchor),
-            label.leadingAnchor.constraint(equalTo: leadingAnchor),
-            label.trailingAnchor.constraint(equalTo: trailingAnchor),
+            headerAnchor.topAnchor.constraint(equalTo: topAnchor),
+            headerAnchor.leadingAnchor.constraint(equalTo: leadingAnchor),
+            headerAnchor.trailingAnchor.constraint(equalTo: trailingAnchor),
 
-            button.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 6),
+            button.topAnchor.constraint(equalTo: headerAnchor.bottomAnchor, constant: 6),
             button.leadingAnchor.constraint(equalTo: leadingAnchor),
             button.trailingAnchor.constraint(equalTo: trailingAnchor),
             button.bottomAnchor.constraint(equalTo: bottomAnchor),
@@ -160,7 +183,37 @@ final class FormPickerField: UIView {
         onValueChanged?()
     }
 
+    func clearSelection(placeholderTitle: String? = nil) {
+        selectedRawValue = nil
+        applyPlaceholder(titleOverride: placeholderTitle)
+    }
+
+    func setLabelHidden(_ hidden: Bool) {
+        label.isHidden = hidden
+    }
+
+    func setInteractionEnabled(_ enabled: Bool) {
+        button.isUserInteractionEnabled = enabled
+        button.alpha = enabled ? 1.0 : 0.7
+    }
+
+    func setPlaceholderTitle(_ title: String) {
+        applyPlaceholder(titleOverride: title)
+    }
+
+    func setFieldEnabled(_ enabled: Bool) {
+        isFieldEnabled = enabled
+        toggleHeader?.setEnabled(enabled)
+        applyFieldEnabledState()
+    }
+
     // MARK: - Private Methods
+
+    private func applyFieldEnabledState() {
+        button.isUserInteractionEnabled = isFieldEnabled
+        button.alpha = isFieldEnabled || !showsToggle ? 1.0 : 0.6
+        label.alpha = isFieldEnabled || !showsToggle ? 1.0 : 0.6
+    }
 
     private func buildMenu() -> UIMenu {
         let actions = options.map { option in
@@ -169,5 +222,15 @@ final class FormPickerField: UIView {
             }
         }
         return UIMenu(children: actions)
+    }
+
+    private func applyPlaceholder(titleOverride: String? = nil) {
+        guard let title = titleOverride ?? placeholderTitle else { return }
+        var config = button.configuration ?? .plain()
+        var attrs = AttributeContainer()
+        attrs.font = Theme.Typography.bodyMedium
+        attrs.foregroundColor = .secondaryLabel
+        config.attributedTitle = AttributedString(title, attributes: attrs)
+        button.configuration = config
     }
 }
