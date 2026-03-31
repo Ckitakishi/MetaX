@@ -23,7 +23,24 @@ final class SaveOptionsViewModel {
         let description: String
         let icon: String
         let color: UIColor
-        let action: @MainActor @Sendable () -> Void
+        let isEnabled: Bool
+        let action: (@MainActor @Sendable () -> Void)?
+
+        init(
+            title: String,
+            description: String,
+            icon: String,
+            color: UIColor,
+            isEnabled: Bool = true,
+            action: (@MainActor @Sendable () -> Void)? = nil
+        ) {
+            self.title = title
+            self.description = description
+            self.icon = icon
+            self.color = color
+            self.isEnabled = isEnabled
+            self.action = isEnabled ? action : nil
+        }
     }
 
     // MARK: - Properties
@@ -35,8 +52,12 @@ final class SaveOptionsViewModel {
 
     // MARK: - Initialization
 
-    init() {
-        showInitialStep()
+    init(batchMode: Bool = false) {
+        if batchMode {
+            showBatchStep()
+        } else {
+            showInitialStep()
+        }
     }
 
     // MARK: - Public Methods
@@ -64,6 +85,27 @@ final class SaveOptionsViewModel {
     }
 
     // MARK: - Private Methods
+
+    private func showBatchStep() {
+        currentStep = .initial
+        options = [
+            Option(
+                title: String(localized: .saveModifyOriginal),
+                description: String(localized: .saveModifyOriginalDesc),
+                icon: "pencil",
+                color: Theme.Colors.accent
+            ) { [weak self] in
+                self?.onSelect?(.updateOriginal)
+            },
+            Option(
+                title: String(localized: .saveAsCopy),
+                description: String(localized: .saveBatchCopyUnavailable),
+                icon: "photo.badge.plus",
+                color: Theme.Colors.accent,
+                isEnabled: false
+            ),
+        ]
+    }
 
     private func showDeletionInquiry() {
         currentStep = .deletionInquiry

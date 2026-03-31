@@ -95,7 +95,12 @@
 		56E6F1F92F4C6FAD002D0CAA /* sample.heic in Resources */ = {isa = PBXBuildFile; fileRef = 56E6F1F82F4C6FAD002D0CAA /* sample.heic */; };
 		56E6F1FE2F4C7B06002D0CAA /* ImageSaveServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1FC2F4C7B06002D0CAA /* ImageSaveServiceTests.swift */; };
 		56E6F1FF2F4C7B06002D0CAA /* MetadataLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1FD2F4C7B06002D0CAA /* MetadataLogicTests.swift */; };
+		56EA8BFF2F78031D007F4760 /* BatchMetadataEditViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56EA8BFB2F78031D007F4760 /* BatchMetadataEditViewController.swift */; };
+		56EA8C002F78031D007F4760 /* BatchMetadataEditViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56EA8BF92F78031D007F4760 /* BatchMetadataEditViewModel.swift */; };
+		56EA8C012F78031D007F4760 /* BatchEditViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56EA8BF82F78031D007F4760 /* BatchEditViewModel.swift */; };
+		56EA8C022F78031D007F4760 /* BatchProgressViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56EA8BFC2F78031D007F4760 /* BatchProgressViewController.swift */; };
 		56EA8C042F7803F8007F4760 /* MetadataFieldValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56EA8C032F7803F8007F4760 /* MetadataFieldValidator.swift */; };
+		56EA8C3F2F7BA1BC007F4760 /* BatchEditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56EA8C3E2F7BA1BC007F4760 /* BatchEditTests.swift */; };
 		56EBC81D2F36FD08009AF511 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 56EBC81C2F36FD07009AF511 /* Localizable.xcstrings */; };
 		56EBC8212F36FD0D009AF511 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 56EBC8202F36FD0D009AF511 /* InfoPlist.xcstrings */; };
 		56FA0B012F7900A000AABB01 /* MetadataFormViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56FA0B002F7900A000AABB01 /* MetadataFormViewController.swift */; };
@@ -208,7 +213,12 @@
 		56E6F1F82F4C6FAD002D0CAA /* sample.heic */ = {isa = PBXFileReference; lastKnownFileType = file; path = sample.heic; sourceTree = "<group>"; };
 		56E6F1FC2F4C7B06002D0CAA /* ImageSaveServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSaveServiceTests.swift; sourceTree = "<group>"; };
 		56E6F1FD2F4C7B06002D0CAA /* MetadataLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataLogicTests.swift; sourceTree = "<group>"; };
+		56EA8BF82F78031D007F4760 /* BatchEditViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchEditViewModel.swift; sourceTree = "<group>"; };
+		56EA8BF92F78031D007F4760 /* BatchMetadataEditViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchMetadataEditViewModel.swift; sourceTree = "<group>"; };
+		56EA8BFB2F78031D007F4760 /* BatchMetadataEditViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchMetadataEditViewController.swift; sourceTree = "<group>"; };
+		56EA8BFC2F78031D007F4760 /* BatchProgressViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchProgressViewController.swift; sourceTree = "<group>"; };
 		56EA8C032F7803F8007F4760 /* MetadataFieldValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataFieldValidator.swift; sourceTree = "<group>"; };
+		56EA8C3E2F7BA1BC007F4760 /* BatchEditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchEditTests.swift; sourceTree = "<group>"; };
 		56EBC81C2F36FD07009AF511 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		56EBC8202F36FD0D009AF511 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		56FA0B002F7900A000AABB01 /* MetadataFormViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataFormViewController.swift; sourceTree = "<group>"; };
@@ -280,6 +290,7 @@
 			isa = PBXGroup;
 			children = (
 				56E6F1F12F4C6E18002D0CAA /* Resources */,
+				56EA8C3E2F7BA1BC007F4760 /* BatchEditTests.swift */,
 				56E6F1DD2F42F0D9002D0CAA /* LocationSearchViewModelTests.swift */,
 				56E6F1FC2F4C7B06002D0CAA /* ImageSaveServiceTests.swift */,
 				56E6F1FD2F4C7B06002D0CAA /* MetadataLogicTests.swift */,
@@ -511,6 +522,7 @@
 				56E6F16C2F42D491002D0CAA /* MetadataEditor */,
 				56E6F1722F42D491002D0CAA /* PhotoGrid */,
 				56E6F1782F42D491002D0CAA /* Settings */,
+				56EA8BFE2F78031D007F4760 /* BatchEdit */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -623,6 +635,33 @@
 				56E6F1F42F4C6E68002D0CAA /* sample.png */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		56EA8BFA2F78031D007F4760 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				56EA8BF82F78031D007F4760 /* BatchEditViewModel.swift */,
+				56EA8BF92F78031D007F4760 /* BatchMetadataEditViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		56EA8BFD2F78031D007F4760 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				56EA8BFB2F78031D007F4760 /* BatchMetadataEditViewController.swift */,
+				56EA8BFC2F78031D007F4760 /* BatchProgressViewController.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		56EA8BFE2F78031D007F4760 /* BatchEdit */ = {
+			isa = PBXGroup;
+			children = (
+				56EA8BFA2F78031D007F4760 /* ViewModels */,
+				56EA8BFD2F78031D007F4760 /* Views */,
+			);
+			path = BatchEdit;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -747,6 +786,10 @@
 				56FE8DFD530633B25DB129DA /* ToggleHeaderView.swift in Sources */,
 				56E6F1E62F45F04E002D0CAA /* PHAssetExtension.swift in Sources */,
 				56E6F1EA2F460DEF002D0CAA /* UITableView+Reusable.swift in Sources */,
+				56EA8BFF2F78031D007F4760 /* BatchMetadataEditViewController.swift in Sources */,
+				56EA8C002F78031D007F4760 /* BatchMetadataEditViewModel.swift in Sources */,
+				56EA8C012F78031D007F4760 /* BatchEditViewModel.swift in Sources */,
+				56EA8C022F78031D007F4760 /* BatchProgressViewController.swift in Sources */,
 				56E6F1A02F42D491002D0CAA /* AlbumHeroTableViewCell.swift in Sources */,
 				56E6F1A12F42D491002D0CAA /* PhotoLibraryServiceProtocol.swift in Sources */,
 				56E6F1A22F42D491002D0CAA /* ViewModelObserving.swift in Sources */,
@@ -830,6 +873,7 @@
 				56E6F1E12F42F0D9002D0CAA /* DetailInfoViewModelTests.swift in Sources */,
 				56E6F1E32F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift in Sources */,
 				56F0A2012F7C110000A1B2C3 /* PhotoGridViewModelTests.swift in Sources */,
+				56EA8C3F2F7BA1BC007F4760 /* BatchEditTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

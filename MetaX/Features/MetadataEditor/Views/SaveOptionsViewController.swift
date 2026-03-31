@@ -13,8 +13,18 @@ final class SaveOptionsViewController: UIViewController, ViewModelObserving {
     var onSelect: ((SaveWorkflowMode) -> Void)?
     var onCancel: (() -> Void)?
 
-    private let viewModel = SaveOptionsViewModel()
+    private let viewModel: SaveOptionsViewModel
     private var didSelectOption = false
+
+    init(batchMode: Bool = false) {
+        viewModel = SaveOptionsViewModel(batchMode: batchMode)
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     private let containerStack: UIStackView = {
         let stack = UIStackView()
@@ -74,32 +84,21 @@ final class SaveOptionsViewController: UIViewController, ViewModelObserving {
     private func renderOptions(_ options: [SaveOptionsViewModel.Option]) {
         let isTransition = !containerStack.arrangedSubviews.isEmpty
 
-        let updateBlock = { [weak self] in
-            guard let self else { return }
-            self.containerStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-            for option in options {
-                let card = OptionCardView(
-                    title: option.title,
-                    description: option.description,
-                    icon: option.icon,
-                    iconTint: option.color
-                )
-                card.onTap = option.action
-                self.containerStack.addArrangedSubview(card)
-            }
-            self.sheetPresentationController?.invalidateDetents()
-        }
-
         if isTransition {
-            UIView.transition(
-                with: containerStack,
-                duration: 0.2,
-                options: .transitionCrossDissolve,
-                animations: updateBlock
-            )
+            UIView.transition(with: containerStack, duration: 0.2, options: .transitionCrossDissolve) {
+                self.applyOptions(options)
+            }
         } else {
-            updateBlock()
+            applyOptions(options)
         }
+    }
+
+    private func applyOptions(_ options: [SaveOptionsViewModel.Option]) {
+        containerStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        for option in options {
+            containerStack.addArrangedSubview(OptionCardView(option: option))
+        }
+        sheetPresentationController?.invalidateDetents()
     }
 
     override func viewDidDisappear(_ animated: Bool) {
@@ -113,7 +112,8 @@ final class SaveOptionsViewController: UIViewController, ViewModelObserving {
 // MARK: - Option Card View
 
 private final class OptionCardView: UIView {
-    var onTap: (() -> Void)?
+
+    private let action: (@MainActor @Sendable () -> Void)?
 
     private let iconBgView: UIView = {
         let view = UIView()
@@ -145,18 +145,27 @@ private final class OptionCardView: UIView {
         return l
     }()
 
-    init(title: String, description: String, icon: String, iconTint: UIColor = Theme.Colors.accent) {
+    init(option: SaveOptionsViewModel.Option) {
+        action = option.action
         super.init(frame: .zero)
 
         backgroundColor = Theme.Colors.sheetBackground
         layer.cornerRadius = Theme.Layout.cardCornerRadius
         Theme.Shadows.applyCardBorder(to: layer)
 
-        titleLabel.text = title
-        descLabel.text = description
-        iconImageView.image = UIImage(systemName: icon)
-        iconImageView.tintColor = iconTint
-        iconBgView.backgroundColor = iconTint.withAlphaComponent(0.12)
+        titleLabel.text = option.title
+        descLabel.text = option.description
+        iconImageView.image = UIImage(systemName: option.icon)
+
+        if option.isEnabled {
+            iconImageView.tintColor = option.color
+            iconBgView.backgroundColor = option.color.withAlphaComponent(0.12)
+            addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleTap)))
+        } else {
+            alpha = 0.45
+            iconImageView.tintColor = .secondaryLabel
+            iconBgView.backgroundColor = UIColor.secondarySystemFill
+        }
 
         let textStack = UIStackView(arrangedSubviews: [titleLabel, descLabel])
         textStack.axis = .vertical
@@ -184,9 +193,6 @@ private final class OptionCardView: UIView {
             textStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -14),
         ])
 
-        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap))
-        addGestureRecognizer(tap)
-
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: OptionCardView, _: UITraitCollection) in
             Theme.Shadows.updateLayerColors(for: self.layer)
             self.iconBgView.layer.borderColor = Theme.Colors.border.cgColor
@@ -209,7 +215,7 @@ private final class OptionCardView: UIView {
             UIView.animate(withDuration: Theme.Animation.pressEffect) { [weak self] in
                 self?.transform = .identity
             }
-            self?.onTap?()
+            self?.action?()
         }
     }
 }

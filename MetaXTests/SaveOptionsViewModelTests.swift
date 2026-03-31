@@ -26,7 +26,7 @@ struct SaveOptionsViewModelTests {
         let viewModel = SaveOptionsViewModel()
 
         // Simulate tapping "Save as Copy" (the second option)
-        viewModel.options[1].action()
+        viewModel.options[1].action?()
 
         #expect(viewModel.currentStep == .deletionInquiry)
         #expect(viewModel.options.count == 2)
@@ -42,7 +42,7 @@ struct SaveOptionsViewModelTests {
         viewModel.onSelect = { selectedMode = $0 }
 
         // Tap "Modify Original"
-        viewModel.options[0].action()
+        viewModel.options[0].action?()
 
         #expect(selectedMode == .updateOriginal)
     }
@@ -54,10 +54,10 @@ struct SaveOptionsViewModelTests {
         viewModel.onSelect = { selectedMode = $0 }
 
         // 1. Go to deletion inquiry
-        viewModel.options[1].action()
+        viewModel.options[1].action?()
 
         // 2. Tap "Keep Original"
-        viewModel.options[0].action()
+        viewModel.options[0].action?()
         if case let .saveAsCopy(delete) = selectedMode {
             #expect(delete == false)
         } else {
@@ -65,7 +65,7 @@ struct SaveOptionsViewModelTests {
         }
 
         // 3. Tap "Delete Original"
-        viewModel.options[1].action()
+        viewModel.options[1].action?()
         if case let .saveAsCopy(delete) = selectedMode {
             #expect(delete == true)
         } else {

@@ -27,7 +27,10 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
         case support(from: UIViewController)
         case metadataEdit(metadata: Metadata, source: DetailInfoViewController)
         case locationSearch(source: MetadataEditViewController)
+        case batchLocationSearch(source: BatchMetadataEditViewController)
         case locationMap(location: CLLocation)
+        case batchEdit(assets: [PHAsset], source: UIViewController)
+        case batchClear(assets: [PHAsset], source: UIViewController)
     }
 
     // MARK: - Initialization
@@ -75,8 +78,14 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
             Task { await startEditFlow(for: metadata, from: source) }
         case let .locationSearch(source):
             presentLocationSearch(from: source)
+        case let .batchLocationSearch(source):
+            presentBatchLocationSearch(from: source)
         case let .locationMap(location):
             openLocationMap(for: location)
+        case let .batchEdit(assets, source):
+            Task { await startBatchEditFlow(assets: assets, from: source) }
+        case let .batchClear(assets, source):
+            Task { await startBatchClearFlow(assets: assets, from: source) }
         }
     }
 
@@ -104,6 +113,14 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
         vc.onSelectAsset = { [weak self, weak vc] asset, collection in
             guard let vc else { return }
             self?.navigate(to: .assetDetail(asset: asset, collection: collection, source: vc))
+        }
+        vc.onBatchEdit = { [weak self, weak vc] assets in
+            guard let vc else { return }
+            self?.navigate(to: .batchEdit(assets: assets, source: vc))
+        }
+        vc.onBatchClear = { [weak self, weak vc] assets in
+            guard let vc else { return }
+            self?.navigate(to: .batchClear(assets: assets, source: vc))
         }
 
         let detailNav = UINavigationController(rootViewController: vc)
@@ -242,11 +259,14 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
 
     // MARK: - Utils
 
-    private func pickSaveMode(on presenter: UIViewController? = nil) async -> SaveWorkflowMode? {
+    private func pickSaveMode(
+        on presenter: UIViewController? = nil,
+        batchMode: Bool = false
+    ) async -> SaveWorkflowMode? {
         let host = presenter ?? navigationController
         return await withCheckedContinuation { continuation in
             let onceGuard = OnceGuard(continuation)
-            let vc = SaveOptionsViewController()
+            let vc = SaveOptionsViewController(batchMode: batchMode)
             if UIDevice.current.userInterfaceIdiom == .pad {
                 vc.modalPresentationStyle = .pageSheet
             }
@@ -274,5 +294,125 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
                 onceGuard.resume(returning: nil)
             }
         }
+    }
+
+    // MARK: - Batch Edit Flow
+
+    private func startBatchEditFlow(assets: [PHAsset], from source: UIViewController) async {
+        let editVM = BatchMetadataEditViewModel()
+        let editVC = BatchMetadataEditViewController(viewModel: editVM, assetCount: assets.count)
+        let nav = UINavigationController(rootViewController: editVC)
+
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            nav.modalPresentationStyle = .fullScreen
+        }
+
+        editVC.onRequestLocationSearch = { [weak self, weak editVC] in
+            guard let editVC else { return }
+            self?.navigate(to: .batchLocationSearch(source: editVC))
+        }
+
+        source.present(nav, animated: true) {
+            nav.presentationController?.delegate = editVC
+        }
+
+        var fields: [MetadataField: MetadataFieldValue]?
+        while true {
+            guard let result = await awaitBatchEditorResult(on: editVC, source: source) else { return }
+            guard let mode = await pickSaveMode(on: nav, batchMode: true) else { continue }
+            guard mode == .updateOriginal else {
+                assertionFailure("Batch edit only supports updateOriginal")
+                continue
+            }
+            fields = result
+            break
+        }
+        guard let fields else { return }
+
+        await presentBatchProgress(on: nav, dismissing: source, assets: assets) { batchVM in
+            await batchVM.execute(assets: assets, fields: fields, mode: .updateOriginal)
+        }
+    }
+
+    private func startBatchClearFlow(assets: [PHAsset], from source: UIViewController) async {
+        let confirmed = await Alert.confirm(
+            title: String(localized: .viewClearAllMetadata),
+            message: String(localized: .batchClearConfirmMessage(assets.count)),
+            on: source
+        )
+        guard confirmed else { return }
+
+        await presentBatchProgress(on: source, dismissing: source, assets: assets) { batchVM in
+            await batchVM.executeClear(assets: assets)
+        }
+    }
+
+    private func presentBatchProgress(
+        on presenter: UIViewController,
+        dismissing dismissTarget: UIViewController,
+        assets: [PHAsset],
+        operation: @escaping (BatchEditViewModel) async -> BatchEditViewModel.BatchResult
+    ) async {
+        let batchVM = BatchEditViewModel(
+            metadataService: container.metadataService,
+            imageSaveService: container.imageSaveService,
+            settingsService: container.settingsService
+        )
+        let progressVC = BatchProgressViewController(viewModel: batchVM, totalCount: assets.count)
+        progressVC.modalPresentationStyle = .overFullScreen
+        progressVC.modalTransitionStyle = .crossDissolve
+
+        let completionAcknowledged = Task { @MainActor in
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                let onceGuard = OnceGuard<Void, Never>(continuation)
+                progressVC.onFinishAcknowledged = {
+                    onceGuard.resume()
+                }
+            }
+        }
+
+        presenter.present(progressVC, animated: true)
+
+        let batchTask = Task {
+            await operation(batchVM)
+        }
+        progressVC.onCancel = {
+            batchTask.cancel()
+        }
+        _ = await batchTask.value
+        await completionAcknowledged.value
+        if let photoGrid = dismissTarget as? PhotoGridViewController {
+            photoGrid.resetBatchSelectionMode()
+        }
+        dismissTarget.dismiss(animated: true)
+    }
+
+    private func awaitBatchEditorResult(
+        on vc: BatchMetadataEditViewController,
+        source: UIViewController
+    ) async -> [MetadataField: MetadataFieldValue]? {
+        await withCheckedContinuation { continuation in
+            let onceGuard = OnceGuard(continuation)
+            vc.onSave = { fields in
+                onceGuard.resume(returning: fields)
+            }
+            vc.onCancel = { [weak source] in
+                source?.dismiss(animated: true)
+                onceGuard.resume(returning: nil)
+            }
+        }
+    }
+
+    private func presentBatchLocationSearch(from source: BatchMetadataEditViewController) {
+        let viewModel = LocationSearchViewModel(
+            historyService: container.locationHistoryService,
+            searchService: container.locationSearchService
+        )
+        let vc = LocationSearchViewController(viewModel: viewModel)
+        let nav = UINavigationController(rootViewController: vc)
+        vc.onSelect = { [weak source] model in
+            source?.updateLocation(from: model)
+        }
+        source.present(nav, animated: true)
     }
 }
