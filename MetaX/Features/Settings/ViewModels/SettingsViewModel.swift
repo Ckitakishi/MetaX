@@ -56,6 +56,8 @@ struct SettingsItem: Identifiable {
         case version
         #if DEBUG
             case debugTippingAlert
+            case debugBatchProgressMode
+            case debugBatchProgressDelay
         #endif
     }
 }
@@ -150,6 +152,16 @@ final class SettingsViewModel {
             case .debugTippingAlert:
                 settingsService.debugAlwaysShowTipAlert.toggle()
                 refresh()
+            case .debugBatchProgressMode:
+                let allModes = DebugBatchProgressMode.allCases
+                let currentIndex = allModes.firstIndex(of: settingsService.debugBatchProgressMode) ?? 0
+                let nextIndex = (currentIndex + 1) % allModes.count
+                settingsService.debugBatchProgressMode = allModes[nextIndex]
+                refresh()
+            case .debugBatchProgressDelay:
+                let nextDelay = nextDebugBatchProgressDelay(after: settingsService.debugBatchProgressDelay)
+                settingsService.debugBatchProgressDelay = nextDelay
+                refresh()
         #endif
         }
     }
@@ -169,8 +181,53 @@ final class SettingsViewModel {
                         title: "Force Tipping Alert",
                         value: settingsService.debugAlwaysShowTipAlert ? "Enabled" : "Disabled"
                     ),
+                    SettingsItem(
+                        type: .debugBatchProgressMode,
+                        icon: "gauge.with.dots.needle.33percent",
+                        iconColor: .systemOrange,
+                        title: "Mock Batch Progress",
+                        value: debugBatchProgressModeLabel(settingsService.debugBatchProgressMode)
+                    ),
+                    SettingsItem(
+                        type: .debugBatchProgressDelay,
+                        icon: "timer",
+                        iconColor: .systemOrange,
+                        title: "Batch Step Delay",
+                        value: debugBatchProgressDelayLabel(settingsService.debugBatchProgressDelay)
+                    ),
                 ]
             )
+        }
+
+        private func debugBatchProgressModeLabel(_ mode: DebugBatchProgressMode) -> String {
+            switch mode {
+            case .off: return "Off"
+            case .success: return "Success"
+            case .partialFailure: return "Partial Failure"
+            case .failure: return "Failure"
+            case .cancelled: return "Cancelled"
+            }
+        }
+
+        private func debugBatchProgressDelayLabel(_ delay: Double) -> String {
+            let options: [(value: Double, label: String)] = [
+                (0, "Off"),
+                (0.25, "0.25s"),
+                (0.75, "0.75s"),
+                (1.5, "1.5s"),
+            ]
+
+            if let option = options.first(where: { abs($0.value - delay) < 0.001 }) {
+                return option.label
+            }
+
+            return String(format: "%.2fs", delay)
+        }
+
+        private func nextDebugBatchProgressDelay(after current: Double) -> Double {
+            let options: [Double] = [0, 0.25, 0.75, 1.5]
+            let currentIndex = options.firstIndex(where: { abs($0 - current) < 0.001 }) ?? 0
+            return options[(currentIndex + 1) % options.count]
         }
     #endif
 

@@ -7,12 +7,24 @@
 
 import UIKit
 
+#if DEBUG
+    enum DebugBatchProgressMode: Int, CaseIterable {
+        case off
+        case success
+        case partialFailure
+        case failure
+        case cancelled
+    }
+#endif
+
 protocol SettingsServiceProtocol: AnyObject {
     var userInterfaceStyle: UIUserInterfaceStyle { get set }
     var launchCount: Int { get set }
     var hasShownTipAlert: Bool { get set }
     #if DEBUG
         var debugAlwaysShowTipAlert: Bool { get set }
+        var debugBatchProgressMode: DebugBatchProgressMode { get set }
+        var debugBatchProgressDelay: Double { get set }
     #endif
 }
 
@@ -26,6 +38,8 @@ final class SettingsService: SettingsServiceProtocol {
         static let hasShownTipAlert = "com.metax.settings.hasShownTipAlert"
         #if DEBUG
             static let debugAlwaysShowTipAlert = "com.metax.settings.debugAlwaysShowTipAlert"
+            static let debugBatchProgressMode = "com.metax.settings.debugBatchProgressMode"
+            static let debugBatchProgressDelay = "com.metax.settings.debugBatchProgressDelay"
         #endif
     }
 
@@ -60,6 +74,21 @@ final class SettingsService: SettingsServiceProtocol {
         var debugAlwaysShowTipAlert: Bool {
             get { defaults.bool(forKey: Keys.debugAlwaysShowTipAlert) }
             set { defaults.set(newValue, forKey: Keys.debugAlwaysShowTipAlert) }
+        }
+
+        var debugBatchProgressMode: DebugBatchProgressMode {
+            get {
+                let rawValue = defaults.integer(forKey: Keys.debugBatchProgressMode)
+                return DebugBatchProgressMode(rawValue: rawValue) ?? .off
+            }
+            set {
+                defaults.set(newValue.rawValue, forKey: Keys.debugBatchProgressMode)
+            }
+        }
+
+        var debugBatchProgressDelay: Double {
+            get { defaults.double(forKey: Keys.debugBatchProgressDelay) }
+            set { defaults.set(newValue, forKey: Keys.debugBatchProgressDelay) }
         }
     #endif
 
