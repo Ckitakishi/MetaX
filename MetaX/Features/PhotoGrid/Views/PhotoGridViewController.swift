@@ -13,9 +13,16 @@ import UIKit
 @MainActor
 class PhotoGridViewController: UIViewController, ViewModelObserving {
 
+    private enum NavigationBarState {
+        case normal(canSort: Bool)
+        case selecting(selectedCount: Int, canSort: Bool)
+    }
+
     // MARK: - Intent Closures
 
     var onSelectAsset: ((PHAsset, PHAssetCollection?) -> Void)?
+    var onBatchEdit: (([PHAsset]) -> Void)?
+    var onBatchClear: (([PHAsset]) -> Void)?
 
     // MARK: - UI Components
 
@@ -26,6 +33,37 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
     private let viewModel: PhotoGridViewModel
 
     // MARK: - Properties
+
+    private var baseTitle: String?
+    private lazy var closeSelectionBarButtonItem = UIBarButtonItem(
+        image: UIImage(systemName: "xmark"),
+        style: .plain,
+        target: self,
+        action: #selector(exitSelectionMode)
+    )
+
+    private lazy var sortBarButtonItem = UIBarButtonItem(
+        image: UIImage(systemName: "arrow.up.arrow.down"),
+        menu: createSortMenu()
+    )
+
+    private lazy var selectionBarButtonItem = UIBarButtonItem(
+        title: String(localized: .batchSelect),
+        style: .plain,
+        target: self,
+        action: #selector(enterSelectionMode)
+    )
+
+    private lazy var selectionActionsBarButtonItem = UIBarButtonItem(
+        image: UIImage(systemName: "ellipsis"),
+        menu: createSelectionActionsMenu()
+    )
+
+    private lazy var barButtonSpacerItem: UIBarButtonItem = {
+        let item = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
+        item.width = 12
+        return item
+    }()
 
     private var thumbnailSize: CGSize = .zero
     private var columns: Int {
@@ -55,6 +93,7 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     func configureWithViewModel(fetchResult: PHFetchResult<PHAsset>?, collection: PHAssetCollection?) {
         viewModel.configure(with: fetchResult, collection: collection)
+        baseTitle = collection?.localizedTitle ?? baseTitle ?? title
         if isViewLoaded {
             setupNavigationBar()
         }
@@ -65,6 +104,7 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        baseTitle = baseTitle ?? title
         setupUI()
         setupBindings()
 
@@ -100,16 +140,31 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
     // MARK: - UI Setup
 
     private func setupNavigationBar() {
-        if viewModel.assetCollection != nil {
-            navigationItem.rightBarButtonItem = nil
-            return
-        }
+        renderNavigationBar(for: currentNavigationBarState())
+    }
 
-        let sortButton = UIBarButtonItem(
-            image: UIImage(systemName: "arrow.up.arrow.down"),
-            menu: createSortMenu()
-        )
-        navigationItem.rightBarButtonItem = sortButton
+    private func currentNavigationBarState() -> NavigationBarState {
+        let canSort = viewModel.assetCollection == nil
+        if viewModel.isSelecting {
+            return .selecting(selectedCount: viewModel.selectedCount, canSort: canSort)
+        } else {
+            return .normal(canSort: canSort)
+        }
+    }
+
+    private func renderNavigationBar(for state: NavigationBarState) {
+        updateMenus(for: state)
+
+        switch state {
+        case let .normal(canSort):
+            title = defaultTitle
+            navigationItem.leftBarButtonItem = nil
+            navigationItem.rightBarButtonItems = rightBarButtonItems(canSort: canSort, isSelecting: false)
+        case let .selecting(selectedCount, canSort):
+            title = selectionTitle(for: selectedCount)
+            navigationItem.leftBarButtonItem = closeSelectionBarButtonItem
+            navigationItem.rightBarButtonItems = rightBarButtonItems(canSort: canSort, isSelecting: true)
+        }
     }
 
     private func createSortMenu() -> UIMenu {
@@ -118,7 +173,7 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
             state: viewModel.currentSortOrder == .creationDate ? .on : .off
         ) { [weak self] _ in
             self?.viewModel.currentSortOrder = .creationDate
-            self?.updateNavigationBar()
+            self?.rebuildMenus()
         }
 
         let addedDateAction = UIAction(
@@ -126,14 +181,62 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
             state: viewModel.currentSortOrder == .addedDate ? .on : .off
         ) { [weak self] _ in
             self?.viewModel.currentSortOrder = .addedDate
-            self?.updateNavigationBar()
+            self?.rebuildMenus()
         }
 
         return UIMenu(title: String(localized: .sortMenuTitle), children: [creationDateAction, addedDateAction])
     }
 
-    private func updateNavigationBar() {
-        navigationItem.rightBarButtonItem?.menu = createSortMenu()
+    private func createSelectionActionsMenu() -> UIMenu {
+        let hasSelection = viewModel.selectedCount > 0
+
+        let editAction = UIAction(
+            title: String(localized: .viewEditMetadata),
+            image: UIImage(systemName: "pencil.line"),
+            attributes: hasSelection ? [] : .disabled
+        ) { [weak self] _ in
+            self?.batchEditTapped()
+        }
+
+        let clearAction = UIAction(
+            title: String(localized: .viewClearAllMetadata),
+            image: UIImage(systemName: "trash"),
+            attributes: hasSelection ? .destructive : [.destructive, .disabled]
+        ) { [weak self] _ in
+            self?.batchClearTapped()
+        }
+
+        return UIMenu(children: [editAction, clearAction])
+    }
+
+    private var defaultTitle: String? {
+        baseTitle
+    }
+
+    private func selectionTitle(for count: Int) -> String {
+        count > 0
+            ? String(localized: .batchNitemsSelected(count))
+            : String(localized: .batchSelectItems)
+    }
+
+    private func rightBarButtonItems(canSort: Bool, isSelecting: Bool) -> [UIBarButtonItem] {
+        var items: [UIBarButtonItem] = [isSelecting ? selectionActionsBarButtonItem : selectionBarButtonItem]
+        if canSort {
+            items.append(barButtonSpacerItem)
+            items.append(sortBarButtonItem)
+        }
+        return items
+    }
+
+    private func updateMenus(for state: NavigationBarState) {
+        sortBarButtonItem.menu = createSortMenu()
+        if case .selecting = state {
+            selectionActionsBarButtonItem.menu = createSelectionActionsMenu()
+        }
+    }
+
+    private func rebuildMenus() {
+        updateMenus(for: currentNavigationBarState())
     }
 
     private func setupUI() {
@@ -146,6 +249,9 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
         collectionView.dataSource = self
         collectionView.showsVerticalScrollIndicator = false
         collectionView.translatesAutoresizingMaskIntoConstraints = false
+
+        collectionView.allowsMultipleSelection = false
+        collectionView.allowsMultipleSelectionDuringEditing = true
 
         collectionView.register(
             PhotoCollectionViewCell.self,
@@ -192,16 +298,71 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
         viewModel.setThumbnailSize(thumbnailSize)
     }
 
+    // MARK: - Selection Mode
+
+    @objc private func enterSelectionMode() {
+        viewModel.isSelecting = true
+        collectionView.isEditing = true
+        collectionView.allowsMultipleSelection = true
+        setupNavigationBar()
+        updateVisibleCellsSelectionState()
+    }
+
+    @objc private func exitSelectionMode() {
+        viewModel.clearSelection()
+        collectionView.isEditing = false
+        collectionView.allowsMultipleSelection = false
+        for indexPath in collectionView.indexPathsForSelectedItems ?? [] {
+            collectionView.deselectItem(at: indexPath, animated: false)
+        }
+        setupNavigationBar()
+        updateVisibleCellsSelectionState()
+    }
+
+    func resetBatchSelectionMode() {
+        guard isViewLoaded else {
+            viewModel.clearSelection()
+            return
+        }
+        exitSelectionMode()
+    }
+
+    private func updateVisibleCellsSelectionState() {
+        for cell in collectionView.visibleCells {
+            guard let photoCell = cell as? PhotoCollectionViewCell,
+                  let indexPath = collectionView.indexPath(for: cell) else { continue }
+            photoCell.updateSelectionState(
+                isSelecting: viewModel.isSelecting,
+                isSelected: viewModel.isSelected(at: indexPath.item)
+            )
+        }
+    }
+
+    private func batchEditTapped() {
+        let assets = viewModel.selectedPHAssets()
+        guard !assets.isEmpty else { return }
+        onBatchEdit?(assets)
+    }
+
+    private func batchClearTapped() {
+        let assets = viewModel.selectedPHAssets()
+        guard !assets.isEmpty else { return }
+        onBatchClear?(assets)
+    }
+
     // MARK: - Bindings
 
     private func setupBindings() {
-        // Observe fetchResult changes and reload immediately (synchronously)
-        // to take advantage of PHFetchResult's lazy loading.
         observe(viewModel: viewModel, property: { $0.fetchResult }) { [weak self] _ in
             guard let self else { return }
             collectionView.reloadData()
             viewModel.resetCachedAssets()
             updateCachedAssets()
+        }
+
+        observe(viewModel: viewModel, property: { $0.selectedIdentifiers }) { [weak self] _ in
+            guard let self, viewModel.isSelecting else { return }
+            renderNavigationBar(for: currentNavigationBarState())
         }
     }
 
@@ -242,17 +403,67 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
             return UICollectionViewCell()
         }
 
+        let isSelected = viewModel.isSelected(at: indexPath.item)
         cell.configure(
             with: cellModel,
-            imageStream: viewModel.requestImageStream(for: cellModel.asset, targetSize: thumbnailSize)
+            imageStream: viewModel.requestImageStream(for: cellModel.asset, targetSize: thumbnailSize),
+            isSelecting: viewModel.isSelecting,
+            isSelected: isSelected
         )
+
+        // Keep collection view selection state in sync with viewModel
+        if viewModel.isSelecting && isSelected {
+            collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
+        }
 
         return cell
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard let asset = viewModel.asset(at: indexPath.item) else { return }
-        onSelectAsset?(asset, viewModel.assetCollection)
+        if viewModel.isSelecting {
+            let success = viewModel.setSelected(true, at: indexPath.item)
+            if !success {
+                // At selection limit — revert the collection view's selection
+                collectionView.deselectItem(at: indexPath, animated: false)
+                let maxCount = PhotoGridViewModel.maxSelectionCount
+                let alert = UIAlertController(
+                    title: nil,
+                    message: String(localized: .batchSelectionLimit(maxCount)),
+                    preferredStyle: .alert
+                )
+                alert.addAction(UIAlertAction(title: String(localized: .alertConfirm), style: .default))
+                present(alert, animated: true)
+            }
+        } else {
+            collectionView.deselectItem(at: indexPath, animated: false)
+            guard let asset = viewModel.asset(at: indexPath.item) else { return }
+            onSelectAsset?(asset, viewModel.assetCollection)
+        }
+    }
+
+    func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
+        guard viewModel.isSelecting else { return }
+        viewModel.setSelected(false, at: indexPath.item)
+    }
+
+    // MARK: - Multi-Select Gesture
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        shouldBeginMultipleSelectionInteractionAt indexPath: IndexPath
+    ) -> Bool {
+        return viewModel.isSelecting
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        didBeginMultipleSelectionInteractionAt indexPath: IndexPath
+    ) {
+        // Already in selection mode
+    }
+
+    func collectionViewDidEndMultipleSelectionInteraction(_ collectionView: UICollectionView) {
+        // No action needed
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {

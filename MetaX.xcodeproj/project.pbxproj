@@ -83,6 +83,7 @@
 		56E6F1E12F42F0D9002D0CAA /* DetailInfoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1E02F42F0D9002D0CAA /* DetailInfoViewModelTests.swift */; };
 		56E6F1E22F45B9CA002D0CAA /* OnceGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1E12F45B9CA002D0CAA /* OnceGuard.swift */; };
 		56E6F1E32F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1E22F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift */; };
+		56F0A2012F7C110000A1B2C3 /* PhotoGridViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56F0A2002F7C110000A1B2C3 /* PhotoGridViewModelTests.swift */; };
 		56E6F1E62F45F04E002D0CAA /* PHAssetExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1E52F45F04E002D0CAA /* PHAssetExtension.swift */; };
 		56E6F1EA2F460DEF002D0CAA /* UITableView+Reusable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1E82F460DEF002D0CAA /* UITableView+Reusable.swift */; };
 		56E6F1EC2F460E2A002D0CAA /* AlbumViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E6F1EB2F460E2A002D0CAA /* AlbumViewModel.swift */; };
@@ -195,6 +196,7 @@
 		56E6F1E02F42F0D9002D0CAA /* DetailInfoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailInfoViewModelTests.swift; sourceTree = "<group>"; };
 		56E6F1E12F45B9CA002D0CAA /* OnceGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnceGuard.swift; sourceTree = "<group>"; };
 		56E6F1E22F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveOptionsViewModelTests.swift; sourceTree = "<group>"; };
+		56F0A2002F7C110000A1B2C3 /* PhotoGridViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoGridViewModelTests.swift; sourceTree = "<group>"; };
 		56E6F1E52F45F04E002D0CAA /* PHAssetExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PHAssetExtension.swift; sourceTree = "<group>"; };
 		56E6F1E82F460DEF002D0CAA /* UITableView+Reusable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UITableView+Reusable.swift"; sourceTree = "<group>"; };
 		56E6F1EB2F460E2A002D0CAA /* AlbumViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumViewModel.swift; sourceTree = "<group>"; };
@@ -284,6 +286,7 @@
 				11E84E09208CD56C003A8F88 /* MetadataEditTests.swift */,
 				56E6F1E02F42F0D9002D0CAA /* DetailInfoViewModelTests.swift */,
 				56E6F1E22F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift */,
+				56F0A2002F7C110000A1B2C3 /* PhotoGridViewModelTests.swift */,
 				11E84E0B208CD56C003A8F88 /* Info.plist */,
 			);
 			path = MetaXTests;
@@ -826,6 +829,7 @@
 				56E6F1FF2F4C7B06002D0CAA /* MetadataLogicTests.swift in Sources */,
 				56E6F1E12F42F0D9002D0CAA /* DetailInfoViewModelTests.swift in Sources */,
 				56E6F1E32F42F0D9002D0CAA /* SaveOptionsViewModelTests.swift in Sources */,
+				56F0A2012F7C110000A1B2C3 /* PhotoGridViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

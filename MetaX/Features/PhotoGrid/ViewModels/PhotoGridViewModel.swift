@@ -19,6 +19,10 @@ final class PhotoGridViewModel: NSObject {
         let isLivePhoto: Bool
     }
 
+    // MARK: - Constants
+
+    static let maxSelectionCount = 99
+
     // MARK: - Properties
 
     private(set) var fetchResult: PHFetchResult<PHAsset>?
@@ -32,6 +36,20 @@ final class PhotoGridViewModel: NSObject {
     var currentSortOrder: PhotoSortOrder {
         didSet { refreshPhotos() }
     }
+
+    // MARK: - Selection State
+
+    var isSelecting: Bool = false {
+        didSet {
+            if !isSelecting { selectedIdentifiers.removeAll() }
+        }
+    }
+
+    private(set) var selectedIdentifiers: Set<String> = []
+
+    var selectedCount: Int { selectedIdentifiers.count }
+
+    var isAtSelectionLimit: Bool { selectedCount >= Self.maxSelectionCount }
 
     // MARK: - Dependencies
 
@@ -82,6 +100,58 @@ final class PhotoGridViewModel: NSObject {
 
     func unregisterPhotoLibraryObserver() {
         photoLibraryService.unregisterChangeObserver(self)
+    }
+
+    // MARK: - Selection Methods
+
+    /// Toggles selection for the asset at the given index. Returns false if at limit.
+    @discardableResult
+    func toggleSelection(at index: Int) -> Bool {
+        guard let asset = asset(at: index) else { return false }
+        let id = asset.localIdentifier
+        if selectedIdentifiers.contains(id) {
+            selectedIdentifiers.remove(id)
+            return true
+        } else if !isAtSelectionLimit {
+            selectedIdentifiers.insert(id)
+            return true
+        }
+        return false
+    }
+
+    /// Explicitly set selection state for the asset at the given index. Returns false if at limit when selecting.
+    @discardableResult
+    func setSelected(_ selected: Bool, at index: Int) -> Bool {
+        guard let asset = asset(at: index) else { return false }
+        let id = asset.localIdentifier
+        if selected {
+            guard !isAtSelectionLimit else { return false }
+            selectedIdentifiers.insert(id)
+        } else {
+            selectedIdentifiers.remove(id)
+        }
+        return true
+    }
+
+    func isSelected(at index: Int) -> Bool {
+        guard let asset = asset(at: index) else { return false }
+        return selectedIdentifiers.contains(asset.localIdentifier)
+    }
+
+    func clearSelection() {
+        isSelecting = false
+    }
+
+    /// Resolves currently selected identifiers back to `PHAsset` instances.
+    /// This performs a synchronous Photos fetch and should stay off hot UI refresh paths.
+    func selectedPHAssets() -> [PHAsset] {
+        guard !selectedIdentifiers.isEmpty else { return [] }
+        let result = PHAsset.fetchAssets(withLocalIdentifiers: Array(selectedIdentifiers), options: nil)
+        var assets: [PHAsset] = []
+        result.enumerateObjects { asset, _, _ in
+            assets.append(asset)
+        }
+        return assets
     }
 
     // MARK: - Data Access
