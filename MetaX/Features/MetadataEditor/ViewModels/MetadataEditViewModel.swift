@@ -215,7 +215,8 @@ final class MetadataEditViewModel: MetadataFormEditing {
         isGeocoding = true
         locationAddress = "..."
 
-        geocodingTask = Task {
+        geocodingTask = Task { [weak self] in
+            guard let self else { return }
             let address = await ReverseGeocodingFormatter.resolveAddress(for: loc, using: geocoder)
             guard !Task.isCancelled else { return }
             isGeocoding = false

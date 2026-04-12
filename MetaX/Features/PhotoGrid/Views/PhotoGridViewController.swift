@@ -66,6 +66,7 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
     }()
 
     private var thumbnailSize: CGSize = .zero
+    private var lastHasSelection = false
     private var columns: Int {
         calculateColumns(for: view.safeAreaLayoutGuide.layoutFrame.width)
     }
@@ -310,6 +311,7 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     @objc private func exitSelectionMode() {
         viewModel.clearSelection()
+        lastHasSelection = false
         collectionView.isEditing = false
         collectionView.allowsMultipleSelection = false
         for indexPath in collectionView.indexPathsForSelectedItems ?? [] {
@@ -362,7 +364,11 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
         observe(viewModel: viewModel, property: { $0.selectedIdentifiers }) { [weak self] _ in
             guard let self, viewModel.isSelecting else { return }
-            renderNavigationBar(for: currentNavigationBarState())
+            title = selectionTitle(for: viewModel.selectedCount)
+            let hasSelection = viewModel.selectedCount > 0
+            guard hasSelection != lastHasSelection else { return }
+            lastHasSelection = hasSelection
+            selectionActionsBarButtonItem.menu = createSelectionActionsMenu()
         }
     }
 
@@ -400,6 +406,7 @@ extension PhotoGridViewController: UICollectionViewDataSource, UICollectionViewD
                   for: indexPath
               ) as? PhotoCollectionViewCell
         else {
+            assertionFailure("Failed to dequeue or configure PhotoCollectionViewCell at \(indexPath)")
             return UICollectionViewCell()
         }
 
