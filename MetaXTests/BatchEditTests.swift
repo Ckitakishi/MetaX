@@ -91,6 +91,43 @@ struct BatchEditTests {
         #expect(storedLocation?.coordinate.longitude == location.coordinate.longitude)
     }
 
+    @Test("Disabling location clears geocoding state immediately")
+    func disablingLocationClearsGeocodingState() {
+        let viewModel = BatchMetadataEditViewModel()
+        let location = CLLocation(latitude: 35.6895, longitude: 139.6917)
+
+        viewModel.setFieldEnabled(true, for: .location)
+        viewModel.reverseGeocode(location)
+
+        #expect(viewModel.isGeocoding == true)
+        #expect(viewModel.locationAddress == "...")
+
+        viewModel.setFieldEnabled(false, for: .location)
+
+        #expect(viewModel.isGeocoding == false)
+        #expect(viewModel.locationAddress == nil)
+        #expect(viewModel.location == nil)
+    }
+
+    @Test("Batch editor reports fields marked for clearing")
+    func batchEditorReportsFieldsMarkedForClearing() {
+        let viewModel = BatchMetadataEditViewModel()
+        viewModel.setFieldEnabled(true, for: .artist)
+        viewModel.setFieldEnabled(true, for: .location)
+        viewModel.setFieldEnabled(true, for: .make)
+        viewModel.updateValue(.string("Sony"), for: .make)
+
+        let prepared = viewModel.getPreparedFields()
+        let clearedFields = viewModel.fieldsMarkedForClearing(in: prepared)
+        let updatedFields = viewModel.fieldsMarkedForUpdate(in: prepared)
+
+        #expect(clearedFields.contains(.artist))
+        #expect(clearedFields.contains(.location))
+        #expect(clearedFields.contains(.make) == false)
+        #expect(updatedFields.contains(.make))
+        #expect(updatedFields.contains(.artist) == false)
+    }
+
     @Test("Disabling date field resets its draft value")
     func batchEditorClearsDraftDateWhenDateFieldDisabled() {
         let viewModel = BatchMetadataEditViewModel()
@@ -132,26 +169,6 @@ struct BatchEditTests {
         viewModel.options[0].action?()
 
         #expect(selectedMode == .updateOriginal)
-    }
-
-    @Test("Batch error details format each error on its own line")
-    func batchErrorDetailsFormatting() {
-        let result = BatchEditViewModel.BatchResult(
-            succeeded: 1,
-            failed: 2,
-            cancelled: false,
-            errors: [
-                ("a", .metadata(.readFailed)),
-                ("b", .imageSave(.editionFailed)),
-            ]
-        )
-
-        let message = BatchEditPresentation.failureDetailsMessage(for: result)
-
-        #expect(message.contains("1."))
-        #expect(message.contains("2."))
-        #expect(message.contains("MX-1010"))
-        #expect(message.contains("MX-1020"))
     }
 
     @Test("Batch executor rejects save-as-copy mode")

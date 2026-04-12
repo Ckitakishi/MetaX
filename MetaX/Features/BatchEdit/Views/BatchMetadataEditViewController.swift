@@ -71,6 +71,45 @@ final class BatchMetadataEditViewController: MetadataFormViewController {
         stackView.addArrangedSubview(createHint(resource: .batchHintBasicInfo, color: .systemGray))
     }
 
+    override func shouldProceedWithSave(fields: [MetadataField: MetadataFieldValue]) async -> Bool {
+        let updatedFields = viewModel.fieldsMarkedForUpdate(in: fields)
+        let clearedFields = viewModel.fieldsMarkedForClearing(in: fields)
+        guard !updatedFields.isEmpty || !clearedFields.isEmpty else { return true }
+
+        var sections: [BatchChangeSummaryViewController.Section] = []
+
+        if !updatedFields.isEmpty {
+            let rows = updatedFields.compactMap { field -> BatchChangeSummaryViewController.Row? in
+                guard let value = fields[field] else { return nil }
+                return .init(title: field.label, value: displayValue(for: field, value: value))
+            }
+            sections.append(
+                .init(
+                    title: String(localized: .batchSummaryUpdateSection),
+                    rows: rows
+                )
+            )
+        }
+
+        if !clearedFields.isEmpty {
+            let rows = clearedFields.map { BatchChangeSummaryViewController.Row(title: $0.label, value: nil) }
+            sections.append(
+                .init(
+                    title: String(localized: .batchSummaryClearSection),
+                    rows: rows
+                )
+            )
+        }
+
+        return await BatchChangeSummaryViewController.present(
+            title: String(localized: .batchSummaryTitle),
+            sections: sections,
+            confirmTitle: String(localized: .alertContinue),
+            cancelTitle: String(localized: .alertCancel),
+            on: self
+        )
+    }
+
     // MARK: - Field Setup
 
     override func setupFields() {
@@ -169,6 +208,7 @@ final class BatchMetadataEditViewController: MetadataFormViewController {
     private func handleFieldToggle(_ isEnabled: Bool, for field: MetadataField) {
         viewModel.setFieldEnabled(isEnabled, for: field)
         if field == .dateTimeOriginal, isEnabled {
+            // Date should not be cleared, so seed with "now" as a starting point for the picker.
             viewModel.updateValue(.date(Date()), for: .dateTimeOriginal)
         }
         applyFieldState(for: field)
@@ -219,5 +259,44 @@ final class BatchMetadataEditViewController: MetadataFormViewController {
         case .flash: return viewModel.flash
         default: return nil
         }
+    }
+
+    private func displayValue(for field: MetadataField, value: MetadataFieldValue) -> String {
+        switch value {
+        case let .string(text):
+            return text
+        case let .double(number):
+            return number.truncatingRemainder(dividingBy: 1) == 0
+                ? String(format: "%.0f", number)
+                : String(format: "%.1f", number)
+        case let .int(number):
+            return pickerDisplayName(for: field, rawValue: number) ?? String(number)
+        case let .intArray(numbers):
+            return numbers.map(String.init).joined(separator: ", ")
+        case let .date(date):
+            return DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .short)
+        case let .location(location):
+            return viewModel.locationAddress ?? ReverseGeocodingFormatter.coordinateFallback(for: location)
+        case .null:
+            return ""
+        }
+    }
+
+    private func pickerDisplayName(for field: MetadataField, rawValue: Int) -> String? {
+        let options: [ExifOption]
+        switch field {
+        case .exposureProgram:
+            options = ExifPickerOptions.exposureProgram
+        case .meteringMode:
+            options = ExifPickerOptions.meteringMode
+        case .whiteBalance:
+            options = ExifPickerOptions.whiteBalance
+        case .flash:
+            options = ExifPickerOptions.flash
+        default:
+            return nil
+        }
+
+        return options.first(where: { $0.rawValue == rawValue })?.displayName
     }
 }

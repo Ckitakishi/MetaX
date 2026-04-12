@@ -79,6 +79,7 @@ class MetadataFormViewController: UIViewController, UITextFieldDelegate,
     }()
 
     private var keyboardObserver: KeyboardObserver?
+    private var saveTask: Task<Void, Never>?
 
     // MARK: - Lifecycle
 
@@ -116,6 +117,10 @@ class MetadataFormViewController: UIViewController, UITextFieldDelegate,
     /// Called after form layout is set up, before sections are built.
     /// Subclass can add views to stackView here (e.g. a global hint).
     func additionalFormSetup() {}
+
+    /// Called before dispatching prepared fields to `onSave`.
+    /// Subclasses can present confirmation UI and return `false` to abort saving.
+    func shouldProceedWithSave(fields: [MetadataField: MetadataFieldValue]) async -> Bool { true }
 
     // MARK: - Form Layout
 
@@ -332,8 +337,20 @@ class MetadataFormViewController: UIViewController, UITextFieldDelegate,
     }
 
     @objc private func save() {
+        guard saveTask == nil else { return }
         let fields = formViewModel.getPreparedFields()
-        onSave?(fields)
+        let wasSaveButtonEnabled = navigationItem.rightBarButtonItem?.isEnabled ?? true
+        navigationItem.rightBarButtonItem?.isEnabled = false
+
+        saveTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer {
+                saveTask = nil
+                navigationItem.rightBarButtonItem?.isEnabled = wasSaveButtonEnabled
+            }
+            guard await shouldProceedWithSave(fields: fields) else { return }
+            onSave?(fields)
+        }
     }
 
     // MARK: - Location Update

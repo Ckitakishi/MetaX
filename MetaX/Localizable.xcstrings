@@ -3681,6 +3681,29 @@
         }
       }
     },
+    "Batch.CompleteWithIssues": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partially Complete"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一部完了"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分完成"
+          }
+        }
+      }
+    },
     "Batch.AllSucceeded %lld": {
       "extractionState": "manual",
       "localizations": {
@@ -3693,13 +3716,36 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld枚すべての写真を更新しました。"
+            "value": "%lld枚の写真を更新しました。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "已成功更新全部%lld张照片。"
+          }
+        }
+      }
+    },
+    "Batch.AllFailed %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All %lld photos failed to process."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld枚の写真を処理できませんでした。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld张照片全部处理失败。"
           }
         }
       }
@@ -3861,6 +3907,121 @@
           "stringUnit": {
             "state": "translated",
             "value": "是否清除%lld张照片的所有元数据？此操作不可撤销。"
+          }
+        }
+      }
+    },
+    "Batch.ClearSummaryMessage %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These fields will be cleared for all selected photos:\n\n• %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択したすべての写真で、次の項目がクリアされます：\n\n• %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以下字段将从所选的所有照片中清除：\n\n• %@"
+          }
+        }
+      }
+    },
+    "Batch.ClearSummaryTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm Fields to Clear"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クリアする項目を確認"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认要清除的字段"
+          }
+        }
+      }
+    },
+    "Batch.SummaryClearSection": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Will Clear"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クリアされる項目"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将清除"
+          }
+        }
+      }
+    },
+    "Batch.SummaryTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review Batch Changes"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一括変更の確認"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认批量修改"
+          }
+        }
+      }
+    },
+    "Batch.SummaryUpdateSection": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Will Update"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新する項目"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将更新"
           }
         }
       }

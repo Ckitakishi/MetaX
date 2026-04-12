@@ -92,6 +92,11 @@ final class BatchMetadataEditViewModel: MetadataFormEditing {
         }
     }
 
+    /// Toggles a field on/off for batch editing.
+    /// Enabling a field sets it to `.cleared` — meaning "clear this field on all assets".
+    /// The user can then type a value to switch it to `.value(…)` instead.
+    /// Date fields are handled differently in the VC: the toggle immediately seeds
+    /// `Date()` as a starting value because dates cannot be cleared.
     func setFieldEnabled(_ enabled: Bool, for field: MetadataField) {
         if enabled {
             guard !isFieldEnabled(field) else { return }
@@ -111,6 +116,7 @@ final class BatchMetadataEditViewModel: MetadataFormEditing {
         } else {
             clearDraft(for: field)
             if field == .location {
+                cancelGeocoding()
                 locationAddress = nil
             }
         }
@@ -138,6 +144,7 @@ final class BatchMetadataEditViewModel: MetadataFormEditing {
             if let location = value?.locationValue {
                 locationDrafts[field] = .value(location)
             } else {
+                cancelGeocoding()
                 locationDrafts[field] = .cleared
                 locationAddress = nil
             }
@@ -150,14 +157,17 @@ final class BatchMetadataEditViewModel: MetadataFormEditing {
 
     func reverseGeocode(_ loc: CLLocation) {
         locationDrafts[.location] = .value(loc)
-        geocodingTask?.cancel()
-        geocoder.cancelGeocode()
+        cancelGeocoding()
         isGeocoding = true
         locationAddress = "..."
 
-        geocodingTask = Task {
+        geocodingTask = Task { [weak self] in
+            guard let self else { return }
             let address = await ReverseGeocodingFormatter.resolveAddress(for: loc, using: geocoder)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled else {
+                isGeocoding = false
+                return
+            }
             isGeocoding = false
             locationAddress = address
         }
@@ -298,6 +308,24 @@ final class BatchMetadataEditViewModel: MetadataFormEditing {
         return result
     }
 
+    func fieldsMarkedForClearing(in preparedFields: [MetadataField: MetadataFieldValue]) -> [MetadataField] {
+        preparedFields.compactMap { field, value in
+            if case .null = value {
+                return field
+            }
+            return nil
+        }.sorted { $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending }
+    }
+
+    func fieldsMarkedForUpdate(in preparedFields: [MetadataField: MetadataFieldValue]) -> [MetadataField] {
+        preparedFields.compactMap { field, value in
+            if case .null = value {
+                return nil
+            }
+            return field
+        }.sorted { $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending }
+    }
+
     // MARK: - Validation (delegates to shared logic)
 
     func validateInput(
@@ -331,6 +359,13 @@ final class BatchMetadataEditViewModel: MetadataFormEditing {
         intDrafts.removeValue(forKey: field)
         dateDrafts.removeValue(forKey: field)
         locationDrafts.removeValue(forKey: field)
+    }
+
+    private func cancelGeocoding() {
+        geocodingTask?.cancel()
+        geocodingTask = nil
+        geocoder.cancelGeocode()
+        isGeocoding = false
     }
 
     private func stringDraft(for field: MetadataField) -> FieldDraft<String> {

@@ -228,16 +228,3 @@ final class BatchEditViewModel {
         }
     #endif
 }
-
-enum BatchEditPresentation {
-    static func failureDetailsMessage(for result: BatchEditViewModel.BatchResult) -> String {
-        guard !result.errors.isEmpty else {
-            return String(localized: .batchErrorDetailsMessage)
-        }
-
-        return result.errors.enumerated().map { index, entry in
-            let (_, error) = entry
-            return "\(index + 1). \(error.localizedDescription)"
-        }.joined(separator: "\n")
-    }
-}

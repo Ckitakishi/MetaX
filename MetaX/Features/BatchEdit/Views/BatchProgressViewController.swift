@@ -382,7 +382,7 @@ final class BatchProgressViewController: UIViewController, ViewModelObserving {
         if result.succeeded == 0 {
             return String(localized: .batchFailed)
         }
-        return String(localized: .batchComplete)
+        return String(localized: .batchCompleteWithIssues)
     }
 
     private func finishedIcon(for result: BatchEditViewModel.BatchResult) -> UIImage? {
@@ -399,18 +399,18 @@ final class BatchProgressViewController: UIViewController, ViewModelObserving {
     }
 
     private func finishedMessage(for result: BatchEditViewModel.BatchResult) -> (primary: String, secondary: String?) {
+        let errorHint = result.failed > 0 ? String(localized: .batchErrorDetailsMessage) : nil
         if result.cancelled {
             let processedCount = result.succeeded + result.failed
-            let summary = String(localized: .batchCancelledProgress(processedCount, totalCount))
-            guard !result.errors.isEmpty else { return (summary, nil) }
-            return (summary, BatchEditPresentation.failureDetailsMessage(for: result))
+            return (String(localized: .batchCancelledProgress(processedCount, totalCount)), errorHint)
         }
         if result.failed == 0 {
             return (String(localized: .batchAllSucceeded(totalCount)), nil)
         }
-        let summary = String(localized: .batchPartialSuccess(result.succeeded, totalCount))
-        guard !result.errors.isEmpty else { return (summary, nil) }
-        return (summary, BatchEditPresentation.failureDetailsMessage(for: result))
+        if result.succeeded == 0 {
+            return (String(localized: .batchAllFailed(totalCount)), errorHint)
+        }
+        return (String(localized: .batchPartialSuccess(result.succeeded, totalCount)), errorHint)
     }
 
     private func configureActionButton(title: String) {
