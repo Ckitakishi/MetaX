@@ -46,7 +46,7 @@ final class LocationSearchService: NSObject, LocationSearchServiceProtocol {
         let search = MKLocalSearch(request: searchRequest)
 
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<LocationModel, Error>) in
-            let onceGuard = OnceGuard(continuation)
+            let onceGuard = OnceGuard(continuation, onDeinit: { $0.resume(throwing: CancellationError()) })
             search.start { response, error in
                 if let error {
                     onceGuard.resume(throwing: error)

@@ -49,7 +49,7 @@ extension PHAsset {
     func fetchContentEditingInput(with options: PHContentEditingInputRequestOptions) async throws
         -> PHContentEditingInput {
         let box: PHContentEditingInputSendableBox = try await withCheckedThrowingContinuation { continuation in
-            let onceGuard = OnceGuard(continuation)
+            let onceGuard = OnceGuard(continuation, onDeinit: { $0.resume(throwing: CancellationError()) })
 
             requestContentEditingInput(with: options) { input, info in
                 if let inCloud = info[PHContentEditingInputResultIsInCloudKey] as? Bool, inCloud, input == nil {
