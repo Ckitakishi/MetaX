@@ -109,10 +109,10 @@
 		56F0A2012F7C110000A1B2C3 /* PhotoGridViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56F0A2002F7C110000A1B2C3 /* PhotoGridViewModelTests.swift */; };
 		56F1C2012F8D9A11007F4760 /* BatchChangeSummaryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56F1C2002F8D9A11007F4760 /* BatchChangeSummaryViewController.swift */; };
 		56FA0B012F7900A000AABB01 /* MetadataFormViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56FA0B002F7900A000AABB01 /* MetadataFormViewController.swift */; };
-			56FE8DFC530633B25DB129D9 /* DateCardField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56DC8DD8900E35349A05E18F /* DateCardField.swift */; };
-			56FE8DFD530633B25DB129DA /* ToggleHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56DC8DD9900E35349A05E190 /* ToggleHeaderView.swift */; };
-			56FE8DFE530633B25DB129DB /* FieldInteractionProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56FE8DFF530633B25DB129DC /* FieldInteractionProtocols.swift */; };
-			B1A53635B2CA4D0AAB1A8083 /* ExifEnumMappings.json in Resources */ = {isa = PBXBuildFile; fileRef = 646A635100A346878D8DF79D /* ExifEnumMappings.json */; };
+		56FE8DFC530633B25DB129D9 /* DateCardField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56DC8DD8900E35349A05E18F /* DateCardField.swift */; };
+		56FE8DFD530633B25DB129DA /* ToggleHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56DC8DD9900E35349A05E190 /* ToggleHeaderView.swift */; };
+		56FE8DFE530633B25DB129DB /* FieldInteractionProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56FE8DFF530633B25DB129DC /* FieldInteractionProtocols.swift */; };
+		B1A53635B2CA4D0AAB1A8083 /* ExifEnumMappings.json in Resources */ = {isa = PBXBuildFile; fileRef = 646A635100A346878D8DF79D /* ExifEnumMappings.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -146,10 +146,9 @@
 		56C491A22F4EEEEB00E5D9FF /* SupportViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportViewController.swift; sourceTree = "<group>"; };
 		56C491A42F4EFD7A00E5D9FF /* NeoBrutalistPressable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeoBrutalistPressable.swift; sourceTree = "<group>"; };
 		56D07E3C2F31000000000030 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-			56DC8DD8900E35349A05E18F /* DateCardField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateCardField.swift; sourceTree = "<group>"; };
-			56DC8DD9900E35349A05E190 /* ToggleHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleHeaderView.swift; sourceTree = "<group>"; };
-			56FE8DFF530633B25DB129DC /* FieldInteractionProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldInteractionProtocols.swift; sourceTree = "<group>"; };
-			56E6F1422F42D491002D0CAA /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
+		56DC8DD8900E35349A05E18F /* DateCardField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateCardField.swift; sourceTree = "<group>"; };
+		56DC8DD9900E35349A05E190 /* ToggleHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleHeaderView.swift; sourceTree = "<group>"; };
+		56E6F1422F42D491002D0CAA /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		56E6F1432F42D491002D0CAA /* Coordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coordinator.swift; sourceTree = "<group>"; };
 		56E6F1442F42D491002D0CAA /* PhotoFlowCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoFlowCoordinator.swift; sourceTree = "<group>"; };
 		56E6F1462F42D491002D0CAA /* PHAssetCollectionExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PHAssetCollectionExtension.swift; sourceTree = "<group>"; };
@@ -234,6 +233,7 @@
 		56F0A2002F7C110000A1B2C3 /* PhotoGridViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoGridViewModelTests.swift; sourceTree = "<group>"; };
 		56F1C2002F8D9A11007F4760 /* BatchChangeSummaryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchChangeSummaryViewController.swift; sourceTree = "<group>"; };
 		56FA0B002F7900A000AABB01 /* MetadataFormViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataFormViewController.swift; sourceTree = "<group>"; };
+		56FE8DFF530633B25DB129DC /* FieldInteractionProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldInteractionProtocols.swift; sourceTree = "<group>"; };
 		646A635100A346878D8DF79D /* ExifEnumMappings.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ExifEnumMappings.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -612,12 +612,12 @@
 				56C491A42F4EFD7A00E5D9FF /* NeoBrutalistPressable.swift */,
 				56E6F1912F42D491002D0CAA /* Alert.swift */,
 				56E6F1922F42D491002D0CAA /* AuthLockView.swift */,
-					56E6F1932F42D491002D0CAA /* FormPickerField.swift */,
-					56E6F1942F42D491002D0CAA /* FormTextField.swift */,
-					56FE8DFF530633B25DB129DC /* FieldInteractionProtocols.swift */,
-					56DC8DD8900E35349A05E18F /* DateCardField.swift */,
-					56DC8DD9900E35349A05E190 /* ToggleHeaderView.swift */,
-					56E6F1952F42D491002D0CAA /* HUD.swift */,
+				56E6F1932F42D491002D0CAA /* FormPickerField.swift */,
+				56E6F1942F42D491002D0CAA /* FormTextField.swift */,
+				56FE8DFF530633B25DB129DC /* FieldInteractionProtocols.swift */,
+				56DC8DD8900E35349A05E18F /* DateCardField.swift */,
+				56DC8DD9900E35349A05E190 /* ToggleHeaderView.swift */,
+				56E6F1952F42D491002D0CAA /* HUD.swift */,
 				56E6F1972F42D491002D0CAA /* NeoBrutalistContainerView.swift */,
 				56E6F1982F42D491002D0CAA /* SplashView.swift */,
 			);
@@ -799,11 +799,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				56D07EA02F37000000000001 /* (null) in Sources */,
-					56E6F19D2F42D491002D0CAA /* SaveOptionsViewController.swift in Sources */,
-					56E6F19E2F42D491002D0CAA /* FormTextField.swift in Sources */,
-					56FE8DFE530633B25DB129DB /* FieldInteractionProtocols.swift in Sources */,
-					56FE8DFC530633B25DB129D9 /* DateCardField.swift in Sources */,
-					56FE8DFD530633B25DB129DA /* ToggleHeaderView.swift in Sources */,
+				56E6F19D2F42D491002D0CAA /* SaveOptionsViewController.swift in Sources */,
+				56E6F19E2F42D491002D0CAA /* FormTextField.swift in Sources */,
+				56FE8DFE530633B25DB129DB /* FieldInteractionProtocols.swift in Sources */,
+				56FE8DFC530633B25DB129D9 /* DateCardField.swift in Sources */,
+				56FE8DFD530633B25DB129DA /* ToggleHeaderView.swift in Sources */,
 				56E6F1E62F45F04E002D0CAA /* PHAssetExtension.swift in Sources */,
 				56E6F1EA2F460DEF002D0CAA /* UITableView+Reusable.swift in Sources */,
 				56F1C2012F8D9A11007F4760 /* BatchChangeSummaryViewController.swift in Sources */,

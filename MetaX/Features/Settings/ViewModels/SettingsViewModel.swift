@@ -7,7 +7,6 @@
 
 import Observation
 import Photos
-import StoreKit
 import UIKit
 
 /// Section types for the settings list.
@@ -35,13 +34,14 @@ enum SettingsSection: CaseIterable {
 
 /// Represents a single item in a settings section.
 struct SettingsItem: Identifiable {
-    let id = UUID()
     let type: ItemType
     let icon: String
     let iconColor: UIColor
     let title: String
     var value: String? = nil
     var isExternal: Bool = false
+
+    var id: ItemType { type }
 
     enum ItemType: Hashable {
         case appearance
@@ -87,20 +87,12 @@ final class SettingsViewModel {
 
     // MARK: - Dependencies
 
-    private let photoLibraryService: PhotoLibraryServiceProtocol
     private let settingsService: SettingsServiceProtocol
-    private let storeService: StoreServiceProtocol
 
     // MARK: - Initialization
 
-    init(
-        photoLibraryService: PhotoLibraryServiceProtocol,
-        settingsService: SettingsServiceProtocol,
-        storeService: StoreServiceProtocol
-    ) {
-        self.photoLibraryService = photoLibraryService
+    init(settingsService: SettingsServiceProtocol) {
         self.settingsService = settingsService
-        self.storeService = storeService
         refresh()
     }
 

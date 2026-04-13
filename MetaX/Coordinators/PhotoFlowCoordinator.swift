@@ -169,9 +169,7 @@ final class PhotoFlowCoordinator: NSObject, Coordinator {
 
     private func showSettings(from source: UIViewController) {
         let viewModel = SettingsViewModel(
-            photoLibraryService: container.photoLibraryService,
-            settingsService: container.settingsService,
-            storeService: container.storeService
+            settingsService: container.settingsService
         )
         let vc = SettingsViewController(viewModel: viewModel)
         viewModel.onNavigateToSupport = { [weak self, weak vc] in
