@@ -83,8 +83,52 @@ struct PhotoGridViewModelTests {
         #expect(viewModel.selectedCount == 0)
     }
 
+    @Test("Refreshing without collection fetches all photos using current sort order")
+    func refreshWithoutCollectionUsesGlobalFetch() {
+        let service = SpyPhotoLibraryService()
+        let expectedFetchResult = makeFetchResult(assetCount: 2)
+        service.fetchAllPhotosResult = expectedFetchResult
+        let viewModel = PhotoGridViewModel(photoLibraryService: service)
+
+        viewModel.currentSortOrder = .addedDate
+
+        #expect(service.fetchAllPhotosCallCount == 1)
+        #expect(service.lastFetchAllPhotosSortOrder == .addedDate)
+        #expect(viewModel.numberOfItems == 2)
+    }
+
+    @Test("Refreshing with collection fetches assets from that collection")
+    func refreshWithCollectionUsesCollectionFetch() {
+        let service = SpyPhotoLibraryService()
+        let collection = makeAssetCollection(localIdentifier: "collection-1")
+        let initialFetchResult = makeFetchResult(assetCount: 1)
+        let refreshedFetchResult = makeFetchResult(assetCount: 3)
+        service.fetchAssetsResult = refreshedFetchResult
+        let viewModel = PhotoGridViewModel(photoLibraryService: service)
+
+        viewModel.configure(with: initialFetchResult, collection: collection)
+        viewModel.refreshPhotos()
+
+        #expect(service.fetchAssetsCallCount == 1)
+        #expect(service.lastFetchAssetsCollection?.localIdentifier == collection.localIdentifier)
+        #expect(service.lastFetchAssetsSortOrder == .creationDate)
+        #expect(viewModel.numberOfItems == 3)
+    }
+
+    @Test("Registering and unregistering photo library observer delegates to service")
+    func observerRegistrationDelegatesToService() {
+        let service = SpyPhotoLibraryService()
+        let viewModel = PhotoGridViewModel(photoLibraryService: service)
+
+        viewModel.registerPhotoLibraryObserver()
+        viewModel.unregisterPhotoLibraryObserver()
+
+        #expect(service.registeredObserver === viewModel)
+        #expect(service.unregisteredObserver === viewModel)
+    }
+
     private func makeViewModel(assetCount: Int) -> PhotoGridViewModel {
-        let service = StubPhotoLibraryService()
+        let service = SpyPhotoLibraryService()
         let viewModel = PhotoGridViewModel(photoLibraryService: service)
         viewModel.configure(with: makeFetchResult(assetCount: assetCount), collection: nil)
         return viewModel
@@ -95,6 +139,10 @@ struct PhotoGridViewModelTests {
             unsafeBitCast(FakePHAsset(localIdentifier: "asset-\(index)"), to: PHAsset.self)
         }
         return unsafeBitCast(FakePHFetchResult(objects: assets), to: PHFetchResult<PHAsset>.self)
+    }
+
+    private func makeAssetCollection(localIdentifier: String) -> PHAssetCollection {
+        unsafeBitCast(FakePHAssetCollection(localIdentifier: localIdentifier), to: PHAssetCollection.self)
     }
 }
 
@@ -137,14 +185,54 @@ private final class FakePHFetchResult: NSObject {
     }
 }
 
-private final class StubPhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendable {
+private final class FakePHAssetCollection: NSObject {
+    private let storedIdentifier: String
+
+    init(localIdentifier: String) {
+        storedIdentifier = localIdentifier
+        super.init()
+    }
+
+    @objc var localIdentifier: String {
+        storedIdentifier
+    }
+}
+
+private final class SpyPhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendable {
+    var fetchAllPhotosResult: PHFetchResult<PHAsset> = unsafeBitCast(
+        FakePHFetchResult(objects: []),
+        to: PHFetchResult<PHAsset>.self
+    )
+    var fetchAssetsResult: PHFetchResult<PHAsset> = unsafeBitCast(
+        FakePHFetchResult(objects: []),
+        to: PHFetchResult<PHAsset>.self
+    )
+    private(set) var fetchAllPhotosCallCount = 0
+    private(set) var fetchAssetsCallCount = 0
+    private(set) var lastFetchAllPhotosSortOrder: PhotoSortOrder?
+    private(set) var lastFetchAssetsSortOrder: PhotoSortOrder?
+    private(set) var lastFetchAssetsCollection: PHAssetCollection?
+    private(set) weak var registeredObserver: PHPhotoLibraryChangeObserver?
+    private(set) weak var unregisteredObserver: PHPhotoLibraryChangeObserver?
+
     func checkAuthorization() async -> Result<Void, MetaXError> { .failure(.unknown(underlying: nil)) }
     func guideToSettings() {}
-    func fetchAllPhotos(sortedBy sortOrder: PhotoSortOrder) -> PHFetchResult<PHAsset> { fatalError("Not used") }
+    func fetchAllPhotos(sortedBy sortOrder: PhotoSortOrder) -> PHFetchResult<PHAsset> {
+        fetchAllPhotosCallCount += 1
+        lastFetchAllPhotosSortOrder = sortOrder
+        return fetchAllPhotosResult
+    }
+
     func fetchAssets(
         in collection: PHAssetCollection,
         sortedBy sortOrder: PhotoSortOrder
-    ) -> PHFetchResult<PHAsset> { fatalError("Not used") }
+    ) -> PHFetchResult<PHAsset> {
+        fetchAssetsCallCount += 1
+        lastFetchAssetsCollection = collection
+        lastFetchAssetsSortOrder = sortOrder
+        return fetchAssetsResult
+    }
+
     func fetchSmartAlbums() -> PHFetchResult<PHAssetCollection> { fatalError("Not used") }
     func fetchUserCollections() -> PHFetchResult<PHCollection> { fatalError("Not used") }
     func createAlbumIfNeeded(title: String) async -> Result<PHAssetCollection, MetaXError> {
@@ -177,6 +265,11 @@ private final class StubPhotoLibraryService: PhotoLibraryServiceProtocol, @unche
         date: Date?,
         location: CLLocation?
     ) async -> Result<Void, MetaXError> { .failure(.unknown(underlying: nil)) }
-    func registerChangeObserver(_ observer: PHPhotoLibraryChangeObserver) {}
-    func unregisterChangeObserver(_ observer: PHPhotoLibraryChangeObserver) {}
+    func registerChangeObserver(_ observer: PHPhotoLibraryChangeObserver) {
+        registeredObserver = observer
+    }
+
+    func unregisterChangeObserver(_ observer: PHPhotoLibraryChangeObserver) {
+        unregisteredObserver = observer
+    }
 }

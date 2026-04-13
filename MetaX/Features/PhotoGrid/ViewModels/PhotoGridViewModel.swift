@@ -66,7 +66,7 @@ final class PhotoGridViewModel: NSObject {
     // MARK: - Configuration
 
     func configure(with fetchResult: PHFetchResult<PHAsset>?, collection: PHAssetCollection?) {
-        libraryChangeTask?.cancel()
+        cancelLibraryChangeTask()
         pendingFetchResult = nil
         self.fetchResult = fetchResult
         assetCollection = collection
@@ -217,6 +217,11 @@ final class PhotoGridViewModel: NSObject {
 
     // MARK: - Private Methods
 
+    private func cancelLibraryChangeTask() {
+        libraryChangeTask?.cancel()
+        libraryChangeTask = nil
+    }
+
     private func differencesBetweenRects(_ old: CGRect, _ new: CGRect) -> (added: [CGRect], removed: [CGRect]) {
         if old.intersects(new) {
             var added = [CGRect]()
@@ -258,7 +263,7 @@ extension PhotoGridViewModel: PHPhotoLibraryChangeObserver {
             let isStructural = changes.insertedObjects.count > 0 || changes.removedObjects.count > 0 || changes.hasMoves
 
             if isStructural {
-                libraryChangeTask?.cancel()
+                cancelLibraryChangeTask()
                 startRefreshTask(delay: 500)
             } else if libraryChangeTask == nil {
                 startRefreshTask(delay: 5000)
@@ -268,12 +273,12 @@ extension PhotoGridViewModel: PHPhotoLibraryChangeObserver {
 
     private func startRefreshTask(delay: Int) {
         libraryChangeTask = Task { @MainActor in
+            defer { libraryChangeTask = nil }
             try? await Task.sleep(for: .milliseconds(delay))
             guard !Task.isCancelled, let pending = pendingFetchResult else { return }
 
             fetchResult = pending
             pendingFetchResult = nil
-            libraryChangeTask = nil
         }
     }
 }

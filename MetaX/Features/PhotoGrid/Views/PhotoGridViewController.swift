@@ -67,6 +67,7 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     private var thumbnailSize: CGSize = .zero
     private var lastHasSelection = false
+    private var isObservingPhotoLibrary = false
     private var columns: Int {
         calculateColumns(for: view.safeAreaLayoutGuide.layoutFrame.width)
     }
@@ -110,7 +111,6 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
         setupBindings()
 
         viewModel.loadDefaultPhotosIfNeeded()
-        viewModel.registerPhotoLibraryObserver()
     }
 
     override func viewDidLayoutSubviews() {
@@ -128,14 +128,13 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        setPhotoLibraryObservation(enabled: true)
         updateCachedAssets()
     }
 
-    deinit {
-        let vm = viewModel
-        Task { @MainActor in
-            vm.unregisterPhotoLibraryObserver()
-        }
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        setPhotoLibraryObservation(enabled: false)
     }
 
     // MARK: - UI Setup
@@ -267,6 +266,16 @@ class PhotoGridViewController: UIViewController, ViewModelObserving {
             collectionView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+    }
+
+    private func setPhotoLibraryObservation(enabled: Bool) {
+        guard enabled != isObservingPhotoLibrary else { return }
+        if enabled {
+            viewModel.registerPhotoLibraryObserver()
+        } else {
+            viewModel.unregisterPhotoLibraryObserver()
+        }
+        isObservingPhotoLibrary = enabled
     }
 
     private func createLayout(for width: CGFloat? = nil) -> UICollectionViewLayout {

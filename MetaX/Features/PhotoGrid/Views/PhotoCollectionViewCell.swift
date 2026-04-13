@@ -92,7 +92,7 @@ class PhotoCollectionViewCell: UICollectionViewCell {
 
     private var representedAssetIdentifier: String?
     private var imageLoadTask: Task<Void, Never>?
-    var isInSelectionMode = false
+    private(set) var isInSelectionMode = false
 
     override var isSelected: Bool {
         didSet {
