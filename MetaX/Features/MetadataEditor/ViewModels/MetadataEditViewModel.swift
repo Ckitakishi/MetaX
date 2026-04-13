@@ -202,6 +202,9 @@ final class MetadataEditViewModel: MetadataFormEditing {
             }
         case .location:
             fields.location = value?.locationValue
+            if fields.location == nil {
+                cancelGeocoding(resetAddress: true)
+            }
         default: break
         }
     }
@@ -210,8 +213,7 @@ final class MetadataEditViewModel: MetadataFormEditing {
 
     func reverseGeocode(_ loc: CLLocation) {
         fields.location = loc
-        geocodingTask?.cancel()
-        geocoder.cancelGeocode()
+        cancelGeocoding(resetAddress: false)
         isGeocoding = true
         locationAddress = "..."
 
@@ -226,6 +228,16 @@ final class MetadataEditViewModel: MetadataFormEditing {
 
     private static func formatValue(_ value: Double) -> String {
         value.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", value) : String(format: "%.1f", value)
+    }
+
+    private func cancelGeocoding(resetAddress: Bool) {
+        geocodingTask?.cancel()
+        geocodingTask = nil
+        geocoder.cancelGeocode()
+        isGeocoding = false
+        if resetAddress {
+            locationAddress = nil
+        }
     }
 
     // MARK: - Field Preparation

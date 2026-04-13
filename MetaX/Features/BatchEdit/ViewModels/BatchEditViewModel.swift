@@ -119,12 +119,12 @@ final class BatchEditViewModel {
                 errors.append((asset.localIdentifier, error as? MetaXError ?? .metadata(.readFailed)))
             }
 
+            state = .processing(completed: succeeded + errors.count, total: total)
             await applyDebugDelayIfNeeded()
             guard !Task.isCancelled else {
                 cancelled = true
                 break
             }
-            state = .processing(completed: succeeded + errors.count, total: total)
         }
 
         let result = BatchResult(

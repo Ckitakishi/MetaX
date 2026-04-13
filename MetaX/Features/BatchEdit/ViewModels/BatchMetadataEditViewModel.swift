@@ -156,6 +156,7 @@ final class BatchMetadataEditViewModel: MetadataFormEditing {
     // MARK: - Geocoding
 
     func reverseGeocode(_ loc: CLLocation) {
+        guard isFieldEnabled(.location) else { return }
         locationDrafts[.location] = .value(loc)
         cancelGeocoding()
         isGeocoding = true
@@ -234,6 +235,17 @@ final class BatchMetadataEditViewModel: MetadataFormEditing {
             }
         }
 
+        func addStringConvertedPatch(_ field: MetadataField, convert: (String) -> MetadataFieldValue) {
+            switch stringDraft(for: field) {
+            case .untouched:
+                return
+            case .cleared:
+                result[field] = .null
+            case let .value(value):
+                result[field] = value.isEmpty ? .null : convert(value)
+            }
+        }
+
         func addIntArrayPatch(_ field: MetadataField) {
             switch stringDraft(for: field) {
             case .untouched:
@@ -257,28 +269,11 @@ final class BatchMetadataEditViewModel: MetadataFormEditing {
         addStringPatch(.copyright)
 
         addDoublePatch(.aperture)
-        switch stringDraft(for: .shutter) {
-        case .untouched:
-            break
-        case .cleared:
-            result[.shutter] = .null
-        case let .value(value):
-            result[.shutter] = value.isEmpty ? .null : MetadataFieldConverter.parseShutter(value)
-        }
+        addStringConvertedPatch(.shutter) { MetadataFieldConverter.parseShutter($0) }
         addIntArrayPatch(.iso)
         addDoublePatch(.focalLength)
-        switch stringDraft(for: .exposureBias) {
-        case .untouched:
-            break
-        case .cleared:
-            result[.exposureBias] = .null
-        case let .value(value):
-            if value.isEmpty {
-                result[.exposureBias] = .null
-            } else {
-                let clean = value.replacingOccurrences(of: "+", with: "")
-                result[.exposureBias] = Double(clean).map(MetadataFieldValue.double) ?? .null
-            }
+        addStringConvertedPatch(.exposureBias) {
+            Double($0.replacingOccurrences(of: "+", with: "")).map(MetadataFieldValue.double) ?? .null
         }
         addIntPatch(.focalLength35)
 
@@ -355,10 +350,18 @@ final class BatchMetadataEditViewModel: MetadataFormEditing {
     }
 
     private func clearDraft(for field: MetadataField) {
-        stringDrafts.removeValue(forKey: field)
-        intDrafts.removeValue(forKey: field)
-        dateDrafts.removeValue(forKey: field)
-        locationDrafts.removeValue(forKey: field)
+        switch field.batchDraftKind {
+        case .string:
+            stringDrafts.removeValue(forKey: field)
+        case .int:
+            intDrafts.removeValue(forKey: field)
+        case .date:
+            dateDrafts.removeValue(forKey: field)
+        case .location:
+            locationDrafts.removeValue(forKey: field)
+        case .unsupported:
+            break
+        }
     }
 
     private func cancelGeocoding() {

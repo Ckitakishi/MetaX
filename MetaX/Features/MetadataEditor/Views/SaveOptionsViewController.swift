@@ -9,7 +9,7 @@
 import UIKit
 
 @MainActor
-final class SaveOptionsViewController: UIViewController, ViewModelObserving {
+final class SaveOptionsViewController: UIViewController, ViewModelObserving, UIAdaptivePresentationControllerDelegate {
     var onSelect: ((SaveWorkflowMode) -> Void)?
     var onCancel: (() -> Void)?
 
@@ -38,6 +38,11 @@ final class SaveOptionsViewController: UIViewController, ViewModelObserving {
         super.viewDidLoad()
         setupUI()
         setupBindings()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        presentationController?.delegate = self
     }
 
     private func setupUI() {
@@ -101,8 +106,7 @@ final class SaveOptionsViewController: UIViewController, ViewModelObserving {
         sheetPresentationController?.invalidateDetents()
     }
 
-    override func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
         if !didSelectOption {
             onCancel?()
         }

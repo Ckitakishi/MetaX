@@ -140,6 +140,22 @@ struct MetadataEditTests {
         ) == expected)
     }
 
+    @Test("Clearing location resets geocoding state immediately")
+    func clearingLocationClearsGeocodingState() {
+        let location = CLLocation(latitude: 35.6895, longitude: 139.6917)
+
+        viewModel.reverseGeocode(location)
+
+        #expect(viewModel.isGeocoding == true)
+        #expect(viewModel.locationAddress == "...")
+
+        viewModel.updateValue(nil, for: .location)
+
+        #expect(viewModel.fields.location == nil)
+        #expect(viewModel.isGeocoding == false)
+        #expect(viewModel.locationAddress == nil)
+    }
+
     @Test("Empty string fields produce NSNull in prepared output")
     func preparedFieldsNullCoercion() {
         viewModel.updateValue(.string(""), for: .make)

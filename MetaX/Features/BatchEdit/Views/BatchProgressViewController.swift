@@ -83,6 +83,7 @@ final class BatchProgressViewController: UIViewController, ViewModelObserving {
     private let totalCount: Int
     private var stackedLayer: UIView?
     private var actionMode: ActionMode = .cancel
+    private var isCancellationPending = false
 
     private var headerForegroundColor: UIColor {
         Theme.Colors.cardBackground
@@ -345,11 +346,15 @@ final class BatchProgressViewController: UIViewController, ViewModelObserving {
         detailLabel.isHidden = true
         progressView.isHidden = false
         progressView.setProgress(total > 0 ? Float(completed) / Float(total) : 0, animated: true)
-        configureActionButton(title: String(localized: .batchStop))
+        configureActionButton(
+            title: String(localized: .batchStop),
+            isEnabled: !isCancellationPending
+        )
         isModalInPresentation = true
     }
 
     private func updateFinishedState(_ result: BatchEditViewModel.BatchResult) {
+        isCancellationPending = false
         let processedCount = result.succeeded + result.failed
         headerIconView.image = finishedIcon(for: result)
         headerLabel.text = finishedTitle(for: result).uppercased()
@@ -413,7 +418,7 @@ final class BatchProgressViewController: UIViewController, ViewModelObserving {
         return (String(localized: .batchPartialSuccess(result.succeeded, totalCount)), errorHint)
     }
 
-    private func configureActionButton(title: String) {
+    private func configureActionButton(title: String, isEnabled: Bool = true) {
         var config = actionButton.configuration ?? .gray()
         config.title = title
         config.baseForegroundColor = Theme.Colors.text
@@ -422,12 +427,16 @@ final class BatchProgressViewController: UIViewController, ViewModelObserving {
         config.background.strokeWidth = 1.0
         config.background.cornerRadius = 0
         actionButton.configuration = config
-        actionButton.isEnabled = true
+        actionButton.isEnabled = isEnabled
+        actionButton.alpha = isEnabled ? 1 : 0.55
     }
 
     @objc private func actionTapped() {
         switch actionMode {
         case .cancel:
+            guard !isCancellationPending else { return }
+            isCancellationPending = true
+            configureActionButton(title: String(localized: .batchStop), isEnabled: false)
             onCancel?()
         case .close:
             onFinishAcknowledged?()

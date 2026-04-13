@@ -20,11 +20,6 @@ final class BatchChangeSummaryViewController: UIViewController, UITableViewDataS
         let rows: [Row]
     }
 
-    private struct SummarySection {
-        let title: String
-        let rows: [DetailCellModel]
-    }
-
     private enum DisplayRow {
         case header(String)
         case updateItem(DetailCellModel, isFirst: Bool, isLast: Bool)
@@ -39,15 +34,13 @@ final class BatchChangeSummaryViewController: UIViewController, UITableViewDataS
         on presenter: UIViewController
     ) async -> Bool {
         await withCheckedContinuation { continuation in
+            let onceGuard = OnceGuard(continuation, fallback: false)
             let vc = BatchChangeSummaryViewController(
                 titleText: title,
                 sections: sections,
                 confirmTitle: confirmTitle,
                 cancelTitle: cancelTitle
             )
-            vc.onDecision = { confirmed in
-                continuation.resume(returning: confirmed)
-            }
 
             let nav = UINavigationController(rootViewController: vc)
             if let sheet = nav.sheetPresentationController {
@@ -55,6 +48,18 @@ final class BatchChangeSummaryViewController: UIViewController, UITableViewDataS
                 sheet.prefersGrabberVisible = true
                 sheet.preferredCornerRadius = 20
             }
+
+            vc.onConfirm = { [weak nav] in
+                nav?.dismiss(animated: true) {
+                    onceGuard.resume(returning: true)
+                }
+            }
+            vc.onCancel = { [weak nav] in
+                nav?.dismiss(animated: true) {
+                    onceGuard.resume(returning: false)
+                }
+            }
+
             presenter.present(nav, animated: true)
         }
     }
@@ -63,8 +68,8 @@ final class BatchChangeSummaryViewController: UIViewController, UITableViewDataS
     private let confirmTitle: String
     private let cancelTitle: String
     private let displayRows: [DisplayRow]
-    private var onDecision: ((Bool) -> Void)?
-    private var didResolve = false
+    var onConfirm: (() -> Void)?
+    var onCancel: (() -> Void)?
 
     private let tableView: UITableView = {
         let tableView = UITableView(frame: .zero, style: .plain)
@@ -81,36 +86,19 @@ final class BatchChangeSummaryViewController: UIViewController, UITableViewDataS
         self.titleText = titleText
         self.confirmTitle = confirmTitle
         self.cancelTitle = cancelTitle
-        let displaySections: [SummarySection] = sections.map { sourceSection in
-            let isClearSection = sourceSection.rows.allSatisfy { $0.value == nil }
-            return SummarySection(
-                title: sourceSection.title,
-                rows: sourceSection.rows.map { row in
-                    DetailCellModel(
-                        prop: row.title,
-                        value: isClearSection ? "" : (row.value ?? "")
-                    )
-                }
-            )
-        }
-        displayRows = displaySections.flatMap { summarySection in
-            let isClearSection = summarySection.rows.allSatisfy(\.value.isEmpty)
-            let items = summarySection.rows.enumerated().map { index, row in
+        displayRows = sections.flatMap { section in
+            let isClearSection = section.rows.allSatisfy { $0.value == nil }
+            let items: [DisplayRow] = section.rows.enumerated().map { index, row in
+                let isFirst = index == 0
+                let isLast = index == section.rows.count - 1
                 if isClearSection {
-                    return DisplayRow.clearItem(
-                        row.prop,
-                        isFirst: index == 0,
-                        isLast: index == summarySection.rows.count - 1
-                    )
+                    return .clearItem(row.title, isFirst: isFirst, isLast: isLast)
                 } else {
-                    return DisplayRow.updateItem(
-                        row,
-                        isFirst: index == 0,
-                        isLast: index == summarySection.rows.count - 1
-                    )
+                    let model = DetailCellModel(prop: row.title, value: row.value ?? "")
+                    return .updateItem(model, isFirst: isFirst, isLast: isLast)
                 }
             }
-            return [.header(summarySection.title)] + items
+            return [.header(section.title)] + items
         }
         super.init(nibName: nil, bundle: nil)
     }
@@ -123,13 +111,6 @@ final class BatchChangeSummaryViewController: UIViewController, UITableViewDataS
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-    }
-
-    override func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
-        if !didResolve {
-            resolve(false)
-        }
     }
 
     private func setupUI() {
@@ -176,24 +157,11 @@ final class BatchChangeSummaryViewController: UIViewController, UITableViewDataS
     }
 
     @objc private func cancelTapped() {
-        didResolve = true
-        dismiss(animated: true) { [weak self] in
-            self?.resolve(false)
-        }
+        onCancel?()
     }
 
     @objc private func confirmTapped() {
-        didResolve = true
-        dismiss(animated: true) { [weak self] in
-            self?.resolve(true)
-        }
-    }
-
-    private func resolve(_ confirmed: Bool) {
-        let handler = onDecision
-        onDecision = nil
-        guard let handler else { return }
-        handler(confirmed)
+        onConfirm?()
     }
 
     func numberOfSections(in tableView: UITableView) -> Int {
