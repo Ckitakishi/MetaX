@@ -10,7 +10,7 @@ import UIKit
 
 /// A date field for batch editing.
 /// Displays a compact date picker, optionally gated by a batch-edit toggle.
-final class DateCardField: UIView {
+final class DateCardField: UIView, FieldToggleable {
 
     var onDateSet: ((Date) -> Void)?
     var onToggleEnabled: ((Bool) -> Void)?

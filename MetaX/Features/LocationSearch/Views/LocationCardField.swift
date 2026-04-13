@@ -9,8 +9,9 @@
 import MapKit
 import UIKit
 
-final class LocationCardField: UIView {
+final class LocationCardField: UIView, FieldToggleable, LocationFieldInteractable {
     var onToggleEnabled: ((Bool) -> Void)?
+    var onTapLocationField: (() -> Void)?
 
     private let showsToggle: Bool
     private var isFieldEnabled = true
@@ -86,6 +87,7 @@ final class LocationCardField: UIView {
             headerAnchor = self.label
         }
         addSubview(button)
+        button.addTarget(self, action: #selector(handleTap), for: .touchUpInside)
 
         button.addSubview(contentLabel)
         button.addSubview(midDivider)
@@ -169,6 +171,10 @@ final class LocationCardField: UIView {
         isFieldEnabled = enabled
         toggleHeader?.setEnabled(enabled)
         applyFieldEnabledState()
+    }
+
+    @objc private func handleTap() {
+        onTapLocationField?()
     }
 
     private func applyFieldEnabledState() {

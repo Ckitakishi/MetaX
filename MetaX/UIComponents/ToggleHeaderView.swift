@@ -22,6 +22,12 @@ final class ToggleHeaderView: UIView {
 
     private(set) var isEnabled = true
 
+    private let tapControl: UIControl = {
+        let control = UIControl()
+        control.translatesAutoresizingMaskIntoConstraints = false
+        return control
+    }()
+
     let label: UILabel = {
         let l = UILabel()
         l.font = Theme.Typography.footnote
@@ -54,19 +60,23 @@ final class ToggleHeaderView: UIView {
         stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
 
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(tapped))
-        stack.addGestureRecognizer(tapGesture)
-
-        addSubview(stack)
+        addSubview(tapControl)
+        tapControl.addSubview(stack)
         NSLayoutConstraint.activate([
             toggleButton.widthAnchor.constraint(equalToConstant: 16),
             toggleButton.heightAnchor.constraint(equalToConstant: 16),
+            tapControl.topAnchor.constraint(equalTo: topAnchor),
+            tapControl.leadingAnchor.constraint(equalTo: leadingAnchor),
+            tapControl.trailingAnchor.constraint(equalTo: trailingAnchor),
+            tapControl.bottomAnchor.constraint(equalTo: bottomAnchor),
             stack.topAnchor.constraint(equalTo: topAnchor),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stack.leadingAnchor.constraint(equalTo: tapControl.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: tapControl.trailingAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
 
+        tapControl.addTarget(self, action: #selector(tapped), for: .touchUpInside)
+        toggleButton.addTarget(self, action: #selector(tapped), for: .touchUpInside)
         updateAppearance()
     }
 
@@ -102,5 +112,6 @@ final class ToggleHeaderView: UIView {
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 9, weight: .bold)
         ) : nil
         toggleButton.configuration = config
+        tapControl.accessibilityTraits = isEnabled ? [.button, .selected] : .button
     }
 }

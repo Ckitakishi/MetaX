@@ -147,11 +147,9 @@ class MetadataFormViewController: UIViewController, UITextFieldDelegate,
         view.addSubview(scrollView)
         scrollView.addSubview(stackView)
 
-        (fieldViews[.location] as? LocationCardField)?.button.addTarget(
-            self,
-            action: #selector(searchLocation),
-            for: .touchUpInside
-        )
+        (fieldViews[.location] as? LocationFieldInteractable)?.onTapLocationField = { [weak self] in
+            self?.searchLocation()
+        }
 
         additionalFormSetup()
 

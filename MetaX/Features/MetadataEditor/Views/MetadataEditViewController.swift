@@ -71,14 +71,7 @@ final class MetadataEditViewController: MetadataFormViewController {
             case .location:
                 fieldViews[field] = LocationCardField(label: field.label)
             case .exposureProgram, .meteringMode, .whiteBalance, .flash:
-                let options: [ExifOption]
-                switch field {
-                case .exposureProgram: options = ExifPickerOptions.exposureProgram
-                case .meteringMode: options = ExifPickerOptions.meteringMode
-                case .whiteBalance: options = ExifPickerOptions.whiteBalance
-                default: options = ExifPickerOptions.flash
-                }
-                fieldViews[field] = FormPickerField(label: field.label, options: options)
+                fieldViews[field] = FormPickerField(label: field.label, options: field.exifOptions ?? [])
             default:
                 let isReadOnly = [.pixelWidth, .pixelHeight, .profileName].contains(field)
                 let formField = FormTextField(
@@ -121,16 +114,16 @@ final class MetadataEditViewController: MetadataFormViewController {
         observe(viewModel: viewModel, property: { $0.fields.focalLength35 }) { tf(.focalLength35)?.text = $0 }
 
         observe(viewModel: viewModel, property: { $0.fields.exposureProgram }) {
-            if let v = $0 { pf(.exposureProgram)?.select(rawValue: v) }
+            pf(.exposureProgram)?.setSelection(rawValue: $0)
         }
         observe(viewModel: viewModel, property: { $0.fields.meteringMode }) {
-            if let v = $0 { pf(.meteringMode)?.select(rawValue: v) }
+            pf(.meteringMode)?.setSelection(rawValue: $0)
         }
         observe(viewModel: viewModel, property: { $0.fields.whiteBalance }) {
-            if let v = $0 { pf(.whiteBalance)?.select(rawValue: v) }
+            pf(.whiteBalance)?.setSelection(rawValue: $0)
         }
         observe(viewModel: viewModel, property: { $0.fields.flash }) {
-            if let v = $0 { pf(.flash)?.select(rawValue: v) }
+            pf(.flash)?.setSelection(rawValue: $0)
         }
 
         observe(viewModel: viewModel, property: { $0.fields.artist }) { tf(.artist)?.text = $0 }

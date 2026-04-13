@@ -125,37 +125,19 @@ final class BatchMetadataEditViewController: MetadataFormViewController {
             switch field {
             case .dateTimeOriginal:
                 let dateCard = DateCardField(label: field.label, showsToggle: true)
-                dateCard.onToggleEnabled = { [weak self] isEnabled in
-                    self?.handleFieldToggle(isEnabled, for: .dateTimeOriginal)
-                }
                 dateCard.onDateSet = { [weak self] date in
                     self?.viewModel.updateValue(.date(date), for: .dateTimeOriginal)
                 }
                 fieldViews[field] = dateCard
             case .location:
-                let locationField = LocationCardField(label: field.label, showsToggle: true)
-                locationField.onToggleEnabled = { [weak self] isEnabled in
-                    self?.handleFieldToggle(isEnabled, for: .location)
-                }
-                fieldViews[field] = locationField
+                fieldViews[field] = LocationCardField(label: field.label, showsToggle: true)
             case .exposureProgram, .meteringMode, .whiteBalance, .flash:
-                let options: [ExifOption]
-                switch field {
-                case .exposureProgram: options = ExifPickerOptions.exposureProgram
-                case .meteringMode: options = ExifPickerOptions.meteringMode
-                case .whiteBalance: options = ExifPickerOptions.whiteBalance
-                default: options = ExifPickerOptions.flash
-                }
-                let pickerField = FormPickerField(
+                fieldViews[field] = FormPickerField(
                     label: field.label,
-                    options: options,
+                    options: field.exifOptions ?? [],
                     placeholderTitle: String(localized: .batchSelect),
                     showsToggle: true
                 )
-                pickerField.onToggleEnabled = { [weak self] isEnabled in
-                    self?.handleFieldToggle(isEnabled, for: field)
-                }
-                fieldViews[field] = pickerField
             default:
                 let formField = FormTextField(
                     label: field.label,
@@ -165,11 +147,15 @@ final class BatchMetadataEditViewController: MetadataFormViewController {
                     unit: field.unit,
                     showsToggle: true
                 )
-                formField.onToggleEnabled = { [weak self] isEnabled in
-                    self?.handleFieldToggle(isEnabled, for: field)
-                }
                 fieldViews[field] = formField
                 textFieldToField[formField.textField] = field
+            }
+
+            // Wire up toggle callback uniformly via FieldToggleable protocol
+            if let togglable = fieldViews[field] as? FieldToggleable {
+                togglable.onToggleEnabled = { [weak self] isEnabled in
+                    self?.handleFieldToggle(isEnabled, for: field)
+                }
             }
         }
     }
@@ -235,12 +221,12 @@ final class BatchMetadataEditViewController: MetadataFormViewController {
             pickerField.setFieldEnabled(isEnabled)
             if isEnabled {
                 if let rawValue = pickerValue(for: field) {
-                    pickerField.select(rawValue: rawValue)
+                    pickerField.setSelection(rawValue: rawValue)
                 } else {
-                    pickerField.clearSelection()
+                    pickerField.setSelection(rawValue: nil)
                 }
             } else {
-                pickerField.clearSelection()
+                pickerField.setSelection(rawValue: nil)
             }
         default:
             guard let textField = fieldViews[field] as? FormTextField else { return }
@@ -266,7 +252,7 @@ final class BatchMetadataEditViewController: MetadataFormViewController {
         case let .string(text):
             return text
         case let .double(number):
-            return number.truncatingRemainder(dividingBy: 1) == 0
+            return abs(number.truncatingRemainder(dividingBy: 1)) < 1e-9
                 ? String(format: "%.0f", number)
                 : String(format: "%.1f", number)
         case let .int(number):
@@ -283,20 +269,6 @@ final class BatchMetadataEditViewController: MetadataFormViewController {
     }
 
     private func pickerDisplayName(for field: MetadataField, rawValue: Int) -> String? {
-        let options: [ExifOption]
-        switch field {
-        case .exposureProgram:
-            options = ExifPickerOptions.exposureProgram
-        case .meteringMode:
-            options = ExifPickerOptions.meteringMode
-        case .whiteBalance:
-            options = ExifPickerOptions.whiteBalance
-        case .flash:
-            options = ExifPickerOptions.flash
-        default:
-            return nil
-        }
-
-        return options.first(where: { $0.rawValue == rawValue })?.displayName
+        field.exifOptions?.first { $0.rawValue == rawValue }?.displayName
     }
 }

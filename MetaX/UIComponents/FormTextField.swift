@@ -9,7 +9,7 @@
 import UIKit
 
 /// A custom form field that displays a title, a text field, and an optional character counter.
-final class FormTextField: UIView {
+final class FormTextField: UIView, FieldToggleable {
 
     // MARK: - Properties
 

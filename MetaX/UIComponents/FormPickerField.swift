@@ -73,7 +73,7 @@ enum ExifPickerOptions {
 }
 
 /// A custom form field that displays a title and a button which opens a picker menu.
-final class FormPickerField: UIView {
+final class FormPickerField: UIView, FieldToggleable {
 
     // MARK: - Properties
 
@@ -169,7 +169,7 @@ final class FormPickerField: UIView {
 
     // MARK: - Public Methods
 
-    func select(rawValue: Int) {
+    func setSelection(rawValue: Int) {
         selectedRawValue = rawValue
         let name = options.first(where: { $0.rawValue == rawValue })?.displayName ?? "\(rawValue)"
 
@@ -180,12 +180,15 @@ final class FormPickerField: UIView {
         config.attributedTitle = AttributedString(name, attributes: attrs)
         button.configuration = config
 
-        onValueChanged?()
     }
 
-    func clearSelection(placeholderTitle: String? = nil) {
-        selectedRawValue = nil
-        applyPlaceholder(titleOverride: placeholderTitle)
+    func setSelection(rawValue: Int?, placeholderTitle: String? = nil) {
+        if let rawValue {
+            setSelection(rawValue: rawValue)
+        } else {
+            selectedRawValue = nil
+            applyPlaceholder(titleOverride: placeholderTitle)
+        }
     }
 
     func setLabelHidden(_ hidden: Bool) {
@@ -218,7 +221,8 @@ final class FormPickerField: UIView {
     private func buildMenu() -> UIMenu {
         let actions = options.map { option in
             UIAction(title: option.displayName) { [weak self] _ in
-                self?.select(rawValue: option.rawValue)
+                self?.setSelection(rawValue: option.rawValue)
+                self?.onValueChanged?()
             }
         }
         return UIMenu(children: actions)

@@ -194,6 +194,16 @@ enum MetadataField: CaseIterable, Sendable, Hashable {
         }
     }
 
+    var exifOptions: [ExifOption]? {
+        switch self {
+        case .exposureProgram: return ExifPickerOptions.exposureProgram
+        case .meteringMode: return ExifPickerOptions.meteringMode
+        case .whiteBalance: return ExifPickerOptions.whiteBalance
+        case .flash: return ExifPickerOptions.flash
+        default: return nil
+        }
+    }
+
     var placeholder: String? {
         switch self {
         case .artist: return "e.g. \(AppConstants.appName)"
