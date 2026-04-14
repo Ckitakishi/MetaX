@@ -3986,19 +3986,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Review Batch Changes"
+            "value": "Confirm Changes"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "一括変更の確認"
+            "value": "変更を確認"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "确认批量修改"
+            "value": "确认更改"
           }
         }
       }

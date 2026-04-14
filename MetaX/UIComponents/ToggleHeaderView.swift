@@ -10,7 +10,7 @@ import UIKit
 
 /// A reusable header view with a label and optional checkbox toggle.
 /// Used by form field components to support batch-edit toggle behavior.
-final class ToggleHeaderView: UIView {
+final class ToggleHeaderView: UIControl {
 
     static func make(text: String, onToggle: @escaping (Bool) -> Void) -> ToggleHeaderView {
         let header = ToggleHeaderView(text: text)
@@ -20,13 +20,10 @@ final class ToggleHeaderView: UIView {
 
     var onToggle: ((Bool) -> Void)?
 
-    private(set) var isEnabled = true
+    private(set) var isChecked = true
 
-    private let tapControl: UIControl = {
-        let control = UIControl()
-        control.translatesAutoresizingMaskIntoConstraints = false
-        return control
-    }()
+    private let toggleSize: CGFloat = 20
+    private let verticalHitOutset: CGFloat = 12
 
     let label: UILabel = {
         let l = UILabel()
@@ -60,22 +57,16 @@ final class ToggleHeaderView: UIView {
         stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
 
-        addSubview(tapControl)
-        tapControl.addSubview(stack)
+        addSubview(stack)
         NSLayoutConstraint.activate([
-            toggleButton.widthAnchor.constraint(equalToConstant: 16),
-            toggleButton.heightAnchor.constraint(equalToConstant: 16),
-            tapControl.topAnchor.constraint(equalTo: topAnchor),
-            tapControl.leadingAnchor.constraint(equalTo: leadingAnchor),
-            tapControl.trailingAnchor.constraint(equalTo: trailingAnchor),
-            tapControl.bottomAnchor.constraint(equalTo: bottomAnchor),
+            toggleButton.widthAnchor.constraint(equalToConstant: toggleSize),
+            toggleButton.heightAnchor.constraint(equalToConstant: toggleSize),
             stack.topAnchor.constraint(equalTo: topAnchor),
-            stack.leadingAnchor.constraint(equalTo: tapControl.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: tapControl.trailingAnchor),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
 
-        tapControl.addTarget(self, action: #selector(tapped), for: .touchUpInside)
         toggleButton.addTarget(self, action: #selector(tapped), for: .touchUpInside)
         updateAppearance()
     }
@@ -88,30 +79,52 @@ final class ToggleHeaderView: UIView {
     // MARK: - Public
 
     func setEnabled(_ enabled: Bool) {
-        isEnabled = enabled
+        isChecked = enabled
         updateAppearance()
+    }
+
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        let expandedBounds = bounds.insetBy(dx: 0, dy: -verticalHitOutset)
+        return expandedBounds.contains(point)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else {
+            super.touchesEnded(touches, with: event)
+            return
+        }
+        if touch.view === toggleButton {
+            super.touchesEnded(touches, with: event)
+            return
+        }
+        let touchPoint = touch.location(in: self)
+        guard point(inside: touchPoint, with: event) else {
+            super.touchesEnded(touches, with: event)
+            return
+        }
+        tapped()
     }
 
     // MARK: - Private
 
     @objc private func tapped() {
-        isEnabled.toggle()
+        isChecked.toggle()
         updateAppearance()
-        onToggle?(isEnabled)
+        onToggle?(isChecked)
     }
 
     private func updateAppearance() {
         var config = toggleButton.configuration ?? .plain()
-        config.baseForegroundColor = isEnabled ? .white : Theme.Colors.border
-        config.background.backgroundColor = isEnabled ? Theme.Colors.accent : .clear
-        config.background.strokeColor = isEnabled ? Theme.Colors.accent : .secondaryLabel.withAlphaComponent(0.7)
+        config.baseForegroundColor = isChecked ? .white : Theme.Colors.border
+        config.background.backgroundColor = isChecked ? Theme.Colors.accent : .clear
+        config.background.strokeColor = isChecked ? Theme.Colors.accent : .secondaryLabel.withAlphaComponent(0.7)
         config.background.strokeWidth = 1.0
         config.background.cornerRadius = 2
-        config.image = isEnabled ? UIImage(
+        config.image = isChecked ? UIImage(
             systemName: "checkmark",
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 9, weight: .bold)
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .bold)
         ) : nil
         toggleButton.configuration = config
-        tapControl.accessibilityTraits = isEnabled ? [.button, .selected] : .button
+        accessibilityTraits = isChecked ? [.button, .selected] : .button
     }
 }

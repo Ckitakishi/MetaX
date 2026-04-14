@@ -72,8 +72,9 @@ final class BatchMetadataEditViewController: MetadataFormViewController {
     }
 
     override func shouldProceedWithSave(fields: [MetadataField: MetadataFieldValue]) async -> Bool {
-        let updatedFields = viewModel.fieldsMarkedForUpdate(in: fields)
-        let clearedFields = viewModel.fieldsMarkedForClearing(in: fields)
+        let fieldOrder = formSections.flatMap(\.fields)
+        let updatedFields = orderedBatchFields(viewModel.fieldsMarkedForUpdate(in: fields), by: fieldOrder)
+        let clearedFields = orderedBatchFields(viewModel.fieldsMarkedForClearing(in: fields), by: fieldOrder)
         guard !updatedFields.isEmpty || !clearedFields.isEmpty else { return true }
 
         var sections: [BatchChangeSummaryViewController.Section] = []
@@ -108,6 +109,15 @@ final class BatchMetadataEditViewController: MetadataFormViewController {
             cancelTitle: String(localized: .alertCancel),
             on: self
         )
+    }
+
+    private func orderedBatchFields(_ fields: [MetadataField], by fieldOrder: [MetadataField]) -> [MetadataField] {
+        let indices = Dictionary(uniqueKeysWithValues: fieldOrder.enumerated().map { ($0.element, $0.offset) })
+        return fields.sorted { lhs, rhs in
+            let lhsIndex = indices[lhs] ?? .max
+            let rhsIndex = indices[rhs] ?? .max
+            return lhsIndex < rhsIndex
+        }
     }
 
     // MARK: - Field Setup
